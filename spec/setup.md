@@ -30,4 +30,17 @@ In web browser, open [`https://golang.org/dl/`](https://golang.org/dl/), and dow
 
 ### Cleanup after session
 
+Check if all changes are committed:
+```bash
+cd $GOPATH/project-eirik-op
+git diff
+```
+If needed, commit changes. Beware of untracked files!
 
+Delete the local files and verify:
+```
+cd $GOPATH
+rm project-eirik-op
+ls
+```
+Log out of everything.
