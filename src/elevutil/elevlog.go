@@ -1,4 +1,6 @@
-go get github.com/op/go-logging
+package elevutil
+
+/*go get github.com/op/go-logging
 
 
-log "github.com/sirupsen/logrus"
+log "github.com/sirupsen/logrus"*/
