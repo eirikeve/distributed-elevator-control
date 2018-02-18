@@ -21,11 +21,11 @@ type Elevorder struct {
 	Id string
 	// Floor & order type
 	Order ButtonEvent
-	// Timestamp at order creation
+	// Timestamp at order creation [UNIX timestamp]
 	TimestampCreations int64
 	// Current status of order
 	Status OrderStatus
-	// Last update of order
+	// Last update of order [UNIX timestamp]
 	TimestampOrderChange int64
 	// Assigned to elev @ IP
 	Assignee string
