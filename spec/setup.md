@@ -12,7 +12,7 @@ cd $HOME
 mkdir go
 cd go
 git clone https://www.github.com/TTK4145/project-eirik-op.git
-xdg.open ~/.bashrc
+xdg-open ~/.bashrc
 ```
 Add 
 ```
