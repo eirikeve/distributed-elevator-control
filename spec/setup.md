@@ -43,7 +43,8 @@ If needed, commit changes. Beware of untracked files!
 Delete the local files and verify:
 ```
 cd $GOPATH
-rm project-eirik-op
+rm -rf project-eirik-op
+rm -rf ~/.local/share/Trash/*
 ls
 ```
 Log out of everything.
