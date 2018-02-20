@@ -23,6 +23,9 @@ to .bashrc
 
 Reopen terminal, run `go env` to verify GOPATH
 
+In `VS Code`:  
+Add `"go.docsTool": "gogetdoc"` to the User Settings, to avoid the annoying Godoc warning.
+
 __Alternative if__ `apt.get install golang-go` __fails:__ 
 In web browser, open [`https://golang.org/dl/`](https://golang.org/dl/), and download go.
 
