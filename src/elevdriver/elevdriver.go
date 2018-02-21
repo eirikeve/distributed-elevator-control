@@ -55,6 +55,8 @@ func Driver(
 	shutdown := make(chan bool, 10)
 	runDriver := true
 
+	// Turn off lights here @todo
+
 	// Outputs from driver to handler
 	go PollButtons(buttonPressSensorOut, shutdown, wg)
 	go PollFloorSensor(floorSensorOut, shutdown, wg)
