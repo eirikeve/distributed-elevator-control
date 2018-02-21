@@ -41,7 +41,7 @@ func SetMotorDirection(dir elevtype.MotorDirection) {
 }
 
 func SetButtonLamp(b elevtype.ButtonLamp) {
-	// changed the input args, may be a bug here @todo
+	// changed the input args, may be a bug here
 	floor := b.Floor
 	button := b.Button
 	value := b.Value
