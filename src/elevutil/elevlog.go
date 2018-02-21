@@ -6,52 +6,41 @@ package elevutil
 log "github.com/sirupsen/logrus"*/
 
 import (
-	/*"os"
+	"os"
 	"strconv"
-	"time"*/
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	initLog()
-}
-
-func initLog() {
-	// Set name of current log output to the current UNIX timestamp
-	// Can also write to syslog if we want, but doubt it is neecessary
-	/*filename := strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
-	logFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0755)
-	if err != nil {
-		println("Could not open log file destination file")
-	}
-	log.SetOutput(logFile)
-	// Only log info or higher to file*/
-
-	log.SetLevel(log.DebugLevel)
-
-	/*
-			General log call:
+/*
+ * Setup for logrus
+ * @arg level: is the level of severity which is registered in the log. Goes from 0 (PanicLevel; log ~nothing) to 5 (DebugLevel; log everything)
+ * @arg toFile: If true, log to a file with filename <current UNIX timestamp>.elevlog, if false, log to stdout
+ */
+func initLog(level log.Level, toFile bool) {
+	if toFile {
+		// Set name of current log output to the current UNIX timestamp
+		filename := strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
+		logFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0755)
+		if err != nil {
+			// Could not open file
 			log.WithFields(log.Fields{
-		  		"event": event,
-		  		"topic": topic,
-		  		"key": key,
-			}).Fatal("Failed to send event")
+				"Error": err.Error(),
+			}).Error("initLog: Could not open log output file. Defaulting to bash output.")
+		} else {
+			log.SetOutput(logFile)
+		}
+	}
+	if log.PanicLevel <= level && level <= log.DebugLevel {
+		log.SetLevel(level)
+	} else {
+		// Invalid level input
+		log.SetLevel(log.InfoLevel)
+		log.WithFields(log.Fields{
+			"Log level": level,
+		}).Warning("initLog: Invalid log level input. Defaulting to log.InfoLevel")
+	}
+	// @ Todo make some way to close the log file
 
-			Levels:
-
-			log.Debug("Useful debugging information.")
-			log.Info("Something noteworthy happened!")
-			log.Warn("You should probably take a look at this.")
-			log.Error("Something failed but I'm not quitting.")
-			// Calls os.Exit(1) after logging
-			log.Fatal("Bye.")
-			// Calls panic() after logging
-			log.Panic("I'm bailing.")
-
-
-			Important concent: contextLogger
-	*/
-
-	//
 }
