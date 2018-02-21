@@ -19,14 +19,13 @@ type HeartbeatMessage struct{
 
 type Peer struct{
 	ID HeartbeatMessage `json:"ID"`
-	lastSeen time.Time  `json:"lastSeen"`
+	ReceiveTime time.Time `json:"ReceiveTime"`
 }
 
 // ***GLOBAL VARIABLES***
 
 // List of Peer members of the Network, by IP
-var listPeers[] HeartbeatMessage
-
+var listPeers[] Peer
 // List containg information about last Heartbeat Message received by Peer members
 // ***FUNCTIONS***
 
@@ -67,7 +66,7 @@ func runHeartBeat(port int){
 	sendMsgCh := make(chan HeartbeatMessage,2)
 	recvMsgCh := make(chan HeartbeatMessage,2)
 
-	for time.Now().Sub(starttime) < time.Second*3{
+	for time.Now().Sub(starttime) < time.Second*4{
 	
 
 	go udpSendHeartBeat(port, sendMsgCh)
@@ -78,37 +77,59 @@ func runHeartBeat(port int){
 	jsonMsg,_ := json.Marshal(msg)
 	println("Heartbeat Message:" + string(jsonMsg))
 	
-	addtoPeerList(msg,&listPeers)
+	updateToPeerList(msg,&listPeers,listPeers)
 	
 	}
+
+	//Print to see if listPeers is correct
 	println("Loop completed!")
 	for _,element :=range listPeers{
 		peerJsonMsg,_ := json.Marshal(element)
-		println("Current Peers ID: " + string(peerJsonMsg))
+		println(string(peerJsonMsg))
 	}
+
+	
 	
 	
 }
 
-// Adds new members of the P2P network if received new IP-address
+// Updates the P2P network,
+// Add new received IP-address
+// Update timestap from received messages
 // @arg msg: Contains the Heartbeat Message that was received
-// @arg list: Contains the list of already exsisting members of the network
-func addtoPeerList(msg HeartbeatMessage, list* []HeartbeatMessage){
+// @arg, @arg pointerList, List: Contains the list of already exsisting members of the network
+// Ops: The same list is taken as two different parameters to acheive call-by-reference for indexing and appending
+func updateToPeerList(msg HeartbeatMessage, pointerList* []Peer, list []Peer){
+
+	//Add new elements and update timestap from received messages
 	addElement := true
-	if(*list == nil){
-		*list = append(*list,msg)
+	currentPeer:= Peer{msg,time.Now()}
+	if(*pointerList == nil){
+		
+		*pointerList = append(*pointerList,currentPeer)
 	}else{
-		for _,element :=range *list{
-			if (element == msg){
+		for index,element :=range *pointerList{
+			if (element.ID == msg){
 				addElement = false
+				list[index].ReceiveTime = time.Now()
 				break
 				
 			}
 		}
 		if (addElement){
-			*list = append(*list,msg)
+			*pointerList = append(*pointerList,currentPeer)
+		}
+	}
+
+	//Remove P2P members, that we have not got any response from within HARTBEATTIMEOUT
+	// OPS what happen with index and element if one P2P connection is removed?!?!?
+	for index,element := range list{
+		if time.Now().Sub(element.ReceiveTime) >= HEARTBEATTIMEOUT{
+			*pointerList = append(list[:index],list[index+1:]...)
 		}
 	}
 }
+
+
 
 
