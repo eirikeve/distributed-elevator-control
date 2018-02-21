@@ -6,6 +6,7 @@ import (
 	"./localip"
 	"encoding/json"
 	)
+// Constants
 const HEARTBEATINTERVAL = 300*time.Millisecond
 const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
 
@@ -16,7 +17,19 @@ type HeartbeatMessage struct{
 	LocalIP string `json:"LocalIP"` 	
 }
 
+type Peer struct{
+	ID HeartbeatMessage `json:"ID"`
+	lastSeen time.Time  `json:"lastSeen"`
+}
+
+// ***GLOBAL VARIABLES***
+
+// List of Peer members of the Network, by IP
 var listPeers[] HeartbeatMessage
+
+// List containg information about last Heartbeat Message received by Peer members
+// ***FUNCTIONS***
+
 // Transmits a heartbeat containing a HeartbeatMessage for each HEARTBEATINTERVAL
 //@arg port: Transmit on given port
 func udpSendHeartBeat(port int, transMsgCh chan HeartbeatMessage){
@@ -51,7 +64,6 @@ func udpRecvHeartBeat(port int, recvMsgCh chan HeartbeatMessage){
 
 func runHeartBeat(port int){
 	starttime := time.Now()
-
 	sendMsgCh := make(chan HeartbeatMessage,2)
 	recvMsgCh := make(chan HeartbeatMessage,2)
 
@@ -65,17 +77,10 @@ func runHeartBeat(port int){
 	msg := <- recvMsgCh	
 	jsonMsg,_ := json.Marshal(msg)
 	println("Heartbeat Message:" + string(jsonMsg))
-	if listPeers != nil{
 	
-	for _,element :=range listPeers{
-		if (element != msg){
-			listPeers = append(listPeers,msg)
-		}
+	addtoPeerList(msg,&listPeers)
+	
 	}
-	}else {
-		listPeers = append(listPeers,msg)
-	}
-}
 	println("Loop completed!")
 	for _,element :=range listPeers{
 		peerJsonMsg,_ := json.Marshal(element)
@@ -84,3 +89,26 @@ func runHeartBeat(port int){
 	
 	
 }
+
+// Adds new members of the P2P network if received new IP-address
+// @arg msg: Contains the Heartbeat Message that was received
+// @arg list: Contains the list of already exsisting members of the network
+func addtoPeerList(msg HeartbeatMessage, list* []HeartbeatMessage){
+	addElement := true
+	if(*list == nil){
+		*list = append(*list,msg)
+	}else{
+		for _,element :=range *list{
+			if (element == msg){
+				addElement = false
+				break
+				
+			}
+		}
+		if (addElement){
+			*list = append(*list,msg)
+		}
+	}
+}
+
+
