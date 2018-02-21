@@ -25,6 +25,7 @@ const elevatorAddress = "127.0.0.1"
  * @arg stopDriver: Input channel for signalling the driver to stop itself and its spawned GoRoutines
  * @arg numFloors: m floors. Max floor output for signals is set to numFloors.
  * @arg handlerWg: Handler's WaitGroup, for ensuring that Driver exits properly before Handler finishes shutdown
+ *					can be nil if not used.
  */
 func Driver(
 	directionInput <-chan elevtype.MotorDirection,
@@ -41,8 +42,10 @@ func Driver(
 	handlerWg *sync.WaitGroup,
 ) {
 	// ElevHandler WG for synchronization upon exit
-	handlerWg.Add(1)
-	defer handlerWg.Done()
+	if handlerWg != nil {
+		handlerWg.Add(1)
+		defer handlerWg.Done()
+	}
 
 	log.Debug("elevdriver Driver: Init connection")
 	Init(elevatorAddress, numFloors)
