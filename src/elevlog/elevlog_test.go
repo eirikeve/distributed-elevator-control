@@ -1,4 +1,4 @@
-package elevutil
+package elevlog
 
 import (
 	"testing"
