@@ -1,3 +1,3 @@
-package elevconst
+package elevconstants
 
 //Definitions of constants
