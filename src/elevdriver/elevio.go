@@ -29,7 +29,7 @@ func Init(addr string, numFloors int) {
 	var err error
 	_conn, err = net.Dial("tcp", addr)
 	if err != nil {
-		panic(err.Error())
+		log.WithField("Err", err.Error()).Fatal("elevdriver Init: Cannot establish conn")
 	}
 	_initialized = true
 }
@@ -40,7 +40,11 @@ func SetMotorDirection(dir elevtype.MotorDirection) {
 	_conn.Write([]byte{1, byte(dir), 0, 0})
 }
 
-func SetButtonLamp(button elevtype.ButtonType, floor int, value bool) {
+func SetButtonLamp(b elevtype.ButtonLamp) {
+	// changed the input args, may be a bug here @todo
+	floor := b.Floor
+	button := b.Button
+	value := b.Value
 	if 1 <= floor && floor <= _numFloors {
 		_mtx.Lock()
 		defer _mtx.Unlock()
@@ -48,7 +52,6 @@ func SetButtonLamp(button elevtype.ButtonType, floor int, value bool) {
 	} else {
 		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver SetButtonLamp: Invalid floor")
 	}
-
 }
 
 func SetFloorIndicator(floor int) {
@@ -74,9 +77,16 @@ func SetStopLamp(value bool) {
 	_conn.Write([]byte{5, toByte(value), 0, 0})
 }
 
-func PollButtons(receiver chan<- elevtype.ButtonEvent) {
+func PollButtons(receiver chan<- elevtype.ButtonEvent, shutdown <-chan bool, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 	prev := make([][3]bool, _numFloors)
 	for {
+		select {
+		case _ = <-shutdown:
+			return
+		}
+
 		time.Sleep(_pollRate)
 		for f := 0; f < _numFloors; f++ {
 			for b := elevtype.ButtonType(0); b < 3; b++ {
@@ -87,25 +97,40 @@ func PollButtons(receiver chan<- elevtype.ButtonEvent) {
 				}
 				prev[f][b] = v
 			}
+
 		}
 	}
 }
 
-func PollFloorSensor(receiver chan<- int) {
+func PollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 	prev := -1
 	for {
+		select {
+		case _ = <-shutdown:
+			return
+		}
+
 		time.Sleep(_pollRate)
 		v := getFloor()
-		if v != prev && v != -1 {
+		if v != prev && v != -1 && 1 <= v && v <= _numFloors {
 			receiver <- v
 		}
 		prev = v
 	}
 }
 
-func PollStopButton(receiver chan<- bool) {
+func PollStopButton(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 	prev := false
 	for {
+		select {
+		case _ = <-shutdown:
+			return
+		}
+
 		time.Sleep(_pollRate)
 		v := getStop()
 		if v != prev {
@@ -115,15 +140,23 @@ func PollStopButton(receiver chan<- bool) {
 	}
 }
 
-func PollObstructionSwitch(receiver chan<- bool) {
+func PollObstructionSwitch(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
 	prev := false
 	for {
+		select {
+		case _ = <-shutdown:
+			return
+		}
+
 		time.Sleep(_pollRate)
 		v := getObstruction()
 		if v != prev {
 			receiver <- v
 		}
 		prev = v
+
 	}
 }
 
@@ -187,4 +220,17 @@ func toBool(a byte) bool {
 		b = true
 	}
 	return b
+}
+
+func fill(a chan<- bool, val bool) {
+	for {
+		select {
+		case a <- val:
+			// do nothing
+			continue
+		default:
+			// a is filled
+			return
+		}
+	}
 }
