@@ -7,8 +7,10 @@ Elevio contains io drivers from https://github.com/TTK4145/driver-go/blob/master
 import "time"
 import "sync"
 import "net"
-import "fmt"
+
 import "../elevtype"
+
+import log "github.com/sirupsen/logrus"
 
 const _pollRate = 20 * time.Millisecond
 
@@ -19,7 +21,7 @@ var _conn net.Conn
 
 func Init(addr string, numFloors int) {
 	if _initialized {
-		fmt.Println("Driver already initialized!")
+		log.Warning("elevdriver Init: Driver already initialized")
 		return
 	}
 	_numFloors = numFloors
@@ -39,15 +41,25 @@ func SetMotorDirection(dir elevtype.MotorDirection) {
 }
 
 func SetButtonLamp(button elevtype.ButtonType, floor int, value bool) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{2, byte(button), byte(floor), toByte(value)})
+	if 1 <= floor && floor <= _numFloors {
+		_mtx.Lock()
+		defer _mtx.Unlock()
+		_conn.Write([]byte{2, byte(button), byte(floor), toByte(value)})
+	} else {
+		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver SetButtonLamp: Invalid floor")
+	}
+
 }
 
 func SetFloorIndicator(floor int) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{3, byte(floor), 0, 0})
+	if 1 <= floor && floor <= _numFloors {
+		_mtx.Lock()
+		defer _mtx.Unlock()
+		_conn.Write([]byte{3, byte(floor), 0, 0})
+	} else {
+		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver SetFloorIndicator: Invalid floor")
+	}
+
 }
 
 func SetDoorOpenLamp(value bool) {
@@ -70,6 +82,7 @@ func PollButtons(receiver chan<- elevtype.ButtonEvent) {
 			for b := elevtype.ButtonType(0); b < 3; b++ {
 				v := getButton(b, f)
 				if v != prev[f][b] && v != false {
+					// This might get stuck here. Use Select? @todo
 					receiver <- elevtype.ButtonEvent{f, elevtype.ButtonType(b)}
 				}
 				prev[f][b] = v
@@ -115,12 +128,18 @@ func PollObstructionSwitch(receiver chan<- bool) {
 }
 
 func getButton(button elevtype.ButtonType, floor int) bool {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{6, byte(button), byte(floor), 0})
-	var buf [4]byte
-	_conn.Read(buf[:])
-	return toBool(buf[1])
+	if 1 <= floor && floor <= _numFloors {
+		_mtx.Lock()
+		defer _mtx.Unlock()
+		_conn.Write([]byte{6, byte(button), byte(floor), 0})
+		var buf [4]byte
+		_conn.Read(buf[:])
+		return toBool(buf[1])
+	} else {
+		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver getButton: Invalid floor, returning false")
+		return false
+	}
+
 }
 
 func getFloor() int {
