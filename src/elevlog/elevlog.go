@@ -18,7 +18,7 @@ import (
  * @arg level: is the level of severity which is registered in the log. Goes from 0 (PanicLevel; log ~nothing) to 5 (DebugLevel; log everything)
  * @arg toFile: If true, log to a file with filename <current UNIX timestamp>.elevlog, if false, log to stdout
  */
-func initLog(level log.Level, toFile bool) {
+func InitLog(level log.Level, toFile bool) {
 	if toFile {
 		// Set name of current log output to the current UNIX timestamp
 		filename := strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
