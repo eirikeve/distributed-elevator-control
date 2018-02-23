@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	)
 // Constants
-const HEARTBEATINTERVAL = 50*time.Millisecond
+const HEARTBEATINTERVAL = 300*time.Millisecond
 const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
 
 
@@ -78,7 +78,6 @@ func runHeartBeat(port int){
 			lastTranmissionTime =time.Now()
 
 		}
-		//time.Sleep(HEARTBEATINTERVAL)
 		
 		select{
 			case msg := <-recvMsgCh:
