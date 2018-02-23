@@ -14,8 +14,8 @@ import log "github.com/sirupsen/logrus"
 
 const _pollRate = 20 * time.Millisecond
 
-var _initialized bool = false
-var _numFloorsElevator int = stdNumFloorsElevator
+var _initialized = false
+var _numFloorsElevator = stdNumFloorsElevator
 var _mtx sync.Mutex
 var _conn net.Conn
 
@@ -45,7 +45,7 @@ func SetButtonLamp(b elevtype.ButtonLamp) {
 	floor := b.Floor
 	button := b.Button
 	value := b.Value
-	if 1 <= floor && floor <= _numFloorsElevator {
+	if 0 <= floor && floor < _numFloorsElevator {
 		_mtx.Lock()
 		defer _mtx.Unlock()
 		_conn.Write([]byte{2, byte(button), byte(floor), toByte(value)})
@@ -55,7 +55,7 @@ func SetButtonLamp(b elevtype.ButtonLamp) {
 }
 
 func SetFloorIndicator(floor int) {
-	if 1 <= floor && floor <= _numFloorsElevator {
+	if 0 <= floor && floor < _numFloorsElevator {
 		_mtx.Lock()
 		defer _mtx.Unlock()
 		_conn.Write([]byte{3, byte(floor), 0, 0})
@@ -85,17 +85,19 @@ func PollButtons(receiver chan<- elevtype.ButtonEvent, shutdown <-chan bool, wg 
 		select {
 		case _ = <-shutdown:
 			return
-		}
+		default:
+			time.Sleep(_pollRate)
+			for f := 0; f < _numFloorsElevator; f++ {
+				for b := elevtype.ButtonType(0); b < 3; b++ {
+					v := getButton(b, f)
+					if v != prev[f][b] && v != false {
+						// This might get stuck here. Use Select? @todo
 
-		time.Sleep(_pollRate)
-		for f := 0; f < _numFloorsElevator; f++ {
-			for b := elevtype.ButtonType(0); b < 3; b++ {
-				v := getButton(b, f)
-				if v != prev[f][b] && v != false {
-					// This might get stuck here. Use Select? @todo
-					receiver <- elevtype.ButtonEvent{f, elevtype.ButtonType(b)}
+						receiver <- elevtype.ButtonEvent{f, elevtype.ButtonType(b)}
+					}
+					prev[f][b] = v
 				}
-				prev[f][b] = v
+
 			}
 
 		}
@@ -110,14 +112,15 @@ func PollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGro
 		select {
 		case _ = <-shutdown:
 			return
+		default:
+			time.Sleep(_pollRate)
+			v := getFloor()
+			if v != prev && v != -1 && 0 <= v && v < _numFloorsElevator {
+				receiver <- v
+			}
+			prev = v
 		}
 
-		time.Sleep(_pollRate)
-		v := getFloor()
-		if v != prev && v != -1 && 1 <= v && v <= _numFloorsElevator {
-			receiver <- v
-		}
-		prev = v
 	}
 }
 
@@ -161,7 +164,7 @@ func PollObstructionSwitch(receiver chan<- bool, shutdown <-chan bool, wg *sync.
 }
 
 func getButton(button elevtype.ButtonType, floor int) bool {
-	if 1 <= floor && floor <= _numFloorsElevator {
+	if 0 <= floor && floor < _numFloorsElevator {
 		_mtx.Lock()
 		defer _mtx.Unlock()
 		_conn.Write([]byte{6, byte(button), byte(floor), 0})
