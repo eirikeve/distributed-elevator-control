@@ -4,18 +4,24 @@ package elevdriver
 elevdriver.go contains abstractions for methods from elevio.go
 */
 
-import "../elevtype"
-import "sync"
-import log "github.com/sirupsen/logrus"
+import (
+	"sync"
+	"time"
 
-const elevatorAddress = "127.0.0.1"
+	"../elevtype"
+
+	log "github.com/sirupsen/logrus"
+)
+
+const elevatorAddress = "127.0.0.1:15657" // port taken from c driver
 const stdNumFloorsElevator = 4
+const timeWaitForDriverToStartMs = 20
 
 var wg = &sync.WaitGroup{}
 var stopDriverChan = make(chan bool)
 var initialized = false
 
-/* StartDriver(.) creates a (singleton) driver instance running on a separate thread.
+/*StartDriver creates a (singleton) driver instance running on a separate thread.
  * The driver uses channels to set Elevator parameters (Input chans),
  * and output elevator sensor information (Out chans).
  * Can be called directly - not necessary to call as a GoRoutine.
@@ -53,7 +59,7 @@ func StartDriver(
 	}
 	// Reinitialize variables to make sure wg is cleared and chan is empty
 	// wg is for ensuring driver's goroutines are stopped before StopDriver exits
-	wg = &sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 	stopDriverChan = make(chan bool)
 
 	// Assert valid number of floors
@@ -75,13 +81,16 @@ func StartDriver(
 		//stopButtonSensorOut,
 		//obstructionSensorOut,
 		stopDriverChan,
-		wg,
+		&wg,
 	)
 	initialized = true
+	time.Sleep(time.Millisecond * timeWaitForDriverToStartMs)
+
 	log.Debug("elevdriver StartDriver: Driver started")
+	return
 }
 
-/* StopDriver() stops the running driver instance
+/*StopDriver stops the running driver instance
  * Can be called directly - not necessary to call as a GoRoutine.
  */
 func StopDriver() {
@@ -96,8 +105,8 @@ func StopDriver() {
 	log.Debug("elevdriver StopDriver: Driver stopped")
 }
 
-/* driver(.) initializes a connection to the elevator, and then pushes inputs and outputs to/from the elevator
-InElevator * Start/Stop driver using StartDriver(.) and StopDriver().
+/*driver (.) initializes a connection to the elevator, and then pushes inputs and outputs to/from the elevator
+ * Start/Stop driver using StartDriver(.) and StopDriver().
  *
  * @arg directionInput: Input channel for setting the elev movement dir
  * @arg buttonLampInput: Input channel for setting button lamps on/off
@@ -112,7 +121,7 @@ InElevator * Start/Stop driver using StartDriver(.) and StopDriver().
  * @arg numFloors: m floors. Max floor output for signals is set to numFloors.
  * @arg wg: WaitGroup used in StopDriver, for ensuring that Driver GoRoutines exit properly
  * 			before StopDriver returns
-*/
+ */
 func driver(
 	numFloorsElevator int,
 	directionInput <-chan elevtype.MotorDirection,
@@ -146,6 +155,9 @@ func driver(
 	//go PollObstructionSwitch(obstructionSensorOut, shutdown, wg)
 	log.Debug("elevdriver Driver: Started GoRoutines, running driver")
 
+	driverDebugLogMsgTimer := time.Now()
+	const driverDebugLogMsgFreq = time.Second
+
 	for runDriver == true {
 		select {
 		// Inputs to driver from Handler
@@ -164,9 +176,14 @@ func driver(
 		case doorOpenLampVal := <-doorOpenLampInput:
 			log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
 			SetDoorOpenLamp(doorOpenLampVal)
-			//case stopLampVal := <-stopLampInput:
-			//log.WithField("StopLampVal", stopLampVal).Debug("elevdriver Driver: Setting stop lamp val")
-			//SetStopLamp(stopLampVal)
+		//case stopLampVal := <-stopLampInput:
+		//log.WithField("StopLampVal", stopLampVal).Debug("elevdriver Driver: Setting stop lamp val")
+		//SetStopLamp(stopLampVal)
+		default:
+			if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
+				driverDebugLogMsgTimer = time.Now()
+				log.Debug("elevdriver driver: Running")
+			}
 
 		}
 	}
