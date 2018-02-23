@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	)
 // Constants
-const HEARTBEATINTERVAL = 300*time.Millisecond
+const HEARTBEATINTERVAL = 50*time.Millisecond
 const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
 
 
@@ -62,24 +62,45 @@ func udpRecvHeartBeat(port int, recvMsgCh chan HeartbeatMessage){
 }
 
 func runHeartBeat(port int){
-	starttime := time.Now()
+
+	startTime := time.Now()
+	lastTranmissionTime := time.Now()
+
 	sendMsgCh := make(chan HeartbeatMessage,2)
 	recvMsgCh := make(chan HeartbeatMessage,2)
-
-	for time.Now().Sub(starttime) < time.Second*4{
 	
-
-	go udpSendHeartBeat(port, sendMsgCh)
+	//for time.Now().Sub(starttime) < time.Second*4{
 	go udpRecvHeartBeat(port,recvMsgCh)
+	for time.Now().Sub(startTime) < time.Second*10{
+		
+		if (time.Now().Sub(lastTranmissionTime)>HEARTBEATINTERVAL){
+			go udpSendHeartBeat(port, sendMsgCh)
+			lastTranmissionTime =time.Now()
 
+		}
+		//time.Sleep(HEARTBEATINTERVAL)
+		
+		select{
+			case msg := <-recvMsgCh:
+				println("Message received")
+				jsonMsg,_ := json.Marshal(msg)
+				println("Heartbeat Message:" + string(jsonMsg))	
+				updateToPeerList(msg,&listPeers,listPeers)
+				
+
+			default:
+		}
+
+	}
+	/*
 	time.Sleep(HEARTBEATINTERVAL)
 	msg := <- recvMsgCh	
 	jsonMsg,_ := json.Marshal(msg)
 	println("Heartbeat Message:" + string(jsonMsg))
 	
 	updateToPeerList(msg,&listPeers,listPeers)
-	
-	}
+	*/
+	//}
 
 	//Print to see if listPeers is correct
 	println("Loop completed!")
@@ -90,8 +111,8 @@ func runHeartBeat(port int){
 
 	
 	
-	
-}
+}	
+//}
 
 // Updates the P2P network,
 // Add new received IP-address
