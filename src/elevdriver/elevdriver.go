@@ -13,13 +13,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const elevatorAddress = "127.0.0.1:15657" // port taken from c driver
+const elevatorAddress = "127.0.0.1:15657" // port taken from c driver at https://github.com/TTK4145/driver-c
 const stdNumFloorsElevator = 4
 const timeWaitForDriverToStartMs = 20
 
 var wg = &sync.WaitGroup{}
 var stopDriverChan = make(chan bool)
-var initialized = false
+var driverRunning = false
 
 /*StartDriver creates a (singleton) driver instance running on a separate thread.
  * The driver uses channels to set Elevator parameters (Input chans),
@@ -46,10 +46,11 @@ func StartDriver(
 	floorSensorOut chan<- int,
 ) {
 	log.Debug("elevdriver StartDriver: Driver starting")
-	if initialized {
+	if driverRunning {
 		log.Warning("elevdriver StartDriver: Driver already running. Returning")
 		return
 	}
+	driverRunning = true
 	// Reinitialize variables to make sure wg is cleared and chan is empty
 	// wg is for ensuring driver's goroutines are stopped before StopDriver exits
 	wg := sync.WaitGroup{}
@@ -73,7 +74,7 @@ func StartDriver(
 		stopDriverChan,
 		&wg,
 	)
-	initialized = true
+
 	time.Sleep(time.Millisecond * timeWaitForDriverToStartMs)
 
 	log.Debug("elevdriver StartDriver: Driver started")
@@ -85,13 +86,13 @@ func StartDriver(
  */
 func StopDriver() {
 	log.Debug("elevdriver StopDriver: Driver stopping")
-	if !initialized {
+	if !driverRunning {
 		log.Warning("elevdriver StopDriver: Driver already stopped. Returning")
 		return
 	}
 	stopDriverChan <- true
 	wg.Wait()
-	initialized = false
+	driverRunning = false
 	log.Debug("elevdriver StopDriver: Driver stopped")
 }
 
