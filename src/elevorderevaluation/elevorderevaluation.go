@@ -102,3 +102,4 @@ func requests_clearAtCurrentFloor(elev elevtype.Elevator) elevtype.Elevator{
     return elev
 }
 
+//random comment
