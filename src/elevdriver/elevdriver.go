@@ -149,8 +149,8 @@ func driver(
 	// Turn off lights here @todo
 
 	// Outputs from driver to handler
-	go PollButtons(buttonPressSensorOut, shutdown, wg)
-	go PollFloorSensor(floorSensorOut, shutdown, wg)
+	go pollButtons(buttonPressSensorOut, shutdown, wg)
+	go pollFloorSensor(floorSensorOut, shutdown, wg)
 	//go PollStopButton(stopButtonSensorOut, shutdown, wg)
 	//go PollObstructionSwitch(obstructionSensorOut, shutdown, wg)
 	log.Debug("elevdriver Driver: Started GoRoutines, running driver")
@@ -166,16 +166,16 @@ func driver(
 			runDriver = false
 		case dir := <-directionInput:
 			log.WithField("Dir", dir).Debug("elevdriver Driver: Setting motor dir")
-			SetMotorDirection(dir)
+			setMotorDirection(dir)
 		case btnLampInput := <-buttonLampInput:
 			log.WithField("BtnLampInput", btnLampInput).Debug("elevdriver Driver: Setting Btn Lamp")
-			SetButtonLamp(btnLampInput)
+			setButtonLamp(btnLampInput)
 		case floor := <-floorIndicatorInput:
 			log.WithField("FloorIndicator", floor).Debug("elevdriver Driver: Setting floor ind. light")
-			SetFloorIndicator(floor)
+			setFloorIndicator(floor)
 		case doorOpenLampVal := <-doorOpenLampInput:
 			log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
-			SetDoorOpenLamp(doorOpenLampVal)
+			setDoorOpenLamp(doorOpenLampVal)
 		//case stopLampVal := <-stopLampInput:
 		//log.WithField("StopLampVal", stopLampVal).Debug("elevdriver Driver: Setting stop lamp val")
 		//SetStopLamp(stopLampVal)

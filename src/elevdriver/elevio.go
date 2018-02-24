@@ -34,13 +34,13 @@ func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
 	_initialized = true
 }
 
-func SetMotorDirection(dir elevtype.MotorDirection) {
+func setMotorDirection(dir elevtype.MotorDirection) {
 	_mtx.Lock()
 	defer _mtx.Unlock()
 	_conn.Write([]byte{1, byte(dir), 0, 0})
 }
 
-func SetButtonLamp(b elevtype.ButtonLamp) {
+func setButtonLamp(b elevtype.ButtonLamp) {
 	// changed the input args, may be a bug here
 	floor := b.Floor
 	button := b.Button
@@ -54,7 +54,7 @@ func SetButtonLamp(b elevtype.ButtonLamp) {
 	}
 }
 
-func SetFloorIndicator(floor int) {
+func setFloorIndicator(floor int) {
 	if 0 <= floor && floor < _numFloorsElevator {
 		_mtx.Lock()
 		defer _mtx.Unlock()
@@ -65,19 +65,19 @@ func SetFloorIndicator(floor int) {
 
 }
 
-func SetDoorOpenLamp(value bool) {
+func setDoorOpenLamp(value bool) {
 	_mtx.Lock()
 	defer _mtx.Unlock()
 	_conn.Write([]byte{4, toByte(value), 0, 0})
 }
 
-func SetStopLamp(value bool) {
+func setStopLamp(value bool) {
 	_mtx.Lock()
 	defer _mtx.Unlock()
 	_conn.Write([]byte{5, toByte(value), 0, 0})
 }
 
-func PollButtons(receiver chan<- elevtype.ButtonEvent, shutdown <-chan bool, wg *sync.WaitGroup) {
+func pollButtons(receiver chan<- elevtype.ButtonEvent, shutdown <-chan bool, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	prev := make([][3]bool, _numFloorsElevator)
@@ -104,7 +104,7 @@ func PollButtons(receiver chan<- elevtype.ButtonEvent, shutdown <-chan bool, wg 
 	}
 }
 
-func PollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGroup) {
+func pollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	prev := -1
@@ -124,7 +124,7 @@ func PollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGro
 	}
 }
 
-func PollStopButton(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGroup) {
+func pollStopButton(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	prev := false
@@ -132,18 +132,19 @@ func PollStopButton(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGro
 		select {
 		case _ = <-shutdown:
 			return
+		default:
+			time.Sleep(_pollRate)
+			v := getStop()
+			if v != prev {
+				receiver <- v
+			}
+			prev = v
 		}
 
-		time.Sleep(_pollRate)
-		v := getStop()
-		if v != prev {
-			receiver <- v
-		}
-		prev = v
 	}
 }
 
-func PollObstructionSwitch(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGroup) {
+func pollObstructionSwitch(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	prev := false
@@ -151,15 +152,14 @@ func PollObstructionSwitch(receiver chan<- bool, shutdown <-chan bool, wg *sync.
 		select {
 		case _ = <-shutdown:
 			return
+		default:
+			time.Sleep(_pollRate)
+			v := getObstruction()
+			if v != prev {
+				receiver <- v
+			}
+			prev = v
 		}
-
-		time.Sleep(_pollRate)
-		v := getObstruction()
-		if v != prev {
-			receiver <- v
-		}
-		prev = v
-
 	}
 }
 
@@ -186,9 +186,8 @@ func getFloor() int {
 	_conn.Read(buf[:])
 	if buf[1] != 0 {
 		return int(buf[2])
-	} else {
-		return -1
 	}
+	return -1
 }
 
 func getStop() bool {
