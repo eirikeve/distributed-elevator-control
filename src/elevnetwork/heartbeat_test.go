@@ -51,9 +51,25 @@ func TestUdpbcast(t *testing.T){
 		}
 	}
 }
-
+/*
+* Test for how the heartbeat protocol should approximatley be run in either
+* the Network handler or Network State module.
+* Makes a local list of Peers, which is continously updated from the Peers channel.
+*/
 func TestUdpHeartbeat(t *testing.T){
 	port := 20008
-	runHeartBeat(port)
+	PeersCh := make(chan []Peer ) 
+	go runHeartBeat(port,PeersCh)
+	for{
+		select{
+		case  peerNetworkList:= <-PeersCh:
+			for _,element :=range peerNetworkList{
+				peerJsonMsg,_ := json.Marshal(element)
+				println(string(peerJsonMsg))
+			}
+		
+		default:
+		}
+	}
 	
 }

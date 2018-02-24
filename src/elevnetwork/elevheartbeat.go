@@ -47,21 +47,31 @@ func udpSendHeartBeat(port int, transMsgCh chan HeartbeatMessage){
 	}	
 }
 
-// Receive HeartbeatMessage from Broadcasters
-// @arg port: Listen on given port
-// @arg recvMsgCh: Receive on given channel
+/* Receive HeartbeatMessage from broadcasters
+* @arg port: Listen on given port
+* @arg recvMsgCh: Receive on given channel
+*/
 func udpRecvHeartBeat(port int, recvMsgCh chan HeartbeatMessage){
-	//Looking to Receive message
+	//Listening on network and receives message
 	bcast.Receiver(port,recvMsgCh)
+
+	/* Not needed? [Todo]
 	recvMsg := <- recvMsgCh
 	if recvMsg.LocalIP == ""{
 		println("Gotcha")
 	}else{
 		println("Missing")
-	}
+	}*/
+	
 }
 
-func runHeartBeat(port int){
+/*
+* Runs the heartbeat protocol, which monitors the participants of
+* the network. 
+* @arg port: Broadcast on given port
+* @arg exsistingPeersCh: List of Peers in newtork Channel			[Todo: Missing - but will most likely be implemented]
+*/
+func runHeartBeat(port int, existingPeersCh chan []Peer){
 
 	startTime := time.Now()
 	lastTranmissionTime := time.Now()
@@ -69,7 +79,6 @@ func runHeartBeat(port int){
 	sendMsgCh := make(chan HeartbeatMessage,2)
 	recvMsgCh := make(chan HeartbeatMessage,2)
 	
-	//for time.Now().Sub(starttime) < time.Second*4{
 	go udpRecvHeartBeat(port,recvMsgCh)
 	for time.Now().Sub(startTime) < time.Second*10{
 		
@@ -84,23 +93,18 @@ func runHeartBeat(port int){
 				println("Message received")
 				jsonMsg,_ := json.Marshal(msg)
 				println("Heartbeat Message:" + string(jsonMsg))	
-				updateToPeerList(msg,&listPeers,listPeers)
-				
+				addToPeerList(msg,&listPeers,listPeers)
+				existingPeersCh <- listPeers
 
 			default:
+				updateToPeersList(&listPeers,listPeers)
+				existingPeersCh <- listPeers
+
 		}
 
-	}
-	/*
-	time.Sleep(HEARTBEATINTERVAL)
-	msg := <- recvMsgCh	
-	jsonMsg,_ := json.Marshal(msg)
-	println("Heartbeat Message:" + string(jsonMsg))
-	
-	updateToPeerList(msg,&listPeers,listPeers)
-	*/
-	//}
 
+	}
+	
 	//Print to see if listPeers is correct
 	println("Loop completed!")
 	for _,element :=range listPeers{
@@ -113,13 +117,15 @@ func runHeartBeat(port int){
 }	
 //}
 
-// Updates the P2P network,
-// Add new received IP-address
-// Update timestap from received messages
-// @arg msg: Contains the Heartbeat Message that was received
-// @arg, @arg pointerList, List: Contains the list of already exsisting members of the network
-// Ops: The same list is taken as two different parameters to acheive call-by-reference for indexing and appending
-func updateToPeerList(msg HeartbeatMessage, pointerList* []Peer, list []Peer){
+/*
+* Updates the P2P network,
+* Add new received IP-address
+* Update timestap from received messages
+* @arg msg: Contains the Heartbeat Message that was received
+* @arg, @arg pointerList, List: Contains the list of already exsisting members of the network
+* [Todo]Ops: The same list is taken as two different parameters to acheive call-by-reference for indexing and appending			
+*/
+func addToPeerList(msg HeartbeatMessage, pointerList* []Peer, list []Peer){
 
 	//Add new elements and update timestap from received messages
 	addElement := true
@@ -140,9 +146,11 @@ func updateToPeerList(msg HeartbeatMessage, pointerList* []Peer, list []Peer){
 			*pointerList = append(*pointerList,currentPeer)
 		}
 	}
-
-	//Remove P2P members, that we have not got any response from within HARTBEATTIMEOUT
-	// OPS what happen with index and element if one P2P connection is removed?!?!?
+	
+}
+//Remove P2P members, that we have not got any response from within HARTBEATTIMEOUT
+// OPS what happen with index and element if one P2P connection is removed?!?!?
+func updateToPeersList(pointerList* []Peer, list []Peer){
 	for index,element := range list{
 		if time.Now().Sub(element.ReceiveTime) >= HEARTBEATTIMEOUT{
 			*pointerList = append(list[:index],list[index+1:]...)
