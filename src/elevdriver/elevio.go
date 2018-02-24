@@ -171,10 +171,9 @@ func getButton(button elevtype.ButtonType, floor int) bool {
 		var buf [4]byte
 		_conn.Read(buf[:])
 		return toBool(buf[1])
-	} else {
-		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver getButton: Invalid floor, returning false")
-		return false
 	}
+	log.WithFields(log.Fields{"floor": floor}).Error("elevdriver getButton: Invalid floor, returning false")
+	return false
 
 }
 
