@@ -12,3 +12,9 @@ type ButtonEvent struct {
 	Floor  int
 	Button ButtonType
 }
+
+type ButtonLamp struct {
+	Floor  int
+	Button ButtonType
+	Value  bool
+}

@@ -1,167 +1,175 @@
-package elevio
+package elevdriver
 
-import "time"
-import "sync"
-import "net"
-import "fmt"
-import "../elevtype"
+/*
+elevdriver.go contains abstractions for methods from elevio.go
+*/
 
-const _pollRate = 20 * time.Millisecond
+import (
+	"sync"
+	"time"
 
-var _initialized bool = false
-var _numFloors int = 4
-var _mtx sync.Mutex
-var _conn net.Conn
+	"../elevtype"
 
-func Init(addr string, numFloors int) {
-	if _initialized {
-		fmt.Println("Driver already initialized!")
+	log "github.com/sirupsen/logrus"
+)
+
+const elevatorAddress = "127.0.0.1:15657" // port taken from c driver at https://github.com/TTK4145/driver-c
+const stdNumFloorsElevator = 4
+const timeWaitForDriverToStartMs = 20
+
+var wg = &sync.WaitGroup{}
+var stopDriverChan = make(chan bool)
+var driverRunning = false
+
+/*StartDriver creates a (singleton) driver instance running on a separate thread.
+ * The driver uses channels to set Elevator parameters (Input chans),
+ * and output elevator sensor information (Out chans).
+ * Can be called directly - not necessary to call as a GoRoutine.
+ *
+ * Typedefs for custom types are found in the ../elevtype package.
+ *
+ * @arg numFloorsElevators: m floors. Max floor output for signals is set to numFloorsElevator.
+ * @arg motorDirectionInput: Input channel for setting the elev movement dir
+ * @arg buttonLampInput: Input channel for setting button lamps on/off
+ * @arg floorIndicatorInput: Input channel for setting the floor indicator
+ * @arg doorOpenLampInput: Input channel for setting the door open light
+ * @arg buttonPressSensorOut: Output channel for button press readings
+ * @arg floorSensorOut: Output channel for floor sensor
+ */
+func StartDriver(
+	numFloorsElevator int,
+	motorDirectionInput <-chan elevtype.MotorDirection,
+	buttonLampInput <-chan elevtype.ButtonLamp,
+	floorIndicatorInput <-chan int,
+	doorOpenLampInput <-chan bool,
+	buttonPressSensorOut chan<- elevtype.ButtonEvent,
+	floorSensorOut chan<- int,
+) {
+	log.Debug("elevdriver StartDriver: Driver starting")
+	if driverRunning {
+		log.Warning("elevdriver StartDriver: Driver already running. Returning")
 		return
 	}
-	_numFloors = numFloors
-	_mtx = sync.Mutex{}
-	var err error
-	_conn, err = net.Dial("tcp", addr)
-	if err != nil {
-		panic(err.Error())
+	driverRunning = true
+	// Reinitialize variables to make sure wg is cleared and chan is empty
+	// wg is for ensuring driver's goroutines are stopped before StopDriver exits
+	wg := sync.WaitGroup{}
+	stopDriverChan = make(chan bool)
+
+	// Assert valid number of floors
+	if numFloorsElevator < 1 {
+		log.WithField("numFloorsElevator", numFloorsElevator).Error("elevdriver StartDriver: < 1 floors input! Defaulting to numFloorsElevator=4")
+		numFloorsElevator = stdNumFloorsElevator
 	}
-	_initialized = true
+
+	// Create driver instance
+	go driver(
+		numFloorsElevator,
+		motorDirectionInput,
+		buttonLampInput,
+		floorIndicatorInput,
+		doorOpenLampInput,
+		buttonPressSensorOut,
+		floorSensorOut,
+		stopDriverChan,
+		&wg,
+	)
+
+	time.Sleep(time.Millisecond * timeWaitForDriverToStartMs)
+
+	log.Debug("elevdriver StartDriver: Driver started")
+	return
 }
 
-func SetMotorDirection(dir elevtype.MotorDirection) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{1, byte(dir), 0, 0})
+/*StopDriver stops the running driver instance
+ * Can be called directly - not necessary to call as a GoRoutine.
+ */
+func StopDriver() {
+	log.Debug("elevdriver StopDriver: Driver stopping")
+	if !driverRunning {
+		log.Warning("elevdriver StopDriver: Driver already stopped. Returning")
+		return
+	}
+	stopDriverChan <- true
+	wg.Wait()
+	driverRunning = false
+	log.Debug("elevdriver StopDriver: Driver stopped")
 }
 
-func SetButtonLamp(button elevtype.ButtonType, floor int, value bool) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{2, byte(button), byte(floor), toByte(value)})
-}
+/*driver (.) initializes a connection to the elevator, and then pushes inputs and outputs to/from the elevator
+ * Start/Stop driver using StartDriver(.) and StopDriver().
+ *
+ * @arg numFloorsElevators: m floors. Max floor output for signals is set to numFloorsElevator.
+ * @arg motorDirectionInput: Input channel for setting the elev movement dir
+ * @arg buttonLampInput: Input channel for setting button lamps on/off
+ * @arg floorIndicatorInput: Input channel for setting the floor indicator
+ * @arg doorOpenLampInput: Input channel for setting the door open light
+ * @arg buttonPressSensorOut: Output channel for button press readings
+ * @arg floorSensorOut: Output channel for floor sensor
+ * @arg stopDriver: Chan used for signalling driver goroutine to stop
+ * @arg wg: WaitGroup used in StopDriver, for ensuring that Driver GoRoutines exit properly
+ * 			before StopDriver returns
+ */
+func driver(
+	numFloorsElevator int,
+	motorDirectionInput <-chan elevtype.MotorDirection,
+	buttonLampInput <-chan elevtype.ButtonLamp,
+	floorIndicatorInput <-chan int,
+	doorOpenLampInput <-chan bool,
+	buttonPressSensorOut chan<- elevtype.ButtonEvent,
+	floorSensorOut chan<- int,
+	stopDriver <-chan bool,
+	wg *sync.WaitGroup,
+) {
+	// wg used in StopDriver() for synchronization upon exit
+	wg.Add(1)
+	defer wg.Done()
 
-func SetFloorIndicator(floor int) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{3, byte(floor), 0, 0})
-}
+	log.Debug("elevdriver Driver: Init connection")
+	initConnectionAndSetNumFloors(elevatorAddress, numFloorsElevator)
+	defer _conn.Close() // _conn is a public variable in elevio.go
 
-func SetDoorOpenLamp(value bool) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{4, toByte(value), 0, 0})
-}
+	shutdown := make(chan bool, 10)
+	runDriver := true
+	// Turn off lights here @todo
 
-func SetStopLamp(value bool) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{5, toByte(value), 0, 0})
-}
+	// Outputs from driver to handler
+	go pollButtons(buttonPressSensorOut, shutdown, wg)
+	go pollFloorSensor(floorSensorOut, shutdown, wg)
+	log.Debug("elevdriver Driver: Started GoRoutines, running driver")
 
-func PollButtons(receiver chan<- elevtype.ButtonEvent) {
-	prev := make([][3]bool, _numFloors)
-	for {
-		time.Sleep(_pollRate)
-		for f := 0; f < _numFloors; f++ {
-			for b := elevtype.ButtonType(0); b < 3; b++ {
-				v := getButton(b, f)
-				if v != prev[f][b] && v != false {
-					receiver <- elevtype.ButtonEvent{f, elevtype.ButtonType(b)}
-				}
-				prev[f][b] = v
+	driverDebugLogMsgTimer := time.Now()
+	const driverDebugLogMsgFreq = time.Second
+
+	for runDriver == true {
+		select {
+		// Inputs to driver from Handler
+		case _ = <-stopDriver:
+			log.Debug("elevdriver Driver: Recv stopDriver")
+			runDriver = false
+		case dir := <-motorDirectionInput:
+			log.WithField("Dir", dir).Debug("elevdriver Driver: Setting motor dir")
+			setMotorDirection(dir)
+		case btnLampInput := <-buttonLampInput:
+			log.WithField("BtnLampInput", btnLampInput).Debug("elevdriver Driver: Setting Btn Lamp")
+			setButtonLamp(btnLampInput)
+		case floor := <-floorIndicatorInput:
+			log.WithField("FloorIndicator", floor).Debug("elevdriver Driver: Setting floor ind. light")
+			setFloorIndicator(floor)
+		case doorOpenLampVal := <-doorOpenLampInput:
+			log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
+			setDoorOpenLamp(doorOpenLampVal)
+		default:
+			if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
+				driverDebugLogMsgTimer = time.Now()
+				log.Debug("elevdriver driver: Running")
 			}
+
 		}
 	}
-}
 
-func PollFloorSensor(receiver chan<- int) {
-	prev := -1
-	for {
-		time.Sleep(_pollRate)
-		v := getFloor()
-		if v != prev && v != -1 {
-			receiver <- v
-		}
-		prev = v
-	}
-}
-
-func PollStopButton(receiver chan<- bool) {
-	prev := false
-	for {
-		time.Sleep(_pollRate)
-		v := getStop()
-		if v != prev {
-			receiver <- v
-		}
-		prev = v
-	}
-}
-
-func PollObstructionSwitch(receiver chan<- bool) {
-	prev := false
-	for {
-		time.Sleep(_pollRate)
-		v := getObstruction()
-		if v != prev {
-			receiver <- v
-		}
-		prev = v
-	}
-}
-
-func getButton(button elevtype.ButtonType, floor int) bool {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{6, byte(button), byte(floor), 0})
-	var buf [4]byte
-	_conn.Read(buf[:])
-	return toBool(buf[1])
-}
-
-func getFloor() int {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{7, 0, 0, 0})
-	var buf [4]byte
-	_conn.Read(buf[:])
-	if buf[1] != 0 {
-		return int(buf[2])
-	} else {
-		return -1
-	}
-}
-
-func getStop() bool {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{8, 0, 0, 0})
-	var buf [4]byte
-	_conn.Read(buf[:])
-	return toBool(buf[1])
-}
-
-func getObstruction() bool {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{9, 0, 0, 0})
-	var buf [4]byte
-	_conn.Read(buf[:])
-	return toBool(buf[1])
-}
-
-func toByte(a bool) byte {
-	var b byte = 0
-	if a {
-		b = 1
-	}
-	return b
-}
-
-func toBool(a byte) bool {
-	var b bool = false
-	if a != 0 {
-		b = true
-	}
-	return b
+	log.Debug("elevdriver Driver: Shutdown GoRoutines, exiting")
+	// Signal to stop GoRoutines before exiting
+	fill(shutdown, true)
+	return
 }

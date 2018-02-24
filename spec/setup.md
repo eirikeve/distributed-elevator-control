@@ -21,7 +21,9 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 ``` 
 to .bashrc
 
-Reopen terminal, run `go env` to verify GOPATH
+Reopen terminal, run `go env` to verify GOPATH  
+Run `go get https://github.com/sirupsen/logrus` and the `go install` in src folder to install logging tools.
+
 
 In `VS Code`:  
 Add `"go.docsTool": "gogetdoc"` to the User Settings, to avoid the annoying Godoc warning.
