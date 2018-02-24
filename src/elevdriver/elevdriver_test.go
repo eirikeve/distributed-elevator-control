@@ -12,9 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-/*
-TestLog tests basic log functionality, and shows how to use the log system
-*/
+/*TestDriver tests basic log functionality, and shows how to use the log system
+ * It runs a Light test (for lamps), and a Motor/Sensor test.
+ * If elevator is connected and working,
+ * lamps should flash and the cab should move up/down between floor 0 and 3
+ * In addition, button presses are logged.
+ */
 func TestDriver(*testing.T) {
 	println("...")
 	elevlog.InitLog(log.DebugLevel, false)
@@ -24,47 +27,37 @@ func TestDriver(*testing.T) {
 	wg := sync.WaitGroup{}
 
 	// Elevator control
-	setMotorDirChan := make(chan elevtype.MotorDirection)
-	setButtonLampChan := make(chan elevtype.ButtonLamp, 12)
-	setFloorIndicatorChan := make(chan int)
-	setDoorOpenLampChan := make(chan bool)
-	//setStopLampChan := make(chan bool)
+	motorDirectionInput := make(chan elevtype.MotorDirection)
+	buttonLampInput := make(chan elevtype.ButtonLamp, 12)
+	floorIndicatorInput := make(chan int)
+	doorOpenLampInput := make(chan bool)
 
 	// Elevator sensors
-	getButtonSensorChan := make(chan elevtype.ButtonEvent)
-	getFloorSensorChan := make(chan int)
-	//getStopButtonSensorChan := make(chan bool)
-	//getObstructionSensorChan := make(chan bool)
-
+	buttonPressSensorOut := make(chan elevtype.ButtonEvent)
+	floorSensorOut := make(chan int)
 	// Stop signal to Driver
-	//signalStopDriver := make(chan bool)
 
 	// Number of floors we're using (m=4)
-	numFloors := 4
+	numFloorsElevator := 4
 
 	log.Debug("elevdriver TestDriver: Initialized vars")
 
 	StartDriver(
-		numFloors,
-		setMotorDirChan,
-		setButtonLampChan,
-		setFloorIndicatorChan,
-		setDoorOpenLampChan,
-		//setStopLampChan,
-		getButtonSensorChan,
-		getFloorSensorChan,
-		//getStopButtonSensorChan,
-		//getObstructionSensorChan,
-		//signalStopDriver,
-		//&wg
+		numFloorsElevator,
+		motorDirectionInput,
+		buttonLampInput,
+		floorIndicatorInput,
+		doorOpenLampInput,
+		buttonPressSensorOut,
+		floorSensorOut,
 	)
 	log.Info("elevdriver TestDriver: Initialized Driver, running test")
 
 	wg.Add(1)
-	go RunLightTest(numFloors, setButtonLampChan, setFloorIndicatorChan, setDoorOpenLampChan, &wg)
+	go RunLightTest(numFloorsElevator, buttonLampInput, floorIndicatorInput, doorOpenLampInput, &wg)
 
 	wg.Add(1)
-	go RunSensorAndMotorTest(numFloors, setMotorDirChan, getButtonSensorChan, getFloorSensorChan, &wg)
+	go RunSensorAndMotorTest(numFloorsElevator, motorDirectionInput, buttonPressSensorOut, floorSensorOut, &wg)
 	wg.Wait()
 	log.Info("elevdriver TestDriver: Finished all tests")
 	StopDriver()
