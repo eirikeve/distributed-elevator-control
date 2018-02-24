@@ -87,3 +87,5 @@ func requests_shouldStop(elev elevtype.Elevator) bool{
 func requests_clearAtCurrentFloor(elev elevtype.Elevator) elevtype.Elevator{
     //Fictive function, does nothing
 }
+
+//Comment addedd
