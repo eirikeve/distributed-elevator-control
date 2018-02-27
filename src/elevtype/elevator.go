@@ -21,9 +21,10 @@ const (
 )
 
 type Elevator struct {
-	Floor             int
-	MovementDirection MotorDirection
-	Orders            [NumFloors][NumButtons]ElevOrder
-	State             ElevatorState
-	ErrorState        ElevatorErrorState
+	Floor               int
+	MovementDirection   MotorDirection
+	MovDirFromLastFloor MotorDirection
+	Orders              [NumFloors][NumButtons]ElevOrder
+	State               ElevatorState
+	ErrorState          ElevatorErrorState
 }

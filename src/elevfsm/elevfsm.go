@@ -12,7 +12,7 @@ var lastRegisteredFloor int
 func GetMovementDirection() elevtype.MotorDirection {
 	var v elevtype.MotorDirection
 
-	return v
+	return OrderLogicGetMovementDirection(elevator)
 
 }
 
