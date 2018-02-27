@@ -32,6 +32,9 @@ __Alternative if__ `apt.get install golang-go` __fails:__
 In web browser, open [`https://golang.org/dl/`](https://golang.org/dl/), and download go.
 
 
+If ElevatorServer command is missing, clone https://github.com/TTK4145/elevator-server and install as described.
+Remember to add the folder where the executable is placed to path.
+
 
 ### Cleanup after session
 
