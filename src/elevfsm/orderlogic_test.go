@@ -58,17 +58,21 @@ func printElevatorQueue(elev et.Elevator) {
 func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID string, stat et.OrderStatus) et.Elevator {
 	bEvent := et.ButtonEvent{floor, button}
 	eOrder := et.ElevOrder{ID, bEvent, 2, stat, 2, "Elev"}
-	println("Worked before")
 	elev.Orders[floor][button] = &eOrder
-	println("Worked after")
 	return elev
 }
 
 func TestOrderLogicsAbove(t *testing.T) {
 
 	elev := initializeElevator()
-	printElevatorQueue(elev)
 	elev = setElevatorOrder(elev, 2, et.BT_Cab, "1", et.Accepted)
-	elev = setElevatorOrder(elev, 3, et.BT_Cab, "1", et.Accepted)
+
+	//CurrentMotorDir := OrderLogicGetMovementDirection(elev)
+	shouldStop := OrderLogicCheckShouldStopAtFloor(elev)
+	//fmt.Printf("CurrentDir: %v", CurrentMotorDir)
+	fmt.Printf("CurrentFloor: %v \n", elev.Floor)
+	fmt.Printf("ShouldStop: %v", shouldStop)
+	print("\n\n")
 	printElevatorQueue(elev)
+
 }
