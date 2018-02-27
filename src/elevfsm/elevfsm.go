@@ -8,14 +8,11 @@ var elevator elevtype.Elevator
 var lastRegisteredFloor int
 
 // Functions for running the local elevator
-
+/*
 func GetMovementDirection() elevtype.MotorDirection {
-	var v elevtype.MotorDirection
-
 	return OrderLogicGetMovementDirection(elevator)
-
 }
-
+*/
 func GetPanelLights() []elevtype.ButtonLamp {
 	var v []elevtype.ButtonLamp
 
