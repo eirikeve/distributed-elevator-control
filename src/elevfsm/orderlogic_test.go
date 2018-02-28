@@ -57,12 +57,23 @@ func printElevatorQueue(elev et.Elevator) {
 
 }
 
+/*
+* Sets a order in the Elevator queue at the given location
+* @arg elev: Elevator
+* @arg floor: Set which floor the order is from
+* @arg button: Set which Buttontype that was pressed
+* @arg ID: Give unique ID for the Order
+* @arg stat: Set status for Order
+*/
 func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID string, stat et.OrderStatus) et.Elevator {
 	bEvent := et.ButtonEvent{floor, button}
 	elev.Orders[floor][button] = et.ElevOrder{ID, bEvent, 2, stat, 2, "Elev"}
 	return elev
 }
 
+/*
+* Test the two functions: OrderLogicOrdersAbove & OrderLogicOrdersBelow
+*/
 func TestOrderLogicsAboveandBelow(t *testing.T) {
 
 	elev := initializeElevator(1)
@@ -80,6 +91,9 @@ func TestOrderLogicsAboveandBelow(t *testing.T) {
 
 }
 
+/*
+* Test the orderLogicGetMovementDirection
+*/
 func TestOrderLogicGetMovementDirection(t* testing.T){
 	elev := initializeElevator(1)
 	//elev = setElevatorOrder(elev, 1, et.BT_HallUp, "1", et.Accepted)
@@ -90,13 +104,22 @@ func TestOrderLogicGetMovementDirection(t* testing.T){
 	fmt.Printf("Current floor %v \n", elev.Floor)
 	fmt.Printf("MovementDirection: %v \n",movDirection)
 }
+/*
+ * Test all the functions in orderLogic
+ * Description:
+ * Init: Elevator is initilized in Floor 1, not moving with current Orders: Floor 1  BT_HallUP & Floor 1 BT_HallDown & Floor 3 BT_Cab
+ * Expected bahaviour:
+ *		- Elevator stops at currentFloor and removes request Floor 1 BT_HallUp, request Floor 1 BT_HallDown remains
+ *		- Elevator starts moving upwards towards order Floor 3 BT_Cab 
 
+ */
 func TestOrderLogicCheckShouldStopAtFloor(t* testing.T){
 
 	//Initialize Elevator Scenario
 	elev := initializeElevator(1)
 	elev = setElevatorOrder(elev, 1, et.BT_HallUp, "1", et.Accepted)
-	//elev = setElevatorOrder(elev,3,et.BT_Cab,"1",et.Accepted)
+	elev = setElevatorOrder(elev,3,et.BT_Cab,"2",et.Accepted)
+	elev = setElevatorOrder(elev,1,et.BT_HallDown,"3", et.Accepted)
 
 	//Find Movement Direction
 	elev.MovementDirection = OrderLogicGetMovementDirection(elev)
