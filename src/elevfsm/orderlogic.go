@@ -75,7 +75,7 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	//@todo - this should also not happen
 	return true
 }
-func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) {
+func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator{
 	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
 	// Only take passengers going in the directin the elevator will be moving
 	e.Orders[e.Floor][et.BT_Cab].Status = et.Finished
@@ -103,5 +103,6 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 		// @todo log error
 		// clear both dir? it's what they do in the example code
 	}
+	return e
 
 }
