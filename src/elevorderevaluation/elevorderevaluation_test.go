@@ -2,7 +2,6 @@ package elevorderevaluation
 
 import(
 	"testing"
-<<<<<<< HEAD
 	et "../elevtype"
 	"fmt"
 )
@@ -17,22 +16,10 @@ func TestMinIndex(t *testing.T){
 	durations := []int{27,22,27}
 	index := findMinIndex(durations)
 	println("MinIndex:",index)
-=======
-)
-
-/*
-* Test if finding maximum index, i.e. element with largest integer value, is working properly
-*/
-func TestMaxIndex(t *testing.T){
-	durations := []int{}
-	index := findMaxIndex(durations)
-	println("Max index:",index)
->>>>>>> 9fd3eb0fe80f9f7a0a07284664ef1f6281e0b695
 	println("Containg the value", durations[index])
 
 }
 
-<<<<<<< HEAD
 func TestTimeToIdle(t *testing.T){
 	// Initialize elevator at Floor 1
 	elevOne:= initializeElevator(1)
@@ -149,5 +136,3 @@ func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID stri
 	return elev
 }
 
-=======
->>>>>>> 9fd3eb0fe80f9f7a0a07284664ef1f6281e0b695
