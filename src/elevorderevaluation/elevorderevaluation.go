@@ -1,7 +1,8 @@
 package elevorderevaluation
 
 import(
-    "../elevtype"
+    et "../elevtype"
+    fsm "../elevfsm"
     )
 
 const TRAVEL_TIME = 3
@@ -12,35 +13,35 @@ const DOOR_OPEN_TIME = 5
 * all its order, thus going into the Idle state
 * @arg elev: Takes an Elevator as arguemtent, making it possible to simalute its actions
 */ 
-func timeToIdle(elev elevtype.Elevator) int{
+func timeToIdle(elev et.Elevator) int{
     duration := 0
 	isSimulating := true
 
-    switch(elev.CurrentAction){
-        case elevtype.Idle:
-            elev.Direction = requests_chooseDirection(elev);
-            if elev.Direction == elevtype.MD_Stop{
+    switch(elev.State){
+        case et.Idle:
+            elev.MovementDirection = fsm.OrderLogicGetMovementDirection(elev);
+            if elev.MovementDirection == et.MD_Stop{
                 return duration
             }
-        case elevtype.Moving:
+        case et.Moving:
             duration += TRAVEL_TIME/2;
-            elev.Floor += int(elev.Direction);          //[POTENTIAL BUG] Not sure if converts motor type to int to floor
-        case elevtype.DoorOpen:                         //[@Todo]: DoorOpen is being changed to Unloading in master, must be changed when merginging
+            elev.Floor += int(elev.MovementDirection);          //[POTENTIAL BUG] Not sure if converts motor type to int to floor
+        case et.Unloading:                         //[@Todo]: Unloading is being changed to Unloading in master, must be changed when merginging
             duration-=DOOR_OPEN_TIME/2
         default:
             //Should not be possible to enter default
             println("Entered defualt in timeToIdle. This should not happen")
 	}
 	for isSimulating == true{
-        if requests_shouldStop(elev) == true{
-            elev = requests_clearAtCurrentFloor(elev)
+        if fsm.OrderLogicCheckShouldStopAtFloor(elev) == true{
+            elev = fsm.OrderLogicClearRequestsOnCurrentFloor(elev,elev.MovementDirection)
             duration += DOOR_OPEN_TIME;
-            elev.Direction = requests_chooseDirection(elev);
-            if(elev.Direction == elevtype.MD_Stop){
+            elev.MovementDirection = fsm.OrderLogicGetMovementDirection(elev);
+            if(elev.MovementDirection == et.MD_Stop){
                 return duration;
             }
         }
-		elev.Floor += int(elev.Direction);
+		elev.Floor += int(elev.MovementDirection);
         duration += TRAVEL_TIME;                    //[POTENTIAL BUG] Not sure if converts motor type to int to floor
 	}
     
@@ -52,15 +53,18 @@ func timeToIdle(elev elevtype.Elevator) int{
 * is best fit to take and execute an order.
 * @arg elev[]: List of Elevators
 */
-func delegateOrder(elevList []elevtype.Elevator) elevtype.Elevator {
+func delegateOrder(elevList []et.Elevator) int {
     var durations[] int
     for _, elev :=range elevList{
         tempDuration:=timeToIdle(elev)
         durations = append(durations,tempDuration)
     }
+    for _,element :=range durations{
+        println(element)
+    }
 
-    optElevIndex := findMaxIndex(durations)
-    return elevList[optElevIndex]
+    optElevIndex := findMinIndex(durations)
+    return optElevIndex
 } 
 
 /*
@@ -68,7 +72,7 @@ func delegateOrder(elevList []elevtype.Elevator) elevtype.Elevator {
 * containing the largest value
 * @arg list: list containing integers 
 */
-func findMaxIndex(list []int) int{
+func findMinIndex(list []int) int{
     
     var maxIndex int;
     var maxValue int;
@@ -79,27 +83,10 @@ func findMaxIndex(list []int) int{
         if (index == 0){
             maxValue = element
             maxIndex = index}
-        if (element > maxValue){
+        if (element < maxValue){
             maxValue = element
             maxIndex = index
         }
     }
     return maxIndex
 }
-//[@Todo]: Remove these functions. Only made to check if other functions in this folder are correctly implemented 
-func requests_chooseDirection(elev elevtype.Elevator)elevtype.MotorDirection{
-    //Fictive function, does nothing
-    return elevtype.MD_Stop
-}
-
-func requests_shouldStop(elev elevtype.Elevator) bool{
-    //Fictive function, does nothing
-    return true
-}
-
-func requests_clearAtCurrentFloor(elev elevtype.Elevator) elevtype.Elevator{
-    //Fictive function, does nothing
-    return elev
-}
-
-//random comment
