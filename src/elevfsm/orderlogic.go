@@ -49,6 +49,7 @@ func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 		// log error
 		// if possible, try to move
 	}
+	return et.MD_Stop //[@todo] should not happen
 }
 func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	switch e.MovementDirection {

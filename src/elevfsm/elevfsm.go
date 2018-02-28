@@ -6,16 +6,12 @@ var elevator et.Elevator
 var lastRegisteredFloor int
 
 // Functions for running the local elevator
-
-func GetMovementDirection() et.MotorDirection {
-	var v et.MotorDirection
-
+/*
+func GetMovementDirection() elevtype.MotorDirection {
 	return OrderLogicGetMovementDirection(elevator)
-
 }
-
+*/
 func GetPanelLights() []et.ButtonLamp {
-	// implement after aid fn is created
 	var v []et.ButtonLamp
 
 	return v
@@ -27,7 +23,7 @@ func RegisterFloor(floor int) {
 	}
 	updateFloor(floor)
 	if OrderLogicCheckShouldStopAtFloor(elevator) {
-		// need a good way to make sure we start moving after some time 
+		// need a good way to make sure we start moving after some time
 		// if we have new orders
 	}
 
