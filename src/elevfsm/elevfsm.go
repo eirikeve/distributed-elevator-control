@@ -1,10 +1,8 @@
 package elevfsm
 
-import (
-	"../elevtype"
-)
+import et "../elevtype"
 
-var elevator elevtype.Elevator
+var elevator et.Elevator
 var lastRegisteredFloor int
 
 // Functions for running the local elevator
@@ -13,28 +11,36 @@ func GetMovementDirection() elevtype.MotorDirection {
 	return OrderLogicGetMovementDirection(elevator)
 }
 */
-func GetPanelLights() []elevtype.ButtonLamp {
-	var v []elevtype.ButtonLamp
+func GetPanelLights() []et.ButtonLamp {
+	var v []et.ButtonLamp
 
 	return v
 }
 
-func RegisterFloor() {
+func RegisterFloor(floor int) {
+	if !(isValidFloor(floor)) {
+		return
+	}
+	updateFloor(floor)
+	if OrderLogicCheckShouldStopAtFloor(elevator) {
+		// need a good way to make sure we start moving after some time
+		// if we have new orders
+	}
 
 }
 
-func GetState() elevtype.ElevatorState {
-	v := elevtype.Idle
+func GetState() et.ElevatorState {
+	v := et.Idle
 
 	return v
 
 }
 
-func setState(state elevtype.ElevatorState) {
+func setState(state et.ElevatorState) {
 
 }
 
-func setDir(dir elevtype.MotorDirection) {
+func setDir(dir et.MotorDirection) {
 
 }
 
@@ -46,16 +52,26 @@ func idle() {
 
 }
 
+func updateFloor(floor int) {
+	// log here
+	lastRegisteredFloor = elevator.Floor
+	elevator.Floor = floor
+}
+
+func isValidFloor(floor int) bool {
+	return (0 <= floor && floor < et.NumFloors)
+}
+
 // Functions used when interfacing with elevNetworkHandler
-func PushRequestToQueue(order elevtype.ElevOrder) {
+func PushRequestToQueue(order et.ElevOrder) {
 
 }
-func RemRequestFromQueue(order elevtype.ElevOrder) {
+func RemRequestFromQueue(order et.ElevOrder) {
 
 }
 
-func GetElevator() elevtype.Elevator {
-	var v elevtype.Elevator
+func GetElevator() et.Elevator {
+	var v et.Elevator
 
 	return v
 

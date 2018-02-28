@@ -25,3 +25,14 @@ type ElevOrder struct {
 	// Assigned to elev @ IP
 	Assignee string
 }
+
+func EmptyOrder() ElevOrder {
+	return ElevOrder{
+		Id:                "",
+		Order:             ButtonEvent{Floor: -1, Button: BT_HallUp},
+		TimestampReceived: 0,
+		Status:            Unknown,
+		TimestampLastOrderStatusChange: 0,
+		Assignee:                       "",
+	}
+}
