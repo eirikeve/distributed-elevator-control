@@ -33,7 +33,7 @@ func initializeElevator(startingFloor int) et.Elevator {
 func initilizeElevatorQueue(elev et.Elevator) et.Elevator {
 	for floor := 0; floor < et.NumFloors; floor++ {
 		for button := 0; button < et.NumButtons; button++ {
-			elev.Orders[floor][button] = nil
+			elev.Orders[floor][button] = et.EmptyOrder()
 		}
 	}
 
@@ -46,10 +46,10 @@ func printElevatorQueue(elev et.Elevator) {
 	for floor := 0; floor < et.NumFloors; floor++ {
 		fmt.Printf("Floor %v: \t  ", floor)
 		for button := 0; button < et.NumButtons; button++ {
-			if elev.Orders[floor][button] == nil {
+			if elev.Orders[floor][button].Id == "" {
 				print("FALSE \t  ")
 			} else {
-				print("TRUE \t\t ")
+				print("TRUE \t\t  ")
 			}
 		}
 		print("\n")
@@ -59,15 +59,15 @@ func printElevatorQueue(elev et.Elevator) {
 
 func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID string, stat et.OrderStatus) et.Elevator {
 	bEvent := et.ButtonEvent{floor, button}
-	eOrder := et.ElevOrder{ID, bEvent, 2, stat, 2, "Elev"}
-	elev.Orders[floor][button] = &eOrder
+	elev.Orders[floor][button] = et.ElevOrder{ID, bEvent, 2, stat, 2, "Elev"}
 	return elev
 }
 
 func TestOrderLogicsAboveandBelow(t *testing.T) {
 
-	elev := initializeElevator(3)
-	elev = setElevatorOrder(elev, 1, et.BT_Cab, "1", et.Accepted)
+	elev := initializeElevator(1)
+	elev = setElevatorOrder(elev, 3, et.BT_HallUp, "1", et.Accepted)
+	elev = setElevatorOrder(elev, 0, et.BT_HallDown, "1", et.Accepted)
 	fmt.Printf("Starting order Function OrdersAbove \n\n\n")
 	time.Sleep(time.Second * 1)
 	orderAbove := OrderLogicOrdersAbove(elev)
@@ -78,4 +78,15 @@ func TestOrderLogicsAboveandBelow(t *testing.T) {
 	print("\n\n")
 	printElevatorQueue(elev)
 
+}
+
+func TestOrderLogicGetMovementDirection(t* testing.T){
+	elev := initializeElevator(1)
+	elev = setElevatorOrder(elev, 1, et.BT_HallUp, "1", et.Accepted)
+	elev = setElevatorOrder(elev,3,et.BT_Cab,"1",et.Accepted)
+	//elev = setElevatorOrder(elev, 0, et.BT_HallDown, "1", et.Accepted)
+	printElevatorQueue(elev)
+	MovDirection := OrderLogicGetMovementDirection(elev)
+	fmt.Printf("Current floor %v \n", elev.Floor)
+	fmt.Printf("MovementDirection: %v \n",MovDirection)
 }

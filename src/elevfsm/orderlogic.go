@@ -8,12 +8,9 @@ func OrderLogicOrdersAbove(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := e.Floor; f < et.NumFloors; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
-			// Must check that order exsist else it crashes
-			if e.Orders[f][btn] != nil {
-				if e.Orders[f][btn].Status == et.Accepted {
+			if e.Orders[f][btn].Status == et.Accepted {
 					return true
 				}
-			}
 		}
 	}
 	return false
@@ -22,11 +19,9 @@ func OrderLogicOrdersBelow(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := 0; f < e.Floor; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
-			if e.Orders[f][btn] != nil {
 				if e.Orders[f][btn].Status == et.Accepted {
 					return true
 				}
-			}
 		}
 	}
 	return false
