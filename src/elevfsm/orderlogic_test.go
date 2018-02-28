@@ -4,13 +4,14 @@ import (
 	et "../elevtype"
 	"fmt"
 	"testing"
+	"time"
 )
 
-func initializeElevator() et.Elevator {
+func initializeElevator(startingFloor int) et.Elevator {
 	// Initialize a Elevator
 	var elev et.Elevator
 	// Initilize starting Floor
-	elev.Floor = 1 //Is on second floor
+	elev.Floor = startingFloor //Is on second floor
 
 	// Initilize Movement Directions
 	elev.MovementDirection = et.MD_Stop // The elevator is not moving
@@ -19,7 +20,7 @@ func initializeElevator() et.Elevator {
 	// Initilze current Elevator State
 	elev.State = et.Idle
 
-	// Initilize the Elevators Queue
+	// Initilize the Elevators Queue to empty
 	elev = initilizeElevatorQueue(elev)
 
 	// Initilize Elevator ErrorState
@@ -28,6 +29,7 @@ func initializeElevator() et.Elevator {
 	return elev
 }
 
+// Initilizes the Elevetors queue to empty
 func initilizeElevatorQueue(elev et.Elevator) et.Elevator {
 	for floor := 0; floor < et.NumFloors; floor++ {
 		for button := 0; button < et.NumButtons; button++ {
@@ -62,16 +64,17 @@ func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID stri
 	return elev
 }
 
-func TestOrderLogicsAbove(t *testing.T) {
+func TestOrderLogicsAboveandBelow(t *testing.T) {
 
-	elev := initializeElevator()
-	elev = setElevatorOrder(elev, 2, et.BT_Cab, "1", et.Accepted)
-
-	//CurrentMotorDir := OrderLogicGetMovementDirection(elev)
-	shouldStop := OrderLogicCheckShouldStopAtFloor(elev)
-	//fmt.Printf("CurrentDir: %v", CurrentMotorDir)
-	fmt.Printf("CurrentFloor: %v \n", elev.Floor)
-	fmt.Printf("ShouldStop: %v", shouldStop)
+	elev := initializeElevator(3)
+	elev = setElevatorOrder(elev, 1, et.BT_Cab, "1", et.Accepted)
+	fmt.Printf("Starting order Function OrdersAbove \n\n\n")
+	time.Sleep(time.Second * 1)
+	orderAbove := OrderLogicOrdersAbove(elev)
+	orderBelow := OrderLogicOrdersBelow(elev)
+	fmt.Printf("Current Floor: %v \n", elev.Floor)
+	fmt.Printf("OrderAbove: %v \t", orderAbove)
+	fmt.Printf("OrderBelow: %v \n", orderBelow)
 	print("\n\n")
 	printElevatorQueue(elev)
 
