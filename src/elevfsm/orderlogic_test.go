@@ -1,10 +1,11 @@
 package elevfsm
 
 import (
-	et "../elevtype"
 	"fmt"
 	"testing"
 	"time"
+
+	et "../elevtype"
 )
 
 func initializeElevator(startingFloor int) et.Elevator {
