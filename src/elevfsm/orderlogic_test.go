@@ -34,7 +34,7 @@ func initializeElevator(startingFloor int) et.Elevator {
 func initilizeElevatorQueue(elev et.Elevator) et.Elevator {
 	for floor := 0; floor < et.NumFloors; floor++ {
 		for button := 0; button < et.NumButtons; button++ {
-			elev.Orders[floor][button] = nil
+			elev.Orders[floor][button] = et.EmptyOrder()
 		}
 	}
 
@@ -47,10 +47,10 @@ func printElevatorQueue(elev et.Elevator) {
 	for floor := 0; floor < et.NumFloors; floor++ {
 		fmt.Printf("Floor %v: \t  ", floor)
 		for button := 0; button < et.NumButtons; button++ {
-			if elev.Orders[floor][button] == nil {
-				print("FALSE \t  ")
+			if elev.Orders[floor][button].Status == et.Accepted {
+				print("TRUE \t\t  ")
 			} else {
-				print("TRUE \t\t ")
+				print("FALSE \t  ")
 			}
 		}
 		print("\n")
@@ -58,17 +58,28 @@ func printElevatorQueue(elev et.Elevator) {
 
 }
 
+/*
+* Sets a order in the Elevator queue at the given location
+* @arg elev: Elevator
+* @arg floor: Set which floor the order is from
+* @arg button: Set which Buttontype that was pressed
+* @arg ID: Give unique ID for the Order
+* @arg stat: Set status for Order
+*/
 func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID string, stat et.OrderStatus) et.Elevator {
 	bEvent := et.ButtonEvent{floor, button}
-	eOrder := et.ElevOrder{ID, bEvent, 2, stat, 2, "Elev"}
-	elev.Orders[floor][button] = &eOrder
+	elev.Orders[floor][button] = et.ElevOrder{ID, bEvent, 2, stat, 2, "Elev"}
 	return elev
 }
 
+/*
+* Test the two functions: OrderLogicOrdersAbove & OrderLogicOrdersBelow
+*/
 func TestOrderLogicsAboveandBelow(t *testing.T) {
 
-	elev := initializeElevator(3)
-	elev = setElevatorOrder(elev, 1, et.BT_Cab, "1", et.Accepted)
+	elev := initializeElevator(1)
+	elev = setElevatorOrder(elev, 3, et.BT_HallUp, "1", et.Accepted)
+	elev = setElevatorOrder(elev, 0, et.BT_HallDown, "1", et.Accepted)
 	fmt.Printf("Starting order Function OrdersAbove \n\n\n")
 	time.Sleep(time.Second * 1)
 	orderAbove := OrderLogicOrdersAbove(elev)
@@ -79,4 +90,68 @@ func TestOrderLogicsAboveandBelow(t *testing.T) {
 	print("\n\n")
 	printElevatorQueue(elev)
 
+}
+
+/*
+* Test the orderLogicGetMovementDirection
+*/
+func TestOrderLogicGetMovementDirection(t* testing.T){
+	elev := initializeElevator(1)
+	//elev = setElevatorOrder(elev, 1, et.BT_HallUp, "1", et.Accepted)
+	//elev = setElevatorOrder(elev,3,et.BT_Cab,"1",et.Accepted)
+	
+	printElevatorQueue(elev)
+	movDirection := OrderLogicGetMovementDirection(elev)
+	fmt.Printf("Current floor %v \n", elev.Floor)
+	fmt.Printf("MovementDirection: %v \n",movDirection)
+}
+/*
+ * Test all the functions in orderLogic
+ * Description:
+ * Init: Elevator is initilized in Floor 1, not moving with current Orders: Floor 1  BT_HallUP & Floor 1 BT_HallDown & Floor 3 BT_Cab
+ * Expected bahaviour:
+ *		- Elevator stops at currentFloor and removes request Floor 1 BT_HallUp, request Floor 1 BT_HallDown remains
+ *		- Elevator starts moving upwards towards order Floor 3 BT_Cab 
+
+ */
+func TestOrderLogicCheckShouldStopAtFloor(t* testing.T){
+
+	//Initialize Elevator Scenario
+	elev := initializeElevator(1)
+	elev = setElevatorOrder(elev, 1, et.BT_HallUp, "1", et.Accepted)
+	elev = setElevatorOrder(elev,3,et.BT_Cab,"2",et.Accepted)
+	elev = setElevatorOrder(elev,1,et.BT_HallDown,"3", et.Accepted)
+
+	//Find Movement Direction
+	elev.MovementDirection = OrderLogicGetMovementDirection(elev)
+
+	printElevatorQueue(elev)
+
+	//Decide if elevator should stop at current floor
+	shouldStop := OrderLogicCheckShouldStopAtFloor(elev)
+	//Pritn info
+	fmt.Printf("\n\n\n")
+	fmt.Printf("Current floor: %v \n", elev.Floor)
+	fmt.Printf("Movement Direction %v \n", elev.MovementDirection)
+	fmt.Printf("Should stop at current floor: %v \n", shouldStop)
+	
+	if shouldStop{
+		elev = OrderLogicClearRequestsOnCurrentFloor(elev, elev.MovementDirection)
+	}
+
+
+
+	fmt.Printf("\n\n\n")
+	printElevatorQueue(elev)
+
+	shouldStop = OrderLogicCheckShouldStopAtFloor(elev)
+	movDirection := OrderLogicGetMovementDirection(elev)
+	//Pritn info
+	fmt.Printf("\n\n\n")
+	fmt.Printf("Current floor: %v \n", elev.Floor)
+	fmt.Printf("Movement Direction %v \n", movDirection)
+	fmt.Printf("Should stop at current floor: %v \n", shouldStop)
+	
+	
+	
 }

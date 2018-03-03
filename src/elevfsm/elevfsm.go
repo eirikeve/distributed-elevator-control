@@ -71,7 +71,7 @@ func RemRequestFromQueue(order et.ElevOrder) {
 }
 
 func GetElevator() et.Elevator {
-	var v elevtype.Elevator
+	var v et.Elevator
 
 	return v
 

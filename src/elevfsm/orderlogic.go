@@ -8,12 +8,9 @@ func OrderLogicOrdersAbove(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := e.Floor; f < et.NumFloors; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
-			// Must check that order exsist else it crashes
-			if e.Orders[f][btn] != nil {
-				if e.Orders[f][btn].Status == et.Accepted {
+			if e.Orders[f][btn].Status == et.Accepted {
 					return true
 				}
-			}
 		}
 	}
 	return false
@@ -22,11 +19,9 @@ func OrderLogicOrdersBelow(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := 0; f < e.Floor; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
-			if e.Orders[f][btn] != nil {
 				if e.Orders[f][btn].Status == et.Accepted {
 					return true
 				}
-			}
 		}
 	}
 	return false
@@ -80,7 +75,7 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	//@todo - this should also not happen
 	return true
 }
-func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) {
+func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator{
 	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
 	// Only take passengers going in the directin the elevator will be moving
 	e.Orders[e.Floor][et.BT_Cab].Status = et.Finished
@@ -108,5 +103,6 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 		// @todo log error
 		// clear both dir? it's what they do in the example code
 	}
+	return e
 
 }
