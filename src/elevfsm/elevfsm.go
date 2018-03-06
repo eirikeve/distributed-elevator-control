@@ -9,11 +9,11 @@ var elevator et.Elevator
 var lastRegisteredFloor int
 var timerSignal chan<- bool
 
-func Initialize(timerSignalOutput chan<- bool, e * Elev) {
-	timerSignal = timerSignalOutput;
-	if (e == nil) {
+func Initialize(timerSignalOutput chan<- bool, e *Elev) {
+	timerSignal = timerSignalOutput
+	if e == nil {
 		elevator = et.Elevator{
-			Floor:              4,
+			Floor:               4,
 			MovementDirection:   et.MD_Stop,
 			MovDirFromLastFloor: et.MD_Up,
 			State:               et.Initializing,
@@ -31,9 +31,15 @@ func GetMovementDirection() elevtype.MotorDirection {
 	return OrderLogicGetMovementDirection(elevator)
 }
 */
-func GetPanelLights() []et.ButtonLamp {
-	var v []et.ButtonLamp
-
+func GetPanelLights() [et.NumFloors * et.NumButtons]et.ButtonLamp {
+	var v [et.NumFloors * et.NumButtons]et.ButtonLamp
+	for f := 0; i < et.NumFloors; f++ {
+		for b := 0; b < et.NumButtons; b++ {
+			// @TODO If order is nil this will not work
+			// make a get function or something else that returns the value.
+			v[f*et.NumButtons+b].Floor = et.ButtonLamp{Floor: f, Button: b, Value: (elevator.Orders[f][b].Status == Accepted)}
+		}
+	}
 	return v
 }
 
@@ -52,10 +58,7 @@ func RegisterFloor(floor int) {
 }
 
 func GetState() et.ElevatorState {
-	v := et.Idle
-
-	return v
-
+	return elevator.State
 }
 
 func setState(state et.ElevatorState) {
@@ -92,10 +95,10 @@ func RemRequestFromQueue(order et.ElevOrder) {
 }
 
 func GetElevator() et.Elevator {
-	var v et.Elevator
-
-	return v
-
+	return elevator
 }
 
-isTimeout()
+func ForceState(state et.ElevatorState) {
+	log.WithField("state", state).Warning("elevfsm ForceState: Forced state change")
+	elevator.State = state
+}
