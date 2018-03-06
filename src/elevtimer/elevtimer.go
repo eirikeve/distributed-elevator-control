@@ -43,7 +43,11 @@ func timerInstance(signalTimeout chan<- bool, duration time.Duration, timerName 
 				return
 			} else {
 				trySendTimeoutCount++
-				log.WithField("timerName", timerName).Warning("elevtimer timerInstance: Unable to signal timeout, retrying in 10ms")
+				// Only print the error 5 times, as to not clog up the log.
+				if (trySendTimeoutCount % 20) == 0 {
+					log.WithField("timerName", timerName).Warning("elevtimer timerInstance: Unable to signal timeout, retrying")
+				}
+
 				time.Sleep(time.Millisecond * 10)
 			}
 
