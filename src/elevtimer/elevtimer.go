@@ -20,7 +20,7 @@ var lock sync.Mutex
  * @arg duration: the duration from the function call until the timer signals timeout
  * @arg timerName: timer identifier, can be passed as "" if desired. Only used for logging purposes.
  */
-func Start(signalTimeout chan bool, duration time.Duration, timerName string) {
+func Start(timerName string, duration time.Duration, signalTimeout chan bool) {
 	lock.Lock()
 	defer lock.Unlock()
 	_, exists := timers[timerName]
@@ -34,7 +34,7 @@ func Start(signalTimeout chan bool, duration time.Duration, timerName string) {
 	}
 }
 
-/*Update sets a new timeout for timer timerName
+/*Update sets a new duration for timer timerName
  *newDuration is the time from time.Now() until the timeout of the timer.
  * @arg timerName: timer identifier
  * @arg newDuration: new time until timeout

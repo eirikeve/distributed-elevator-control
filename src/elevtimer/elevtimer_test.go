@@ -21,13 +21,13 @@ func TestStart(*testing.T) {
 	go channelListener(signal2, signalStop, "signal2")
 
 	log.Debug("elevtimer TestTimer: Starting Timers of 2 and 5 seconds")
-	Start(signal1, time.Second*2, "signal1 Timer")
-	Start(signal2, time.Second*5, "signal2 Timer")
+	Start("Timer1", time.Second*2, signal1)
+	Start("Timer2", time.Second*5, signal2)
 
 	time.Sleep(time.Second * 6)
 
 	log.Debug("elevtimer TestTimer: Starting a timer")
-	Start(signal3, time.Second, "signal3 Timer")
+	Start("Timer3", time.Second, signal3)
 	select {
 	case signal3 <- true:
 	default:
@@ -65,9 +65,9 @@ func TestUpdateAndStop(*testing.T) {
 	time.Sleep(time.Second * 2)
 
 	log.Info("Testing Update and Stop")
-	Start(signal1, time.Second, "Timer1")
-	Start(signal2, time.Second, "Timer2")
-	Start(signal3, time.Second, "Timer3")
+	Start("Timer1", time.Second, signal1)
+	Start("Timer2", time.Second, signal2)
+	Start("Timer3", time.Second, signal3)
 	Update("Timer1", time.Second*3)
 	Stop("Timer2")
 
