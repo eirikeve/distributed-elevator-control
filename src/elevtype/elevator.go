@@ -2,6 +2,8 @@ package elevtype
 
 const NumFloors = 4
 const NumButtons = 3
+const BOTTOMFLOOR = 0
+const TOPFLOOR = 3
 
 type ElevatorState int
 
@@ -28,4 +30,3 @@ type Elevator struct {
 	State               ElevatorState
 	ErrorState          ElevatorErrorState
 }
-
