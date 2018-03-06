@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func TestTimer(*testing.T) {
+func TestStart(*testing.T) {
 	elevlog.InitLog(log.DebugLevel, false)
 	println("Starting")
 
@@ -44,6 +44,35 @@ func TestTimer(*testing.T) {
 	time.Sleep(time.Second)
 	log.Debug("elevtimer TestTimer: Exiting")
 	return
+}
+
+func TestUpdateAndStop(*testing.T) {
+	elevlog.InitLog(log.DebugLevel, false)
+	println("Starting")
+
+	var signal1 = make(chan bool)
+	var signal2 = make(chan bool)
+	var signal3 = make(chan bool)
+	var signalStop = make(chan bool, 3)
+
+	go channelListener(signal1, signalStop, "signal1")
+	go channelListener(signal2, signalStop, "signal2")
+	go channelListener(signal3, signalStop, "signal3")
+
+	log.Info("Testing Stop and Update with non-created channels")
+	Stop("Some timer")
+	Update("Another timer", time.Second)
+	time.Sleep(time.Second * 2)
+
+	log.Info("Testing Update and Stop")
+	Start(signal1, time.Second, "Timer1")
+	Start(signal2, time.Second, "Timer2")
+	Start(signal3, time.Second, "Timer3")
+	Update("Timer1", time.Second*3)
+	Stop("Timer2")
+
+	time.Sleep(3 * time.Second)
+
 }
 
 func channelListener(channel chan bool, signalStop chan bool, channelName string) {
