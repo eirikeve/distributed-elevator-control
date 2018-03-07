@@ -9,7 +9,7 @@ import (
 	p "./peers"
 	)
 // Constants
-const HEARTBEATINTERVAL = 50*time.Millisecond
+const HEARTBEATINTERVAL = 30*time.Millisecond
 const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
 
 
