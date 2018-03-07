@@ -67,13 +67,13 @@ func StartDelayedFunction(timerName string, duration time.Duration, onTimeout fu
  * @arg newDuration: new time until timeout
  */
 func Update(timerName string, newDuration time.Duration) {
-	lock.Lock() //@BUG? Might get stuck here.
+	lock.Lock()
+	defer lock.Unlock()
 	c, exists := timers[timerName]
-	lock.Unlock()
 	if exists {
 		// @TODO possible error here if c is non-existent due to some bug
-
-		log.WithFields(log.Fields{"timerName": timerName, "duration": newDuration}).Debug("elevtimer Update: New duration")
+		//log.WithFields(log.Fields{"timerName": timerName, "duration": newDuration}).Debug("elevtimer Update: New duration")
+		//@BUG? Might get stuck here.
 		c <- newDuration
 
 	} else {
@@ -110,7 +110,7 @@ func timerInstance(timerName string, duration time.Duration, signalTimeout chan<
 			if newDuration > time.Second*0 {
 				startTime = time.Now()
 				duration = newDuration
-				log.WithField("timerName", timerName).Debug("elevtimer timerInstance: Timer duration updated")
+				//log.WithField("timerName", timerName).Debug("elevtimer timerInstance: Timer duration updated")
 			} else {
 				log.WithField("timerName", timerName).Debug("elevtimer timerInstance: Timer stopped, exiting")
 				return
@@ -166,7 +166,7 @@ func delayedFunctionInstance(timerName string, duration time.Duration, onTimeout
 			if newDuration > time.Second*0 {
 				startTime = time.Now()
 				duration = newDuration
-				log.WithField("timerName", timerName).Debug("elevtimer delayedFunctionInstance: Timer duration updated")
+				//log.WithField("timerName", timerName).Debug("elevtimer delayedFunctionInstance: Timer duration updated")
 			} else {
 				log.WithField("timerName", timerName).Debug("elevtimer delayedFunctionInstance: Timer stopped, exiting")
 				return
@@ -183,6 +183,7 @@ func delayedFunctionInstance(timerName string, duration time.Duration, onTimeout
  * @arg timerName: identity of timer to be removed
  */
 func removeTimerInstance(timerName string) {
+	lock.Lock()
 	defer lock.Unlock()
 	_, exists := timers[timerName]
 	if exists {
