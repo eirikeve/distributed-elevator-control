@@ -73,3 +73,9 @@ func TestUdpHeartbeat(t *testing.T){
 	}
 	
 }
+
+func TestHeartBeatVol2(t *testing.T){
+	port := 20100
+	ID := "THIS IS Me"
+	runHearBeatVol2(port,ID)
+}

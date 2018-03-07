@@ -2,12 +2,14 @@ package elevnetwork
 
 import (
 	"time"
+	"fmt"
 	"./bcast"
 	"./localip"
 	"encoding/json"
+	p "./peers"
 	)
 // Constants
-const HEARTBEATINTERVAL = 300*time.Millisecond
+const HEARTBEATINTERVAL = 50*time.Millisecond
 const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
 
 
@@ -90,12 +92,11 @@ func runHeartBeat(port int, existingPeersCh chan []Peer){
 		
 		select{
 			case msg := <-recvMsgCh:
-				println("Message received")
+				println("Messagtime.Now().Sub(startTime) < time.Second*10e received")
 				jsonMsg,_ := json.Marshal(msg)
 				println("Heartbeat Message:" + string(jsonMsg))	
 				addToPeerList(msg,&listPeers,listPeers)
 				existingPeersCh <- listPeers
-
 			default:
 				updateToPeersList(&listPeers,listPeers)
 				existingPeersCh <- listPeers
@@ -116,6 +117,46 @@ func runHeartBeat(port int, existingPeersCh chan []Peer){
 	
 }	
 //}
+/*
+ * Runs the heartbeat protocol wich nitors the participant of the netowrk.
+ * Version 2: Uses the given peers functions
+ * @arg port: roadcast on given port
+ * @arg PeersCh: List of current peers in network on channel
+ */
+func runHearBeatVol2(port int, ID string){
+
+	startTime := time.Now()
+	lastTranmissionTime := time.Now()
+
+	recvPeerCh := make(chan p.PeerUpdate)
+	sendPeerCh := make(chan bool)
+
+	go p.Transmitter(port, ID, sendPeerCh)
+	go p.Receiver(port, recvPeerCh)
+
+	for time.Now().Sub(startTime) < time.Second*10{
+		
+		if time.Now().Sub(lastTranmissionTime)>HEARTBEATINTERVAL{
+			sendPeerCh <- true
+			lastTranmissionTime = time.Now()
+		}
+		select{
+
+		
+		case msg:= <-recvPeerCh:
+			fmt.Printf("ID: %v \n",msg.Peers)
+		
+		default:
+			sendPeerCh <- false 
+			//Do nothing
+	}
+
+		
+
+
+	}
+
+}
 
 /*
 * Updates the P2P network,

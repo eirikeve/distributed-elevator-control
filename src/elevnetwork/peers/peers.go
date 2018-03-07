@@ -53,11 +53,11 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 		// Adding new connection
 		p.New = ""
 		if id != "" {
+			
 			if _, idExists := lastSeen[id]; !idExists {
 				p.New = id
 				updated = true
 			}
-
 			lastSeen[id] = time.Now()
 		}
 
