@@ -27,7 +27,7 @@ func timeToIdle(elev et.Elevator) int{
         case et.Moving:
             duration += TRAVEL_TIME/2;
             elev.Floor += int(elev.MovementDirection);          //[BUG] Not sure if converts motor type to int to floor
-        case et.Unloading:                         //[@TODO: Unloading is being changed to Unloading in master, must be changed when merginging
+        case et.Unloading:                         
             duration+=DOOR_OPEN_TIME/2
         default:
             //Should not be possible to enter default
@@ -42,11 +42,7 @@ func timeToIdle(elev et.Elevator) int{
                 return duration;
             }
         }
-        printElevatorQueue(elev)
-        print("\n\n")
-        fmt.Printf("Elev: Floor: %v \t Duration: %v \n\n",elev.Floor,duration)
-        //time.Sleep(time.Second*2)
-		elev.Floor += int(elev.MovementDirection);
+        elev.Floor += int(elev.MovementDirection);
         duration += TRAVEL_TIME;                    //[POTENTIAL BUG] Not sure if converts motor type to int to floor
 	}
     
@@ -99,7 +95,10 @@ func findMinIndex(list []int) int{
     return maxIndex
 }
 
-
+/*
+ * Prints the Elevator Queue
+ * @arg: An Elevator
+ */
 func printElevatorQueue(elev et.Elevator) {
 	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
 	for floor := 0; floor < et.NumFloors; floor++ {
