@@ -3,6 +3,7 @@ package elevorderevaluation
 import(
     et "../elevtype"
     fsm "../elevfsm"
+    "fmt"
     )
 
 const TRAVEL_TIME = 3
@@ -25,14 +26,15 @@ func timeToIdle(elev et.Elevator) int{
             }
         case et.Moving:
             duration += TRAVEL_TIME/2;
-            elev.Floor += int(elev.MovementDirection);          //[POTENTIAL BUG] Not sure if converts motor type to int to floor
-        case et.Unloading:                         //[@Todo]: Unloading is being changed to Unloading in master, must be changed when merginging
+            elev.Floor += int(elev.MovementDirection);          //[BUG] Not sure if converts motor type to int to floor
+        case et.Unloading:                         //[@TODO: Unloading is being changed to Unloading in master, must be changed when merginging
             duration-=DOOR_OPEN_TIME/2
         default:
             //Should not be possible to enter default
             println("Entered defualt in timeToIdle. This should not happen")
-	}
+    }
 	for isSimulating == true{
+        //println(duration)
         if fsm.OrderLogicCheckShouldStopAtFloor(elev) == true{
             elev = fsm.OrderLogicClearRequestsOnCurrentFloor(elev,elev.MovementDirection)
             duration += DOOR_OPEN_TIME;
@@ -41,6 +43,8 @@ func timeToIdle(elev et.Elevator) int{
                 return duration;
             }
         }
+        //printElevatorQueue(elev)
+        //time.Sleep(time.Second*2)
 		elev.Floor += int(elev.MovementDirection);
         duration += TRAVEL_TIME;                    //[POTENTIAL BUG] Not sure if converts motor type to int to floor
 	}
@@ -59,8 +63,8 @@ func delegateOrder(elevList []et.Elevator) int {
         tempDuration:=timeToIdle(elev)
         durations = append(durations,tempDuration)
     }
-    for _,element :=range durations{
-        println(element)
+    for index,element :=range durations{
+        fmt.Printf("delegateOrder, Elevator  %v: Duration: %v \n",index,element)
     }
 
     optElevIndex := findMinIndex(durations)
@@ -89,4 +93,21 @@ func findMinIndex(list []int) int{
         }
     }
     return maxIndex
+}
+
+
+func printElevatorQueue(elev et.Elevator) {
+	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
+	for floor := 0; floor < et.NumFloors; floor++ {
+		fmt.Printf("Floor %v: \t  ", floor)
+		for button := 0; button < et.NumButtons; button++ {
+			if elev.Orders[floor][button].Status == et.Accepted {
+				print("TRUE \t\t  ")
+			} else {
+				print("FALSE \t  ")
+			}
+		}
+		print("\n")
+	}
+
 }

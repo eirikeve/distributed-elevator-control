@@ -6,7 +6,7 @@ import (
 
 func OrderLogicOrdersAbove(e et.Elevator) bool {
 	// @todo handle if floor is -1
-	for f := e.Floor; f < et.NumFloors; f++ {
+	for f := e.Floor+1; f < et.NumFloors; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
 			if e.Orders[f][btn].Status == et.Accepted {
 					return true
@@ -36,6 +36,7 @@ func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 		}
 		return et.MD_Stop
 	case et.MD_Down:
+		fallthrough
 	case et.MD_Stop:
 		if OrderLogicOrdersBelow(e) {
 			return et.MD_Down
@@ -49,7 +50,6 @@ func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 		// log error
 		// if possible, try to move
 	}
-	return et.MD_Stop //[@todo] should not happen
 }
 func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	switch e.MovementDirection {
@@ -68,12 +68,12 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 		}
 		return false
 	case et.MD_Stop:
+		return true
 	default:
-		// @todo log - this should probably not happen.
+		// [@TODO] log - this should probably not happen.
 		return true
 	}
-	//@todo - this should also not happen
-	return true
+		
 }
 func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator{
 	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
@@ -82,27 +82,22 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 	switch travelDirFromFloor {
 	case et.MD_Up:
 		e.Orders[e.Floor][et.BT_HallUp].Status = et.Finished
-		/*
-					we did not add:
-					if(!requests_above(e)){
-			                e.requests[e.floor][B_HallDown] = 0;
-					}
-		*/
+		if OrderLogicOrdersAbove(e) == false{
+			    e.Orders[e.Floor][et.BT_HallDown].Status = et.Finished;
+		}
 
 	case et.MD_Down:
 		e.Orders[e.Floor][et.BT_HallDown].Status = et.Finished
-		/*
-					we did not add:
-					if(!requests_below(e)){
-			                e.requests[e.floor][B_HallUp] = 0;
-					}
+			if OrderLogicOrdersBelow(e) == false{
+			     e.Orders[e.Floor][et.BT_HallUp].Status = et.Finished;
+			}
 
-		*/
 	case et.MD_Stop:
+		fallthrough
 	default:
-		// @todo log error
-		// clear both dir? it's what they do in the example code
-	}
+		e.Orders[e.Floor][et.BT_HallUp].Status = et.Finished;
+		e.Orders[e.Floor][et.BT_HallDown].Status = et.Finished;
+		}
 	return e
 
 }

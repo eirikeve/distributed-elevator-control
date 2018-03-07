@@ -76,9 +76,10 @@ func SetElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID stri
 */
 func TestOrderLogicsAboveandBelow(t *testing.T) {
 
-	elev := InitializeElevator(1)
+	elev := InitializeElevator(3)
 	elev = SetElevatorOrder(elev, 3, et.BT_HallUp, "1", et.Accepted)
-	elev = SetElevatorOrder(elev, 0, et.BT_HallDown, "1", et.Accepted)
+	elev = SetElevatorOrder(elev, 0, et.BT_HallDown, "2", et.Accepted)
+	elev = SetElevatorOrder(elev, 0, et.BT_Cab, "3", et.Accepted)
 	fmt.Printf("Starting order Function OrdersAbove \n\n\n")
 	time.Sleep(time.Second * 1)
 	orderAbove := OrderLogicOrdersAbove(elev)
@@ -95,9 +96,10 @@ func TestOrderLogicsAboveandBelow(t *testing.T) {
 * Test the orderLogicGetMovementDirection
 */
 func TestOrderLogicGetMovementDirection(t* testing.T){
-	elev := InitializeElevator(1)
-	//elev = setElevatorOrder(elev, 1, et.BT_HallUp, "1", et.Accepted)
-	//elev = setElevatorOrder(elev,3,et.BT_Cab,"1",et.Accepted)
+	elev := InitializeElevator(3)
+	elev = SetElevatorOrder(elev, 3, et.BT_HallUp, "1", et.Accepted)
+	elev = SetElevatorOrder(elev, 0, et.BT_HallDown, "2", et.Accepted)
+	elev = SetElevatorOrder(elev, 0, et.BT_Cab, "3", et.Accepted)
 	
 	PrintElevatorQueue(elev)
 	movDirection := OrderLogicGetMovementDirection(elev)

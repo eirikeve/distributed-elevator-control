@@ -13,47 +13,51 @@ import(
 * Test if finding maximum index, i.e. element with largest integer value, is working properly
 */
 func TestMinIndex(t *testing.T){
-	durations := []int{27,22,27}
+	durations := []int{27,8,5}
 	index := findMinIndex(durations)
 	println("MinIndex:",index)
 	println("Containg the value", durations[index])
-
 }
 
 func TestTimeToIdle(t *testing.T){
 	// Initialize elevator at Floor 1
-	elevOne:= initializeElevator(1)
-	
+	elevOne:= initializeElevator(2)
+	elevOne.MovementDirection = et.MD_Stop
+	elevOne.State = et.Moving
 	// Set Queue for elevator
 	elevOne = setElevatorOrder(elevOne, 1, et.BT_HallUp, "1", et.Accepted)
-	elevOne = setElevatorOrder(elevOne,3,et.BT_Cab,"2",et.Accepted)
-	elevOne = setElevatorOrder(elevOne,1,et.BT_HallDown,"3", et.Accepted)
+	elevOne = setElevatorOrder(elevOne,0,et.BT_Cab,"2",et.Accepted)
+	elevOne = setElevatorOrder(elevOne,3,et.BT_HallDown,"3", et.Accepted)
+	elevOne = setElevatorOrder(elevOne,2,et.BT_HallUp,"4",et.Accepted)
 
 	printElevatorQueue(elevOne)
-
+	
 	// Get duration
 	fmt.Printf("\n")
 	duration:= timeToIdle(elevOne)
-	fmt.Printf("Duration: %v \n\n\n",duration)
+	fmt.Printf("TimeToIdle, Duration: %v \n\n\n",duration)
 }
 
 func TestOrderDelegation(t *testing.T){
 	// Initialize elevator at Floor 1
-	elevOne:= initializeElevator(1)
-	elevTwo:= initializeElevator(1)
-	elevThree:= initializeElevator(1)
+	elevOne:= initializeElevator(2)
+	elevTwo:= initializeElevator(0)
+	elevThree:= initializeElevator(3)
 	
-	// Set Queue for elevator 1
+	// Set-uo for elevator 1
+	elevOne.MovementDirection = et.MD_Up
+	elevOne.State = et.Moving
 	elevOne = setElevatorOrder(elevOne, 1, et.BT_HallUp, "1", et.Accepted)
-	elevOne = setElevatorOrder(elevOne,3,et.BT_Cab,"2",et.Accepted)
-	elevOne = setElevatorOrder(elevOne,1,et.BT_HallDown,"3", et.Accepted)
+	elevOne = setElevatorOrder(elevOne,0,et.BT_Cab,"2",et.Accepted)
+	elevOne = setElevatorOrder(elevOne,2,et.BT_HallDown,"3", et.Accepted)
+	elevOne = setElevatorOrder(elevOne,3,et.BT_HallDown,"4", et.Accepted)
 
-	// Set Queue for elevator 1
+	// Set Queue for elevator 2
 	elevTwo = setElevatorOrder(elevTwo, 1, et.BT_HallUp, "1", et.Accepted)
-	//elevTwo = setElevatorOrder(elevTwo,3,et.BT_Cab,"2",et.Accepted)
+	elevTwo = setElevatorOrder(elevTwo,3,et.BT_Cab,"2",et.Accepted)
 	elevTwo = setElevatorOrder(elevTwo,1,et.BT_HallDown,"3", et.Accepted)
 
-	// Set Queue for elevator 1
+	// Set Queue for elevator 3
 	elevThree = setElevatorOrder(elevThree, 1, et.BT_HallUp, "1", et.Accepted)
 	elevThree = setElevatorOrder(elevThree,3,et.BT_Cab,"2",et.Accepted)
 	elevThree = setElevatorOrder(elevThree,1,et.BT_HallDown,"3", et.Accepted)
@@ -61,7 +65,7 @@ func TestOrderDelegation(t *testing.T){
 	listElev := []et.Elevator{elevOne, elevTwo, elevThree}
 	bestElev:= delegateOrder(listElev)
 
-	fmt.Printf("Best elevator: %v \n", bestElev)
+	fmt.Printf("TestOrderDelegation, Best elevator: %v \n", bestElev)
 
 
 }
@@ -106,6 +110,7 @@ func initilizeElevatorQueue(elev et.Elevator) et.Elevator {
 
 }
 
+/*
 func printElevatorQueue(elev et.Elevator) {
 	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
 	for floor := 0; floor < et.NumFloors; floor++ {
@@ -121,6 +126,7 @@ func printElevatorQueue(elev et.Elevator) {
 	}
 
 }
+*/
 
 /*
 * Sets a order in the Elevator queue at the given location
