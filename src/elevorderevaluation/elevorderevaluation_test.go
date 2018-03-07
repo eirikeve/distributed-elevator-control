@@ -21,14 +21,13 @@ func TestMinIndex(t *testing.T){
 
 func TestTimeToIdle(t *testing.T){
 	// Initialize elevator at Floor 1
-	elevOne:= initializeElevator(2)
-	elevOne.MovementDirection = et.MD_Stop
-	elevOne.State = et.Moving
+	elevOne:= initializeElevator(1)
+	elevOne.MovementDirection = et.MD_Up
+	elevOne.State = et.Unloading
 	// Set Queue for elevator
 	elevOne = setElevatorOrder(elevOne, 1, et.BT_HallUp, "1", et.Accepted)
 	elevOne = setElevatorOrder(elevOne,0,et.BT_Cab,"2",et.Accepted)
 	elevOne = setElevatorOrder(elevOne,3,et.BT_HallDown,"3", et.Accepted)
-	elevOne = setElevatorOrder(elevOne,2,et.BT_HallUp,"4",et.Accepted)
 
 	printElevatorQueue(elevOne)
 	
@@ -42,28 +41,32 @@ func TestOrderDelegation(t *testing.T){
 	// Initialize elevator at Floor 1
 	elevOne:= initializeElevator(2)
 	elevTwo:= initializeElevator(0)
-	elevThree:= initializeElevator(3)
+	elevThree:= initializeElevator(1)
 	
-	// Set-uo for elevator 1
+	// Set-up for elevator 1
 	elevOne.MovementDirection = et.MD_Up
 	elevOne.State = et.Moving
 	elevOne = setElevatorOrder(elevOne, 1, et.BT_HallUp, "1", et.Accepted)
 	elevOne = setElevatorOrder(elevOne,0,et.BT_Cab,"2",et.Accepted)
 	elevOne = setElevatorOrder(elevOne,2,et.BT_HallDown,"3", et.Accepted)
-	elevOne = setElevatorOrder(elevOne,3,et.BT_HallDown,"4", et.Accepted)
-
-	// Set Queue for elevator 2
+	
+	// Set-up for elevator 2
 	elevTwo = setElevatorOrder(elevTwo, 1, et.BT_HallUp, "1", et.Accepted)
 	elevTwo = setElevatorOrder(elevTwo,3,et.BT_Cab,"2",et.Accepted)
 	elevTwo = setElevatorOrder(elevTwo,1,et.BT_HallDown,"3", et.Accepted)
 
-	// Set Queue for elevator 3
+	// Set-up for elevator 3
+	elevThree.MovementDirection = et.MD_Up
+	elevThree.State = et.Unloading
 	elevThree = setElevatorOrder(elevThree, 1, et.BT_HallUp, "1", et.Accepted)
-	elevThree = setElevatorOrder(elevThree,3,et.BT_Cab,"2",et.Accepted)
-	elevThree = setElevatorOrder(elevThree,1,et.BT_HallDown,"3", et.Accepted)
+	elevThree = setElevatorOrder(elevThree,0,et.BT_Cab,"3", et.Accepted)
+
+	//New Order
+	bEvent := et.ButtonEvent{3, et.BT_HallDown}
+	newOrder := et.ElevOrder{"NewOrder", bEvent, 2, et.Accepted, 2, "Elev"}
 
 	listElev := []et.Elevator{elevOne, elevTwo, elevThree}
-	bestElev:= delegateOrder(listElev)
+	bestElev:= delegateOrder(listElev,newOrder)
 
 	fmt.Printf("TestOrderDelegation, Best elevator: %v \n", bestElev)
 
@@ -110,23 +113,6 @@ func initilizeElevatorQueue(elev et.Elevator) et.Elevator {
 
 }
 
-/*
-func printElevatorQueue(elev et.Elevator) {
-	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
-	for floor := 0; floor < et.NumFloors; floor++ {
-		fmt.Printf("Floor %v: \t  ", floor)
-		for button := 0; button < et.NumButtons; button++ {
-			if elev.Orders[floor][button].Status == et.Accepted {
-				print("TRUE \t\t  ")
-			} else {
-				print("FALSE \t  ")
-			}
-		}
-		print("\n")
-	}
-
-}
-*/
 
 /*
 * Sets a order in the Elevator queue at the given location

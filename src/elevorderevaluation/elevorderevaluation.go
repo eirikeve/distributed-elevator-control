@@ -28,13 +28,12 @@ func timeToIdle(elev et.Elevator) int{
             duration += TRAVEL_TIME/2;
             elev.Floor += int(elev.MovementDirection);          //[BUG] Not sure if converts motor type to int to floor
         case et.Unloading:                         //[@TODO: Unloading is being changed to Unloading in master, must be changed when merginging
-            duration-=DOOR_OPEN_TIME/2
+            duration+=DOOR_OPEN_TIME/2
         default:
             //Should not be possible to enter default
             println("Entered defualt in timeToIdle. This should not happen")
     }
 	for isSimulating == true{
-        //println(duration)
         if fsm.OrderLogicCheckShouldStopAtFloor(elev) == true{
             elev = fsm.OrderLogicClearRequestsOnCurrentFloor(elev,elev.MovementDirection)
             duration += DOOR_OPEN_TIME;
@@ -43,7 +42,9 @@ func timeToIdle(elev et.Elevator) int{
                 return duration;
             }
         }
-        //printElevatorQueue(elev)
+        printElevatorQueue(elev)
+        print("\n\n")
+        fmt.Printf("Elev: Floor: %v \t Duration: %v \n\n",elev.Floor,duration)
         //time.Sleep(time.Second*2)
 		elev.Floor += int(elev.MovementDirection);
         duration += TRAVEL_TIME;                    //[POTENTIAL BUG] Not sure if converts motor type to int to floor
@@ -57,9 +58,12 @@ func timeToIdle(elev et.Elevator) int{
 * is best fit to take and execute an order.
 * @arg elev[]: List of Elevators
 */
-func delegateOrder(elevList []et.Elevator) int {
+func delegateOrder(elevList []et.Elevator, newOrder et.ElevOrder) int {
     var durations[] int
+
+
     for _, elev :=range elevList{
+        elev = insertElevatorOrder(elev,newOrder)
         tempDuration:=timeToIdle(elev)
         durations = append(durations,tempDuration)
     }
@@ -110,4 +114,16 @@ func printElevatorQueue(elev et.Elevator) {
 		print("\n")
 	}
 
+}
+
+
+/*
+* Sets a order in the Elevator queue at the given location
+* @arg elev: Elevator
+* @arg ElevOrder: The new Elevator Order
+* @arg ButtonEvent: Which button was triggered and at which floor is was pressed
+*/
+func insertElevatorOrder(elev et.Elevator, order et.ElevOrder) et.Elevator {
+	elev.Orders[order.Order.Floor][order.Order.Button] = order
+	return elev
 }
