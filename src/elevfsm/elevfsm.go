@@ -106,7 +106,7 @@ func RegisterFloor(floor int) {
 func RegisterTimerTimeout() {
 	switch elevator.State {
 	case et.Unloading:
-		idle()
+		idle() // Only go to moving from idle!
 	case et.Initializing:
 		switch elevator.MovementDirection {
 		case et.MD_Down: // normal initialization
