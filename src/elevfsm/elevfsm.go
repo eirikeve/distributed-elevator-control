@@ -15,7 +15,7 @@ var errorCount int
 
 const initFailTimeout time.Duration = 5 * time.Second
 
-func Initialize(doorTimeoutSignal chan bool, e *et.Elevator) {
+func StartFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	doorTimeoutSignalOutput = doorTimeoutSignal
 	if e == nil {
 		elevator = et.Elevator{
@@ -74,6 +74,7 @@ func RegisterFloor(floor int) {
 
 	switch elevator.State {
 	case et.Initializing:
+		timer.Stop("Initialization") // No need to signal timeout, since we reached a floor
 		idle()
 	case et.Moving:
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
