@@ -48,7 +48,6 @@ func TestStart(*testing.T) {
 
 func TestUpdateAndStop(*testing.T) {
 	elevlog.InitLog(log.DebugLevel, false)
-	println("Starting")
 
 	var signal1 = make(chan bool)
 	var signal2 = make(chan bool)
@@ -64,14 +63,30 @@ func TestUpdateAndStop(*testing.T) {
 	Update("Another timer", time.Second)
 	time.Sleep(time.Second * 2)
 
-	log.Info("Testing Update and Stop")
+	log.Info("Testing Start, Update and Stop")
 	Start("Timer1", time.Second, signal1)
 	Start("Timer2", time.Second, signal2)
 	Start("Timer3", time.Second, signal3)
 	Update("Timer1", time.Second*3)
 	Stop("Timer2")
+	Start("Timer3", time.Second, signal3)
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(4 * time.Second)
+
+}
+
+func TestDelayedFunctions(*testing.T) {
+	elevlog.InitLog(log.DebugLevel, false)
+
+	log.Info("Testing Delayed Functions")
+	StartDelayedFunction("printAfter1Sec", time.Second, func() { println("1") })
+	StartDelayedFunction("printAfter4Sec", time.Second*4, func() { println("4") })
+	StartDelayedFunction("printAfter5Sec", time.Second*5, func() { println("5.. but actually 10") })
+	log.Info("Stopping 4, updating 5 to 10 secs")
+	Stop("printAfter4Sec")
+	Update("printAfter5Sec", time.Second*10)
+
+	time.Sleep(time.Second * 12)
 
 }
 
