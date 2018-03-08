@@ -13,7 +13,7 @@ func TestElevHandler(t *testing.T) {
 
 	log.Info("elevhandler TestElevHandler: Starting test")
 	StartElevatorHandler()
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 	StopElevatorHandler()
 	time.Sleep(time.Second)
 
