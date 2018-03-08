@@ -21,7 +21,7 @@ var _conn net.Conn
 
 func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
 	if _initialized {
-		log.Warning("elevdriver Init: Driver already initialized")
+		log.Warning("elevdriver initConnectionAndSetNumFloors: Driver already initialized")
 		return
 	}
 	_numFloorsElevator = NumFloorsElevator
@@ -29,9 +29,18 @@ func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
 	var err error
 	_conn, err = net.Dial("tcp", addr)
 	if err != nil {
-		log.WithField("Err", err.Error()).Fatal("elevdriver Init: Cannot establish conn")
+		log.WithField("Err", err.Error()).Fatal("elevdriver initConnectionAndSetNumFloors: Cannot establish conn")
 	}
 	_initialized = true
+}
+
+func shutdownConnection() {
+	if !_initialized {
+		log.Warning("elevdriver initConnectionAndSetNumFloors: Not running")
+		return
+	}
+	_conn.Close()
+	_initialized = false
 }
 
 func setMotorDirection(dir elevtype.MotorDirection) {
