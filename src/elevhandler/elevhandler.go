@@ -27,7 +27,7 @@ func StartElevatorHandler() {
 
 	fsm.StartFSM(fsmTimeoutSignal, elevator)
 
-	go elevatorHandlerInstance(signalHandlerToStop)
+	go elevHandlerInstance(signalHandlerToStop)
 
 }
 
@@ -35,11 +35,11 @@ func StopElevatorHandler() {
 	log.Info("elevhandler StopElevatorHandler: Stopping")
 	//@BUG this does not send
 	signalHandlerToStop <- true
-	log.Info("elevhandler StopElevatorHandler: Stop signalled")
+	log.Debug("elevhandler StopElevatorHandler: Stop signalled")
 	return
 }
 
-func elevatorHandlerInstance(signalHandlerToStop <-chan bool) {
+func elevHandlerInstance(signalHandlerToStop <-chan bool) {
 	log.Debug("elevhandler elevatorHandlerInstance: Starting")
 	loopCount := 0
 
@@ -62,26 +62,51 @@ func elevatorHandlerInstance(signalHandlerToStop <-chan bool) {
 	defer driver.StopDriver()
 
 	//@TODO REMOVE. ONLY FOR DEBUGGING
-	fsm.RegisterFloor(0)
+	//fsm.RegisterFloor(0)
 
 	//@TODO program loop
 	timer.StartDelayedFunction("ElevHandler Watchdog", time.Second*2, func() { panic("ElevHandler Watchdog: timeout") })
 	defer timer.Stop("ElevHandler Watchdog")
 	for {
 		timer.Update("ElevHandler Watchdog", time.Second*2)
+		// Get values to be sent
+		buttonLamps := fsm.GetPanelLights()
+		doorOpenLamp := fsm.GetDoorOpenLight()
+		motorDir := fsm.GetMotorDir()
+		floor := fsm.GetFloor()
+
 		select {
-		// Handler Control
+		// Elevator Handler Control
 		case <-signalHandlerToStop:
 			return
-		// Reading Signals from FSM
+		// Pushing button presses to the Network Handler
+		case b := <-buttonPressSensorOut:
+			log.WithField("button", b).Warning("elevhandler elevHandlerInstance: Registered btn, sending not implemented")
+		// Pushing elevator state to Network Handler
+		// @TODO
+		// Receiving orders from the Network Handler
+		// @TODO
+		// Checking floor, registering in FSM
 		case f := <-floorSensorOut:
 			if et.BOTTOMFLOOR <= f && f <= et.TOPFLOOR {
 				fsm.RegisterFloor(f)
 			}
-
-		// Pushing Signals to FSM
-
-		default:
+		// Checking timer timeout, registering in FSM
+		case <-fsmTimeoutSignal:
+			fsm.RegisterTimerTimeout()
+		// Pushing motor direction to Driver
+		case motorDirectionInput <- motorDir:
+		case floorIndicatorInput <- floor:
+		case doorOpenLampInput <- doorOpenLamp:
+		}
+		// Push button lamps
+		for i := 0; i < et.NumFloors; i++ {
+			for j := 0; j < et.NumButtons; j++ {
+				select {
+				// try to send buttonLamp inputs
+				case buttonLampInput <- buttonLamps[i][j]:
+				}
+			}
 
 		}
 		time.Sleep(time.Millisecond * 100)
