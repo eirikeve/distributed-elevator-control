@@ -19,7 +19,7 @@ func StartFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	doorTimeoutSignalOutput = doorTimeoutSignal
 	if e == nil {
 		elevator = et.Elevator{
-			Floor:               4,
+			Floor:               et.BOTTOMFLOOR,
 			MovementDirection:   et.MD_Stop,
 			MovDirFromLastFloor: et.MD_Up,
 			State:               et.Initializing,
@@ -40,13 +40,13 @@ func GetMovementDirection() elevtype.MotorDirection {
 	return OrderLogicGetMovementDirection(elevator)
 }
 */
-func GetPanelLights() [et.NumFloors * et.NumButtons]et.ButtonLamp {
-	var lights [et.NumFloors * et.NumButtons]et.ButtonLamp
+func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
+	var lights [et.NumFloors][et.NumButtons]et.ButtonLamp
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
 			// @TODO If order is nil this will not work //@BUG
 			// make a get function or something else that returns the value.
-			lights[f*et.NumButtons+b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: (elevator.Orders[f][b].Status == et.Accepted)}
+			lights[f][b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: (elevator.Orders[f][b].Status == et.Accepted)}
 		}
 	}
 	return lights
@@ -62,6 +62,10 @@ func GetState() et.ElevatorState {
 
 func GetMotorDir() et.MotorDirection {
 	return elevator.MovementDirection
+}
+
+func GetFloor() int {
+	return elevator.Floor
 }
 
 func RegisterFloor(floor int) {
