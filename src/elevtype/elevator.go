@@ -21,7 +21,7 @@ type Elevator struct {
 	Floor               int
 	MovementDirection   MotorDirection
 	MovDirFromLastFloor MotorDirection // [@TODO]Not needed, since the stop button is not used?
-	Orders              [NumFloors][NumButtons]ElevOrder
+	Orders              [NumFloors][NumButtons]SimpleOrder
 	State               ElevatorState
 	ErrorState          ElevatorErrorState
 }
