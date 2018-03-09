@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"../elevtype"
+	et "../elevtype"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -20,6 +20,7 @@ const timeWaitForDriverToStartMs = 20
 var wg = &sync.WaitGroup{}
 var stopDriverChan = make(chan bool)
 var driverRunning = false
+var driverLock sync.Mutex
 
 /*StartDriver creates a (singleton) driver instance running on a separate thread.
  * The driver uses channels to set Elevator parameters (Input chans),
@@ -38,14 +39,17 @@ var driverRunning = false
  */
 func StartDriver(
 	numFloorsElevator int,
-	motorDirectionInput <-chan elevtype.MotorDirection,
-	buttonLampInput <-chan elevtype.ButtonLamp,
+	motorDirectionInput <-chan et.MotorDirection,
+	buttonLampInput <-chan et.ButtonLamp,
 	floorIndicatorInput <-chan int,
 	doorOpenLampInput <-chan bool,
-	buttonPressSensorOut chan<- elevtype.ButtonEvent,
+	buttonPressSensorOut chan<- et.ButtonEvent,
 	floorSensorOut chan<- int,
 ) {
-	log.Debug("elevdriver StartDriver: Driver starting")
+	driverLock.Lock()
+	defer driverLock.Unlock()
+
+	log.Info("elevdriver StartDriver: Driver starting")
 	if driverRunning {
 		log.Warning("elevdriver StartDriver: Driver already running. Returning")
 		return
@@ -85,6 +89,9 @@ func StartDriver(
  * Can be called directly - not necessary to call as a GoRoutine.
  */
 func StopDriver() {
+	driverLock.Lock()
+	defer driverLock.Unlock()
+
 	log.Debug("elevdriver StopDriver: Driver stopping")
 	if !driverRunning {
 		log.Warning("elevdriver StopDriver: Driver already stopped. Returning")
@@ -93,7 +100,7 @@ func StopDriver() {
 	stopDriverChan <- true
 	wg.Wait()
 	driverRunning = false
-	log.Debug("elevdriver StopDriver: Driver stopped")
+	log.Info("elevdriver StopDriver: Driver stopped")
 }
 
 /*driver (.) initializes a connection to the elevator, and then pushes inputs and outputs to/from the elevator
@@ -112,11 +119,11 @@ func StopDriver() {
  */
 func driver(
 	numFloorsElevator int,
-	motorDirectionInput <-chan elevtype.MotorDirection,
-	buttonLampInput <-chan elevtype.ButtonLamp,
+	motorDirectionInput <-chan et.MotorDirection,
+	buttonLampInput <-chan et.ButtonLamp,
 	floorIndicatorInput <-chan int,
 	doorOpenLampInput <-chan bool,
-	buttonPressSensorOut chan<- elevtype.ButtonEvent,
+	buttonPressSensorOut chan<- et.ButtonEvent,
 	floorSensorOut chan<- int,
 	stopDriver <-chan bool,
 	wg *sync.WaitGroup,
@@ -127,10 +134,12 @@ func driver(
 
 	log.Debug("elevdriver Driver: Init connection")
 	initConnectionAndSetNumFloors(elevatorAddress, numFloorsElevator)
-	defer _conn.Close() // _conn is a public variable in elevio.go
+	defer shutdownConnection()
 
 	shutdown := make(chan bool, 10)
-	runDriver := true
+	// Signal to stop GoRoutines before exiting
+	defer fill(shutdown, true)
+	//runDriver := true
 	// Turn off lights here @todo
 
 	// Outputs from driver to handler
@@ -139,37 +148,30 @@ func driver(
 	log.Debug("elevdriver Driver: Started GoRoutines, running driver")
 
 	driverDebugLogMsgTimer := time.Now()
-	const driverDebugLogMsgFreq = time.Second
+	const driverDebugLogMsgFreq = 2 * time.Second
 
-	for runDriver == true {
+	for {
 		select {
 		// Inputs to driver from Handler
-		case _ = <-stopDriver:
-			log.Debug("elevdriver Driver: Recv stopDriver")
-			runDriver = false
+		case <-stopDriver:
+			log.Info("elevdriver Driver: Stopping driver")
+			return
 		case dir := <-motorDirectionInput:
-			log.WithField("Dir", dir).Debug("elevdriver Driver: Setting motor dir")
+			//log.WithField("Dir", dir).Debug("elevdriver Driver: Setting motor dir")
 			setMotorDirection(dir)
 		case btnLampInput := <-buttonLampInput:
-			log.WithField("BtnLampInput", btnLampInput).Debug("elevdriver Driver: Setting Btn Lamp")
+			//log.WithField("BtnLampInput", btnLampInput).Debug("elevdriver Driver: Setting Btn Lamp")
 			setButtonLamp(btnLampInput)
 		case floor := <-floorIndicatorInput:
-			log.WithField("FloorIndicator", floor).Debug("elevdriver Driver: Setting floor ind. light")
+			//log.WithField("FloorIndicator", floor).Debug("elevdriver Driver: Setting floor ind. light")
 			setFloorIndicator(floor)
 		case doorOpenLampVal := <-doorOpenLampInput:
-			log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
+			//log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
 			setDoorOpenLamp(doorOpenLampVal)
-		default:
-			if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
-				driverDebugLogMsgTimer = time.Now()
-				log.Debug("elevdriver driver: Running")
-			}
-
+		}
+		if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
+			driverDebugLogMsgTimer = time.Now()
+			log.Debug("elevdriver driver: Running")
 		}
 	}
-
-	log.Debug("elevdriver Driver: Shutdown GoRoutines, exiting")
-	// Signal to stop GoRoutines before exiting
-	fill(shutdown, true)
-	return
 }

@@ -1,14 +1,12 @@
 package elevtype
 
-const NFloors = 4
-const NButtons = 3
-
-type ElevatorAction int
+type ElevatorState int
 
 const (
-	Idle     ElevatorAction = iota
-	DoorOpen                = iota
-	Moving                  = iota
+	Initializing ElevatorState = iota
+	Idle         ElevatorState = iota
+	Unloading                  = iota
+	Moving                     = iota
 )
 
 type ElevatorErrorState int
@@ -20,9 +18,10 @@ const (
 )
 
 type Elevator struct {
-	Floor         int
-	Direction     MotorDirection
-	Orders        [NFloors][NButtons]ElevOrder
-	CurrentAction ElevatorAction
-	ErrorState    ElevatorErrorState
+	Floor               int
+	MovementDirection   MotorDirection
+	MovDirFromLastFloor MotorDirection // [@TODO]Not needed, since the stop button is not used?
+	Orders              [NumFloors][NumButtons]SimpleOrder
+	State               ElevatorState
+	ErrorState          ElevatorErrorState
 }
