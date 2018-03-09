@@ -40,7 +40,7 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 to .bashrc
 
 Reopen terminal, run `go env` to verify GOPATH  
-Run `go get https://github.com/sirupsen/logrus` in src folder to install logging tools.
+Run `go get github.com/sirupsen/logrus` in src folder to install logging tools.
 
 
 In `VS Code`:  
