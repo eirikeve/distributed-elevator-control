@@ -15,13 +15,13 @@ var errorCount int
 
 const initFailTimeout time.Duration = 5 * time.Second
 
-func StartFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
+func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	doorTimeoutSignalOutput = doorTimeoutSignal
 	if e == nil {
 		elevator = et.Elevator{
 			Floor:               et.BOTTOMFLOOR,
-			MovementDirection:   et.MD_Stop,
-			MovDirFromLastFloor: et.MD_Up,
+			MovementDirection:   et.MD_Down,
+			MovDirFromLastFloor: et.MD_Down,
 			State:               et.Initializing,
 			ErrorState:          et.FullFunctionality}
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: No ref, reinitialized elevator")
@@ -46,7 +46,7 @@ func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
 		for b := 0; b < et.NumButtons; b++ {
 			// @TODO If order is nil this will not work //@BUG
 			// make a get function or something else that returns the value.
-			lights[f][b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: (elevator.Orders[f][b].Status == et.Accepted)}
+			lights[f][b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: (elevator.Orders[f][b].GetID() != "")}
 		}
 	}
 	return lights
@@ -67,7 +67,21 @@ func GetMotorDir() et.MotorDirection {
 func GetFloor() int {
 	return elevator.Floor
 }
+func HandleOrders() {
+	switch elevator.State {
+	// Only go to moving from idle.
+	case et.Idle:
+		//log.WithField("shouldStop", OrderLogicCheckShouldStopAtFloor(elevator)).Debug("shouldStop")
+		newDirMovement := OrderLogicGetMovementDirection(elevator)
+		if newDirMovement != et.MD_Stop {
+			elevator.MovDirFromLastFloor = newDirMovement
+			move(newDirMovement)
+		} else if OrderLogicCheckIfRequestsAtCurrentFloor(elevator) {
+			unload()
+		}
 
+	}
+}
 func RegisterFloor(floor int) {
 	if !(isValidFloor(floor)) {
 		log.WithField("floor", floor).Error("elevfsm RegisterFloor: Ignoring invalid input")
@@ -83,7 +97,8 @@ func RegisterFloor(floor int) {
 	case et.Moving:
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
 			unload()
-		} else if floor == et.BOTTOMFLOOR || floor == et.TOPFLOOR {
+		} else if floor == et.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||
+			floor == et.TOPFLOOR && elevator.MovementDirection == et.MD_Up {
 			idle()
 		}
 	case et.Unloading:
@@ -92,15 +107,7 @@ func RegisterFloor(floor int) {
 		}
 		return
 	case et.Idle:
-		if OrderLogicCheckShouldStopAtFloor(elevator) {
-			unload()
-		} else {
-			newDirMovement := OrderLogicGetMovementDirection(elevator)
-			if newDirMovement != et.MD_Stop {
-				elevator.MovDirFromLastFloor = newDirMovement
-				move(newDirMovement)
-			}
-		}
+		// Do nothing
 
 	default:
 		log.WithField("state", elevator.State).Error("elevfsm RegisterFloor: Unhandled state")
@@ -111,7 +118,8 @@ func RegisterFloor(floor int) {
 func RegisterTimerTimeout() {
 	switch elevator.State {
 	case et.Unloading:
-		idle() // Only go to moving from idle!
+		log.Info("elevfsm RegisterTimeOut: Going from Unloading to Idle")
+		idle()
 	case et.Initializing:
 		switch elevator.MovementDirection {
 		case et.MD_Down: // normal initialization
@@ -138,11 +146,22 @@ func RegisterTimerTimeout() {
 }
 
 // Functions used when interfacing with elevNetworkHandler
-func PushRequestToQueue(order et.ElevOrder) {
+func PushOrderToQueue(order et.GeneralOrder) {
+	floor := order.GetFloor()
+	var button = int(order.GetButton())
+	elevator.Orders[floor][button] = order.ToSimpleOrder()
 	// Need some logic here! @TODO
+	log.WithField("btnEvent", order.GetOrder()).Info("elevfsm PushOrderToQueue: Recv")
+	log.WithFields(log.Fields{
+		"registeredOrder": elevator.Orders[floor][button],
+		"floor":           floor,
+		"button":          button,
+	}).Info("elevfsm PushOrderToQueue: Added to queue")
 }
-func RemRequestFromQueue(order et.ElevOrder) {
-	// Need some logic here! @TODO
+func RemOrderFromQueue(order et.ElevOrder) {
+	floor := order.GetFloor()
+	var button = int(order.GetButton())
+	elevator.Orders[floor][button] = et.SimpleOrder{} // Default ID is "" which evaluates to Empty
 }
 
 func GetElevator() et.Elevator {
@@ -175,9 +194,10 @@ func unload() {
 	timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
 	setState(et.Unloading)
 	setDir(et.MD_Stop)
-	newMovementDir := OrderLogicGetMovementDirection(elevator)
+	elevator = OrderLogicClearRequestsOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)
+	//newMovementDir := OrderLogicGetMovementDirection(elevator)
 	// @TODO maybe rewrite this so that we don't need to reassign elevator.
-	elevator = OrderLogicClearRequestsOnCurrentFloor(elevator, newMovementDir)
+
 }
 
 func idle() {
