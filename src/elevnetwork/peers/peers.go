@@ -1,18 +1,14 @@
 package peers
 
 import (
-	"../conn"
 	"fmt"
 	"net"
 	"sort"
 	"time"
-)
 
-type PeerUpdate struct {
-	Peers []string
-	New   string
-	Lost  []string
-}
+	et "../../elevtype"
+	"../conn"
+)
 
 const interval = 15 * time.Millisecond
 const timeout = 50 * time.Millisecond
@@ -34,10 +30,10 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 	}
 }
 
-func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
+func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 
 	var buf [1024]byte
-	var p PeerUpdate
+	var p et.PeerUpdate
 	lastSeen := make(map[string]time.Time)
 
 	conn := conn.DialBroadcastUDP(port)
@@ -53,7 +49,7 @@ func Receiver(port int, peerUpdateCh chan<- PeerUpdate) {
 		// Adding new connection
 		p.New = ""
 		if id != "" {
-			
+
 			if _, idExists := lastSeen[id]; !idExists {
 				p.New = id
 				updated = true
