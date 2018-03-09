@@ -1,5 +1,5 @@
 package elevnetwork
-
+/*
 import (
 	"log"
 	"net"
@@ -107,7 +107,7 @@ func GeneralListener(s sync.WaitGroup, m chan []byte, k chan int) Listener {
 		ListenDuration:    time.Second * LISTEN_DURATION}
 	return l
 }
-
+/*
 // run go broadcasterInstance(...)
 func (p Pinger) Instance() {
 	// WaitGroup updates for Goroutine synchronization
@@ -136,7 +136,7 @@ func (p Pinger) Instance() {
 		case msg := <-p.Messages:
 			{
 				conn.SetDeadline(time.Now().Add(p.MessageDeadline))
-				_, err := conn.Write( /* Only for testing. Replace with msg ! ! ! ->*/ []byte(msg))
+				_, err := conn.Write( /* Only for testing. Replace with msg ! ! ! ->// []byte(msg))
 				if err != nil {
 					// @todo handle error
 				}
@@ -150,8 +150,8 @@ func (p Pinger) Instance() {
 			return
 		}
 	}
-}
-
+}*/
+/*
 func (l Listener) Instance() {
 	// WaitGroup updates for Goroutine synchronization
 	l.WG.Add(1)
@@ -198,7 +198,7 @@ func (l Listener) Instance() {
 				msgPassedToChannel = false
 			}
 		} else {
-			/*
+			
 
 				Kom så langt i dag.
 				Utfordring nå:
@@ -210,7 +210,7 @@ func (l Listener) Instance() {
 
 
 
-			*/
+			
 			msg := make([]byte, 1024)
 			select {
 			case l.Messages <- msg:
@@ -222,3 +222,4 @@ func (l Listener) Instance() {
 		}
 	}
 }
+*/
