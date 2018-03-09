@@ -16,6 +16,19 @@ Remember to add the folder where the executable is placed to path.
 ### Setting up the Elevator Simulator
 Go to the [`./sim/`](./sim) folder, and run the executable from terminal.
 
+
+```
++-----------+-----------------+
+|           |        #>       |
+| Floor     |  0   1*  2   3  |Connected
++-----------+-----------------+-----------+
+| Hall Up   |  *   -   -      | Door:   - |
+| Hall Down |      -   -   *  | Stop:   - |
+| Cab       |  -   -   *   -  | Obstr:  ^ |
++-----------+-----------------+---------43+
+```
+
+
 ## Setup of Go project and files
 
 
