@@ -73,9 +73,13 @@ func TestUdpHeartbeat(t *testing.T){
 	}
 	
 }
-
+/*
+ * Another test for the hearbeat protocol, but uses runHeartBeatVol2 instead of
+ * runHeartHeat, which are implented somewhat differently.
+ */
 func TestHeartBeatVol2(t *testing.T){
 	port := 20100
-	ID := "THIS IS Me"
+	ID,_ := localip.LocalIP()
 	runHearBeatVol2(port,ID)
+	
 }
