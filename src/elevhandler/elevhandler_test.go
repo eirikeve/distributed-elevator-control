@@ -5,14 +5,17 @@ import (
 	"time"
 
 	"../elevlog"
+	et "../elevtype"
 	log "github.com/sirupsen/logrus"
 )
 
 func TestElevHandler(t *testing.T) {
 	elevlog.InitLog(log.DebugLevel, false)
+	networkToElev := make(chan et.GeneralOrder, 12)
+	elevToNetwork := make(chan et.ButtonEvent, 12)
 
 	log.Info("elevhandler TestElevHandler: Starting test")
-	StartElevatorHandler()
+	StartElevatorHandler(networkToElev, elevToNetwork)
 	time.Sleep(time.Second * 20)
 	StopElevatorHandler()
 	time.Sleep(time.Second)
@@ -32,9 +35,11 @@ func TestElevHandlerPanic(t *testing.T) {
 			// re-init here
 		}
 	}()
+	networkToElev := make(chan et.GeneralOrder, 12)
+	elevToNetwork := make(chan et.ButtonEvent, 12)
 
 	log.Info("elevhandler TestElevHandlerPanic: Starting test")
-	StartElevatorHandler()
+	StartElevatorHandler(networkToElev, elevToNetwork)
 	time.Sleep(time.Second * 10)
 	defer func() {
 		StopElevatorHandler()
@@ -42,4 +47,57 @@ func TestElevHandlerPanic(t *testing.T) {
 	}()
 
 	log.Info("elevhandler TestElevHandler: Done")
+}
+
+func TestElevHandlerWithNetworkSim(t *testing.T) {
+	elevlog.InitLog(log.DebugLevel, false)
+	networkToElev := make(chan et.GeneralOrder, 12)
+	elevToNetwork := make(chan et.ButtonEvent, 12)
+
+	log.Info("elevhandler TestElevHandlerWithNetworkTest: Starting test")
+	StartElevatorHandler(networkToElev, elevToNetwork)
+	go simNetworkHandler(networkToElev, elevToNetwork)
+	time.Sleep(time.Second * 60)
+	print(".....\n")
+	StopElevatorHandler()
+	print(".........\n")
+
+	time.Sleep(time.Second * 3)
+
+	log.Info("elevhandler TestElevHandler: Done")
+}
+
+/*simNetworkHandler accepts all orders and returns them to the handler
+ *
+ */
+func simNetworkHandler(networkToElev chan<- et.GeneralOrder, elevToNetwork <-chan et.ButtonEvent) {
+	var orderBuffer [1000]et.SimpleOrder
+	cnt := 0
+	i := 0
+	startTime := time.Now()
+	for time.Now().Sub(startTime) < time.Second*60 {
+		log.WithField("buffer sz", i).Warn("elevhandler simNetworkHandler")
+		select {
+		case b := <-elevToNetwork:
+			log.WithField("b", b).Debug("Button")
+			order := et.SimpleOrder{Id: string(cnt), Order: et.ButtonEvent{Floor: b.Floor, Button: b.Button}}
+			cnt++
+			log.WithField("o", order).Debug("Button")
+			if i >= 1000 {
+				log.Warning("elevhandler simNetworkHandler: Buffer at 1000, ignoring order")
+			} else {
+				orderBuffer[i] = order
+				i += 1
+			}
+		}
+		if i > 0 {
+			select {
+			case networkToElev <- orderBuffer[i-1]:
+				i -= 1
+				// Remove that element from the slice
+			}
+		}
+		time.Sleep(time.Millisecond * 5)
+	}
+
 }
