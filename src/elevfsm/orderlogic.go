@@ -50,7 +50,6 @@ func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 		// log error
 		// if possible, try to move
 	}
-	return et.MD_Stop //[@todo] should not happen
 }
 func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	switch e.MovementDirection {
@@ -71,11 +70,10 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	case et.MD_Stop:
 		fallthrough
 	default:
-		// @todo log - this should probably not happen.
+		// [@TODO] log - this should probably not happen.
 		return true
 	}
-	//@todo - this should also not happen
-	return true
+		
 }
 func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator {
 	//@TODO add support for storing finished orders in some list
@@ -95,7 +93,6 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 		if !OrderLogicOrdersBelow(e) {
 			e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
 		}
-
 	case et.MD_Stop:
 		fallthrough
 	default:
@@ -103,7 +100,6 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
 	}
 	return e
-
 }
 
 func OrderLogicCheckIfRequestsAtCurrentFloor(elevator et.Elevator) bool {
