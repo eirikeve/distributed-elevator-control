@@ -8,66 +8,66 @@ import "time"
 import "sync"
 import "net"
 
-import "../elevtype"
+import et "../elevtype"
 
 import log "github.com/sirupsen/logrus"
 
 const _pollRate = 20 * time.Millisecond
 
-var _initialized = false
-var _numFloorsElevator = stdNumFloorsElevator
-var _mtx sync.Mutex
-var _conn net.Conn
+var ioInitialized = false
+var ioNumFloorsElevator int
+var ioLock sync.Mutex
+var ioConn net.Conn
 
 func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
-	if _initialized {
+	if ioInitialized {
 		log.Warning("elevdriver initConnectionAndSetNumFloors: Driver already initialized")
 		return
 	}
-	_numFloorsElevator = NumFloorsElevator
-	_mtx = sync.Mutex{}
+	ioNumFloorsElevator = NumFloorsElevator
+	ioLock = sync.Mutex{}
 	var err error
-	_conn, err = net.Dial("tcp", addr)
+	ioConn, err = net.Dial("tcp", addr)
 	if err != nil {
 		log.WithField("Err", err.Error()).Fatal("elevdriver initConnectionAndSetNumFloors: Cannot establish conn")
 	}
-	_initialized = true
+	ioInitialized = true
 }
 
 func shutdownConnection() {
-	if !_initialized {
+	if !ioInitialized {
 		log.Warning("elevdriver initConnectionAndSetNumFloors: Not running")
 		return
 	}
-	_conn.Close()
-	_initialized = false
+	ioConn.Close()
+	ioInitialized = false
 }
 
-func setMotorDirection(dir elevtype.MotorDirection) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{1, byte(dir), 0, 0})
+func setMotorDirection(dir et.MotorDirection) {
+	ioLock.Lock()
+	defer ioLock.Unlock()
+	ioConn.Write([]byte{1, byte(dir), 0, 0})
 }
 
-func setButtonLamp(b elevtype.ButtonLamp) {
+func setButtonLamp(b et.ButtonLamp) {
 	// changed the input args, may be a bug here
 	floor := b.Floor
 	button := b.Button
 	value := b.Value
-	if 0 <= floor && floor < _numFloorsElevator {
-		_mtx.Lock()
-		defer _mtx.Unlock()
-		_conn.Write([]byte{2, byte(button), byte(floor), toByte(value)})
+	if 0 <= floor && floor < ioNumFloorsElevator {
+		ioLock.Lock()
+		defer ioLock.Unlock()
+		ioConn.Write([]byte{2, byte(button), byte(floor), toByte(value)})
 	} else {
 		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver SetButtonLamp: Invalid floor")
 	}
 }
 
 func setFloorIndicator(floor int) {
-	if 0 <= floor && floor < _numFloorsElevator {
-		_mtx.Lock()
-		defer _mtx.Unlock()
-		_conn.Write([]byte{3, byte(floor), 0, 0})
+	if 0 <= floor && floor < ioNumFloorsElevator {
+		ioLock.Lock()
+		defer ioLock.Unlock()
+		ioConn.Write([]byte{3, byte(floor), 0, 0})
 	} else {
 		log.WithFields(log.Fields{"floor": floor}).Error("elevdriver SetFloorIndicator: Invalid floor")
 	}
@@ -75,34 +75,34 @@ func setFloorIndicator(floor int) {
 }
 
 func setDoorOpenLamp(value bool) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{4, toByte(value), 0, 0})
+	ioLock.Lock()
+	defer ioLock.Unlock()
+	ioConn.Write([]byte{4, toByte(value), 0, 0})
 }
 
 func setStopLamp(value bool) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{5, toByte(value), 0, 0})
+	ioLock.Lock()
+	defer ioLock.Unlock()
+	ioConn.Write([]byte{5, toByte(value), 0, 0})
 }
 
-func pollButtons(receiver chan<- elevtype.ButtonEvent, shutdown <-chan bool, wg *sync.WaitGroup) {
+func pollButtons(receiver chan<- et.ButtonEvent, shutdown <-chan bool, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
-	prev := make([][3]bool, _numFloorsElevator)
+	prev := make([][3]bool, ioNumFloorsElevator)
 	for {
 		select {
 		case _ = <-shutdown:
 			return
 		default:
 			time.Sleep(_pollRate)
-			for f := 0; f < _numFloorsElevator; f++ {
-				for b := elevtype.ButtonType(0); b < 3; b++ {
+			for f := 0; f < ioNumFloorsElevator; f++ {
+				for b := et.ButtonType(0); b < 3; b++ {
 					v := getButton(b, f)
 					if v != prev[f][b] && v != false {
 						// This might get stuck here. Use Select? @todo
 
-						receiver <- elevtype.ButtonEvent{f, elevtype.ButtonType(b)}
+						receiver <- et.ButtonEvent{f, et.ButtonType(b)}
 					}
 					prev[f][b] = v
 				}
@@ -124,7 +124,7 @@ func pollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGro
 		default:
 			time.Sleep(_pollRate)
 			v := getFloor()
-			if v != prev && v != -1 && 0 <= v && v < _numFloorsElevator {
+			if v != prev && v != -1 && 0 <= v && v < ioNumFloorsElevator {
 				receiver <- v
 			}
 			prev = v
@@ -172,13 +172,13 @@ func pollObstructionSwitch(receiver chan<- bool, shutdown <-chan bool, wg *sync.
 	}
 }
 
-func getButton(button elevtype.ButtonType, floor int) bool {
-	if 0 <= floor && floor < _numFloorsElevator {
-		_mtx.Lock()
-		defer _mtx.Unlock()
-		_conn.Write([]byte{6, byte(button), byte(floor), 0})
+func getButton(button et.ButtonType, floor int) bool {
+	if 0 <= floor && floor < ioNumFloorsElevator {
+		ioLock.Lock()
+		defer ioLock.Unlock()
+		ioConn.Write([]byte{6, byte(button), byte(floor), 0})
 		var buf [4]byte
-		_conn.Read(buf[:])
+		ioConn.Read(buf[:])
 		return toBool(buf[1])
 	}
 	log.WithFields(log.Fields{"floor": floor}).Error("elevdriver getButton: Invalid floor, returning false")
@@ -187,11 +187,11 @@ func getButton(button elevtype.ButtonType, floor int) bool {
 }
 
 func getFloor() int {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{7, 0, 0, 0})
+	ioLock.Lock()
+	defer ioLock.Unlock()
+	ioConn.Write([]byte{7, 0, 0, 0})
 	var buf [4]byte
-	_conn.Read(buf[:])
+	ioConn.Read(buf[:])
 	if buf[1] != 0 {
 		return int(buf[2])
 	}
@@ -199,20 +199,20 @@ func getFloor() int {
 }
 
 func getStop() bool {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{8, 0, 0, 0})
+	ioLock.Lock()
+	defer ioLock.Unlock()
+	ioConn.Write([]byte{8, 0, 0, 0})
 	var buf [4]byte
-	_conn.Read(buf[:])
+	ioConn.Read(buf[:])
 	return toBool(buf[1])
 }
 
 func getObstruction() bool {
-	_mtx.Lock()
-	defer _mtx.Unlock()
-	_conn.Write([]byte{9, 0, 0, 0})
+	ioLock.Lock()
+	defer ioLock.Unlock()
+	ioConn.Write([]byte{9, 0, 0, 0})
 	var buf [4]byte
-	_conn.Read(buf[:])
+	ioConn.Read(buf[:])
 	return toBool(buf[1])
 }
 

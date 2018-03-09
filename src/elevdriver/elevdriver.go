@@ -20,7 +20,7 @@ const timeWaitForDriverToStartMs = 20
 var wg = &sync.WaitGroup{}
 var stopDriverChan = make(chan bool)
 var driverRunning = false
-var lock sync.Mutex
+var driverLock sync.Mutex
 
 /*StartDriver creates a (singleton) driver instance running on a separate thread.
  * The driver uses channels to set Elevator parameters (Input chans),
@@ -46,8 +46,8 @@ func StartDriver(
 	buttonPressSensorOut chan<- et.ButtonEvent,
 	floorSensorOut chan<- int,
 ) {
-	lock.Lock()
-	defer lock.Unlock()
+	driverLock.Lock()
+	defer driverLock.Unlock()
 
 	log.Info("elevdriver StartDriver: Driver starting")
 	if driverRunning {
@@ -89,8 +89,8 @@ func StartDriver(
  * Can be called directly - not necessary to call as a GoRoutine.
  */
 func StopDriver() {
-	lock.Lock()
-	defer lock.Unlock()
+	driverLock.Lock()
+	defer driverLock.Unlock()
 
 	log.Debug("elevdriver StopDriver: Driver stopping")
 	if !driverRunning {
@@ -148,13 +148,13 @@ func driver(
 	log.Debug("elevdriver Driver: Started GoRoutines, running driver")
 
 	driverDebugLogMsgTimer := time.Now()
-	const driverDebugLogMsgFreq = time.Second
+	const driverDebugLogMsgFreq = 2 * time.Second
 
 	for {
 		select {
 		// Inputs to driver from Handler
 		case <-stopDriver:
-			log.Info("elevdriver Driver: Stopping Driver")
+			log.Info("elevdriver Driver: Stopping driver")
 			return
 		case dir := <-motorDirectionInput:
 			//log.WithField("Dir", dir).Debug("elevdriver Driver: Setting motor dir")
@@ -168,16 +168,10 @@ func driver(
 		case doorOpenLampVal := <-doorOpenLampInput:
 			//log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
 			setDoorOpenLamp(doorOpenLampVal)
-		default:
-			if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
-				driverDebugLogMsgTimer = time.Now()
-				log.Debug("elevdriver driver: Running")
-			}
-
+		}
+		if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
+			driverDebugLogMsgTimer = time.Now()
+			log.Debug("elevdriver driver: Running")
 		}
 	}
-
-	log.Debug("elevdriver Driver: Shutdown GoRoutines, exiting")
-
-	return
 }
