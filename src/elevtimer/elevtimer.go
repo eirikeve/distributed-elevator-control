@@ -74,6 +74,7 @@ func Update(timerName string, newDuration time.Duration) {
 		// @TODO possible error here if c is non-existent due to some bug
 		//log.WithFields(log.Fields{"timerName": timerName, "duration": newDuration}).Debug("elevtimer Update: New duration")
 		//@BUG? Might get stuck here.
+
 		c <- newDuration
 
 	} else {
@@ -110,7 +111,7 @@ func timerInstance(timerName string, duration time.Duration, signalTimeout chan<
 			if newDuration > time.Second*0 {
 				startTime = time.Now()
 				duration = newDuration
-				//log.WithField("timerName", timerName).Debug("elevtimer timerInstance: Timer duration updated")
+				log.WithField("timerName", timerName).Debug("elevtimer timerInstance: Timer duration updated")
 			} else {
 				log.WithField("timerName", timerName).Debug("elevtimer timerInstance: Timer stopped, exiting")
 				return
