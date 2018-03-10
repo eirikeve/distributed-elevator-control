@@ -8,13 +8,14 @@ import (
 
 	et "../../elevtype"
 	"../conn"
+	np "../netprotocol"
+	log "github.com/sirupsen/logrus"
 )
 
 const interval = 15 * time.Millisecond
 const timeout = 50 * time.Millisecond
 
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
-
 	conn := conn.DialBroadcastUDP(port)
 	addr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
 
@@ -25,7 +26,8 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 		case <-time.After(interval):
 		}
 		if enable {
-			conn.WriteTo([]byte(id), addr)
+			id_formated := np.FormatForTransmission(id, np.MsgHeartbeat)
+			conn.WriteTo([]byte(id_formated), addr)
 		}
 	}
 }
@@ -44,17 +46,23 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 		conn.SetReadDeadline(time.Now().Add(interval))
 		n, _, _ := conn.ReadFrom(buf[0:])
 
-		id := string(buf[:n])
+		id_formated := string(buf[:n])
+		id,msgType,err:= np.DeFormatMessage(id_formated)
 
 		// Adding new connection
 		p.New = ""
-		if id != "" {
+		// Checks if message content is valid
+		if id != "" && msgType == np.MsgHeartbeat && err == nil {
 
 			if _, idExists := lastSeen[id]; !idExists {
 				p.New = id
 				updated = true
 			}
 			lastSeen[id] = time.Now()
+		}else if id != "" && msgType != np.MsgHeartbeat{
+			log.WithField("msgType", msgType).Warning("peers Receiver: Received a msgType not equal to MsgHeartbeat")
+		}else if id != "" && err != nil{
+			log.WithField("Error",err).Warning("peers Receiver: Received a id with err != nil")
 		}
 
 		// Removing dead connection
@@ -79,5 +87,9 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 			sort.Strings(p.Lost)
 			peerUpdateCh <- p
 		}
+	
+	/*else{
+		
+	}*/
 	}
 }
