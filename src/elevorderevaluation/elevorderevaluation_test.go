@@ -25,7 +25,7 @@ func TestTimeToIdle(t *testing.T) {
 	// Set Queue for elevator
 	elevOne = setElevatorOrder(elevOne, 1, et.BT_HallUp, "1")
 	elevOne = setElevatorOrder(elevOne, 0, et.BT_Cab, "2")
-	elevOne = setElevatorOrder(elevOne, 3, et.BT_HallDown, "3")
+	//elevOne = setElevatorOrder(elevOne, 1, et.BT_HallDown, "3")
 
 	printElevatorQueue(elevOne)
 
@@ -60,11 +60,10 @@ func TestOrderDelegation(t *testing.T) {
 	elevThree = setElevatorOrder(elevThree, 0, et.BT_Cab, "3")
 
 	//New Order
-	bEvent := et.ButtonEvent{3, et.BT_HallDown}
-	newOrder := et.SimpleOrder{"NewOrder", bEvent}
+	bEvent := et.ButtonEvent{1, et.BT_HallUp}
 
 	listElev := []et.Elevator{elevOne, elevTwo, elevThree}
-	bestElev := delegateOrder(listElev, newOrder)
+	bestElev := DelegateOrder(listElev, bEvent)
 
 	fmt.Printf("TestOrderDelegation, Best elevator: %v \n", bestElev)
 

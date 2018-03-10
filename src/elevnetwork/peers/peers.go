@@ -26,7 +26,7 @@ func Transmitter(port int, id string, transmitEnable <-chan bool) {
 		case <-time.After(interval):
 		}
 		if enable {
-			id_formated := np.FormatForTransmission(id, np.MsgHeartbeat)
+			id_formated := np.FormatForTransmission(id, et.MsgHeartbeat)
 			conn.WriteTo([]byte(id_formated), addr)
 		}
 	}
@@ -52,14 +52,14 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 		// Adding new connection
 		p.New = ""
 		// Checks if message content is valid
-		if id != "" && msgType == np.MsgHeartbeat && err == nil {
+		if id != "" && msgType == et.MsgHeartbeat && err == nil {
 
 			if _, idExists := lastSeen[id]; !idExists {
 				p.New = id
 				updated = true
 			}
 			lastSeen[id] = time.Now()
-		}else if id != "" && msgType != np.MsgHeartbeat{
+		}else if id != "" && msgType != et.MsgHeartbeat{
 			log.WithField("msgType", msgType).Warning("peers Receiver: Received a msgType not equal to MsgHeartbeat")
 		}else if id != "" && err != nil{
 			log.WithField("Error",err).Warning("peers Receiver: Received a id with err != nil")
@@ -87,9 +87,5 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 			sort.Strings(p.Lost)
 			peerUpdateCh <- p
 		}
-	
-	/*else{
-		
-	}*/
 	}
 }

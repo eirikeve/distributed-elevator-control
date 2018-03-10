@@ -2,15 +2,14 @@ package nethandler
 
 import (
 	"time"
-
-<<<<<<< HEAD
-	network "../elevnetwork"
-=======
 	b "../elevnetwork/bcast"
->>>>>>> 70279a7c612de785587450bbbedfc932403c94ca
+	network "../elevnetwork"
 	timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
+	sb  "../sysbackup"
+	ss  "../sysstate"
+	eval "../elevorderevaluation"
 )
 
 var signalNetHandlerToStop chan bool
@@ -65,15 +64,16 @@ func netHandler(
 		// if order is for this Elev, push order to elevhandler
 
 		// "Regular backup"
+		sb.Backup(ss.GetSystems())
 
 		select {
 		// Net Handler Control
 		case <-signalNetHandlerToStop:
 			return
 
-		case _ = <-elevToNetwork:
-			// Delegate this order and update netState <- Update netState?
-			// [@SUGGESTION]: Send to orderDelegation, to decide which elevator should take the order
+		case newOrder:= <-elevToNetwork:
+			optElevStateIndex := eval.DelegateOrder(ss.GetSystems(),newOrder)	
+			// Delegate this order and update netState
 
 		}
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
