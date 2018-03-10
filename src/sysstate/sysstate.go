@@ -11,10 +11,12 @@ type ElevState struct {
 	ID string
 	// LastUpdate is the last time this ElevState was updated
 	LastUpdate time.Time
-	// E is the Elevator of the system corresponding to an ElevState
-	E et.Elevator
+
+	ElevatorFloor      int
+	ElevatorErrorState et.ElevatorErrorState
 	// ExtendedOrders is the Networkhandler's orders in the system corresponding to an ElevState
-	ExtendedOrders [et.NumFloors][et.NumButtons]et.ElevOrder
+	CurrentOrders  [et.NumFloors][et.NumButtons]et.ElevOrder
+	FinishedOrders []et.ElevOrder
 }
 
 type NetState struct {
