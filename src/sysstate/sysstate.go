@@ -7,7 +7,7 @@ import (
 )
 
 type ElevState struct {
-	// ID is the local IP+port of the computer corresponding to an ElevState
+	// ID is the local IP of the computer corresponding to an ElevState
 	ID string
 	// LastUpdate is the last time this ElevState was updated
 	LastUpdate time.Time
@@ -23,3 +23,6 @@ type NetState struct {
 	// P is the active Peers and Lost peers of this computer
 	P et.PeerUpdate
 }
+
+var localIP string
+var systems map[string]ElevState

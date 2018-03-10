@@ -64,7 +64,8 @@ func netHandler(
 			return
 
 		case _ = <-elevToNetwork:
-			// Delegate this order and update netState
+			// Delegate this order and update netState <- Update netState?
+			// [@SUGGESTION]: Send to orderDelegation, to decide which elevator should take the order
 
 		}
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
