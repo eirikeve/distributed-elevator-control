@@ -78,7 +78,7 @@ func TestUdpHeartbeat(t *testing.T){
  * runHeartHeat, which are implented somewhat differently.
  */
 func TestHeartBeatVol2(t *testing.T){
-	port := 20100
+	port := 20102
 	ID,_ := localip.LocalIP()
 	runHearBeatVol2(port,ID)
 	

@@ -8,6 +8,7 @@ import (
 	"./bcast"
 	"./localip"
 	p "./peers"
+	et "../elevtype"
 )
 
 // Constants
