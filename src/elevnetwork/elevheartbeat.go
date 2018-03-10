@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	p "./peers"
 	et "../elevtype"
 	l "./localip"
+	p "./peers"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -18,40 +18,37 @@ const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
 // Variable
 var signalHeartBeatToStop chan bool
 
-
-func startHeartBeat(){
+func StartHeartBeat() {
 	signalHeartBeatToStop = make(chan bool)
 	port := 20102
-	ID,err  := l.LocalIP()
-	if err != nil{
+	ID, err := l.LocalIP()
+	if err != nil {
 		log.Debug("elevheartbeat startHeartBeat: Couldnt get local ip")
 	}
-	runHeartBeat(port,ID, signalHeartBeatToStop)
-
+	runHeartBeat(port, ID, signalHeartBeatToStop)
 
 }
 
-func stopHeartBeat(){
+func StopHeartBeat() {
 	signalHeartBeatToStop <- true
 }
+
 /*
  * Runs the heartbeat protocol wich monitors the participant of the netowrk.
  * Version 2: Uses the given peers functions
  * @arg port: broadcast on given port
  * @arg PeersCh: List of current peers in network on channel
  */
-func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <- chan bool) {
+func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 	lastTranmissionTime := time.Now()
 
 	recvPeerCh := make(chan et.PeerUpdate)
 	sendPeerCh := make(chan bool)
 
-
 	go p.Transmitter(port, heartbeatMsg, sendPeerCh)
 	go p.Receiver(port, recvPeerCh)
 
 	for {
-		
 
 		if time.Now().Sub(lastTranmissionTime) > HEARTBEATINTERVAL {
 			sendPeerCh <- true
@@ -62,7 +59,7 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <- chan bool) {
 
 		case msg := <-recvPeerCh:
 			fmt.Printf("ID: %v \n", msg.Peers)
-		
+
 		case <-signalHeartBeatToStop:
 			return
 
@@ -71,6 +68,5 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <- chan bool) {
 		}
 
 	}
-	
 
 }

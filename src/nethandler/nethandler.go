@@ -3,6 +3,7 @@ package nethandler
 import (
 	"time"
 
+	network "../elevnetwork"
 	timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
@@ -17,7 +18,6 @@ func StartNetHandler(
 	signalNetHandlerToStop = make(chan bool)
 	go netHandler(signalNetHandlerToStop, networkToElev, elevToNetwork)
 }
-
 func StopNetHandler() {
 	log.Info("elevnetworkhandler StopNetHandler: Stopping")
 	//@BUG this does not send
@@ -32,8 +32,8 @@ func netHandler(
 	elevToNetwork <-chan et.ButtonEvent,
 ) {
 	// Start Heartbeat
-	// defer stop Heartbeat
-
+	go network.StartHeartBeat()
+	defer network.StopHeartBeat()
 	// Init netState with backup, if applicable
 	// might be best to pass it as an argument to netHandler, which then pushes the necessary orders to the elevhandler?
 
