@@ -5,23 +5,14 @@ import (
 	"regexp"
 	"strings"
 
+	et "../../elevtype"
 	log "github.com/sirupsen/logrus"
-)
-
-type MessageType int
-
-const (
-	MsgHeartbeat      MessageType = iota
-	MsgACK            MessageType = iota
-	MsgNACK           MessageType = iota
-	MsgRegularUpdates MessageType = iota
-	MsgUnknown        MessageType = iota
 )
 
 var initialized = false
 var msgTypeRegexp *regexp.Regexp
 var msgDataRegexp *regexp.Regexp
-var msgTypeStringMap map[MessageType]string
+var msgTypeStringMap map[et.MessageType]string
 
 const msgTypeTag = "msgtype="
 const msgDataTag = " msgdata="
@@ -33,7 +24,7 @@ const msgDataTag = " msgdata="
  * @arg msgType: The kind of message to be represented. An identifier.
  * @return: msg represented with our protocol
  */
-func FormatForTransmission(msgData string, msgType MessageType) string {
+func FormatForTransmission(msgData string, msgType et.MessageType) string {
 	if !(initialized) {
 		initMsgTypeStringMap()
 		initRegexp()
@@ -43,7 +34,7 @@ func FormatForTransmission(msgData string, msgType MessageType) string {
 	return msgTypeTag + msgTypeString + msgDataTag + msgData
 }
 
-func DeFormatMessage(msgRecv string) (string, MessageType, error) {
+func DeFormatMessage(msgRecv string) (string, et.MessageType, error) {
 	if !(initialized) {
 		initMsgTypeStringMap()
 		initRegexp()
@@ -52,20 +43,20 @@ func DeFormatMessage(msgRecv string) (string, MessageType, error) {
 	msgDataSubString := msgDataRegexp.FindAllString(msgRecv, 1)
 	msgTypeSubString := msgTypeRegexp.FindAllString(msgRecv, 1)
 	if msgDataSubString == nil || msgTypeSubString == nil {
-		return "", MsgUnknown, errors.New("netprotocol DeFormatMessage: Unknown format")
+		return "", et.MsgUnknown, errors.New("netprotocol DeFormatMessage: Unknown format")
 	}
 	msgTypeAsString := strings.TrimSuffix(strings.TrimPrefix(msgTypeSubString[0], msgTypeTag), msgDataTag)
 	msgData := strings.TrimPrefix(msgDataSubString[0], msgDataTag)
 
-	var msgType = MsgUnknown
+	var msgType = et.MsgUnknown
 	for mType, mTypeString := range msgTypeStringMap {
 		if mTypeString == msgTypeAsString {
 			msgType = mType
 			break
 		}
 	}
-	if msgType == MsgUnknown {
-		return "", MsgUnknown, errors.New("netprotocol DeFormatMessage: Unknown msgType")
+	if msgType == et.MsgUnknown {
+		return "", et.MsgUnknown, errors.New("netprotocol DeFormatMessage: Unknown msgType")
 	}
 
 	return msgData, msgType, nil
@@ -85,10 +76,10 @@ func initRegexp() {
 }
 
 func initMsgTypeStringMap() {
-	msgTypeStringMap = make(map[MessageType]string)
-	msgTypeStringMap[MsgHeartbeat] = "OP_EIRIK_MSG_HEARTBEAT"
-	msgTypeStringMap[MsgACK] = "OP_EIRIK_MSG_ACK"
-	msgTypeStringMap[MsgNACK] = "OP_EIRIK_MSG_NACK"
-	msgTypeStringMap[MsgRegularUpdates] = "OP_EIRIK_MSG_REGULAR"
-	msgTypeStringMap[MsgUnknown] = "OP_EIRIK_MSG_UNKNOWN"
+	msgTypeStringMap = make(map[et.MessageType]string)
+	msgTypeStringMap[et.MsgHeartbeat] = "OP_EIRIK_MSG_HEARTBEAT"
+	msgTypeStringMap[et.MsgACK] = "OP_EIRIK_MSG_ACK"
+	msgTypeStringMap[et.MsgNACK] = "OP_EIRIK_MSG_NACK"
+	msgTypeStringMap[et.MsgRegularUpdates] = "OP_EIRIK_MSG_REGULAR"
+	msgTypeStringMap[et.MsgUnknown] = "OP_EIRIK_MSG_UNKNOWN"
 }

@@ -10,3 +10,13 @@ const BOTTOMFLOOR = 0
 const TOPFLOOR = 3
 
 const AckHandlerPort = 26969
+
+type MessageType int
+
+const (
+	MsgHeartbeat      MessageType = iota
+	MsgACK            MessageType = iota
+	MsgNACK           MessageType = iota
+	MsgRegularUpdates MessageType = iota
+	MsgUnknown        MessageType = iota
+)

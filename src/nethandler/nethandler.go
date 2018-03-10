@@ -3,6 +3,7 @@ package nethandler
 import (
 	"time"
 
+	b "../elevnetwork/bcast"
 	timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
@@ -48,9 +49,13 @@ func netHandler(
 	for {
 		timer.Update("ElevNetHandler Watchdog", time.Second*3)
 
-		// send "Regular updates"
+		var sendAckNack = make(chan et.AckNackMsg, 6)
+		var recvAckNack = make(chan et.AckNackMsg, 6)
+		var sendRegularUpdates = make(chan et.ElevState, 6)
+		var recvRegularUpdates = make(chan et.ElevState, 6)
 
-		// send ACK if needed
+		go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
+		go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
 
 		// monitor ACK
 		// if order ACK'd by all, update netState to Accepted
