@@ -6,6 +6,9 @@ import (
 
 	p "./peers"
 	et "../elevtype"
+	l "./localip"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Constants
@@ -19,7 +22,11 @@ var signalHeartBeatToStop chan bool
 func startHeartBeat(){
 	signalHeartBeatToStop = make(chan bool)
 	port := 20102
-	go runHeartBeat(port,"Hellu", signalHeartBeatToStop)
+	ID,err  := l.LocalIP()
+	if err != nil{
+		log.Debug("elevheartbeat startHeartBeat: Couldnt get local ip")
+	}
+	runHeartBeat(port,ID, signalHeartBeatToStop)
 
 
 }
@@ -57,7 +64,6 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <- chan bool) {
 			fmt.Printf("ID: %v \n", msg.Peers)
 		
 		case <-signalHeartBeatToStop:
-			println("exit")
 			return
 
 		default:

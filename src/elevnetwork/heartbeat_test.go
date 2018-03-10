@@ -28,14 +28,14 @@ func TestLocalIP(t *testing.T){
 func TestHeartBeat(t *testing.T){
 
 	startTime := time.Now()
-
 	go startHeartBeat()
 	
-	for time.Now().Sub(startTime) < time.Second*10{
+	for {
 		
 		if time.Now().Sub(startTime) > time.Second*5{
-			println("Completed99")
 			stopHeartBeat()
+			break;
+
 			
 		}
 
