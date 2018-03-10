@@ -18,11 +18,11 @@ type ElevOrder struct {
 	// Floor & order type
 	Order ButtonEvent
 	// Timestamp at order creation [UNIX timestamp]
-	TimestampReceived float64 //[@todo]: Changed to float64 from int64, is this right?]
+	TimestampReceived int64 //[@todo]: Changed to float64 from int64, is this right?]
 	// Current status of order
 	Status OrderStatus
 	// Last update of order [UNIX timestamp]
-	TimestampLastOrderStatusChange float64 //[@todo]: Same as for TimestampReceived
+	TimestampLastOrderStatusChange int64 //[@todo]: Same as for TimestampReceived
 	// Assigned to elev @ IP
 	Assignee string
 }
