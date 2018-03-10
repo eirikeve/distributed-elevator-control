@@ -79,7 +79,12 @@ func TestUdpHeartbeat(t *testing.T){
  */
 func TestHeartBeatVol2(t *testing.T){
 	port := 20102
-	ID,_ := localip.LocalIP()
-	runHearBeatVol2(port,ID)
+	ID1,_ := localip.LocalIP()
+	ID2 := "255.255.255.255"	//Random IP address
+	go runHeartBeatVol2(port,ID1)
+	time.Sleep(time.Second*2)
+	go runHeartBeatVol2(port,ID2)
+	time.Sleep(time.Second*12)
 	
 }
+

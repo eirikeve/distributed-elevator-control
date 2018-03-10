@@ -127,13 +127,14 @@ func runHeartBeat(port int, existingPeersCh chan []Peer) {
  * @arg PeersCh: List of current peers in network on channel
  *
  */
-func runHearBeatVol2(port int, heartbeatMsg string) {
+func runHeartBeatVol2(port int, heartbeatMsg string) {
 
 	startTime := time.Now()
 	lastTranmissionTime := time.Now()
 
 	recvPeerCh := make(chan et.PeerUpdate)
 	sendPeerCh := make(chan bool)
+
 
 	go p.Transmitter(port, heartbeatMsg, sendPeerCh)
 	go p.Receiver(port, recvPeerCh)
@@ -151,7 +152,6 @@ func runHearBeatVol2(port int, heartbeatMsg string) {
 
 		default:
 			sendPeerCh <- false
-			//Do nothing
 		}
 
 	}
