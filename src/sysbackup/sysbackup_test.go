@@ -10,10 +10,10 @@ import (
 
 func TestBackup(t *testing.T) {
 	log.Info("sysbackup Test: Starting Backup Test")
-	SetupSysBackup()
 	states := setupStates()
 
 	backupTestWrite("something\n")
+
 	Backup(states)
 
 }
