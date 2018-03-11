@@ -163,7 +163,9 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 			} else {
 				for i, s := range *states {
 					if s.ID == state.ID {
-						s = state
+						print("Match")
+						(*states)[i] = state
+						break // for i, s := ....
 					} else if i == len(*states)-1 {
 						// We don't know that ID - might have been lost due to crash etc.
 						*states = append(*states, state)
