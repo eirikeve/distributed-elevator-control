@@ -163,7 +163,6 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 			} else {
 				for i, s := range *states {
 					if s.ID == state.ID {
-						print("Match")
 						(*states)[i] = state
 						break // for i, s := ....
 					} else if i == len(*states)-1 {
