@@ -3,7 +3,6 @@ package sysbackup
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -16,13 +15,13 @@ import (
 )
 
 //var backuplogger log.Logger
-var functioning = true
+var initialized = false
 var logFile *os.File
 var backupRegexp, _ = regexp.Compile("^backup_[0-9]+.elevlog$")
 var idRegexp, _ = regexp.Compile("id=.+ backup=")
 var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
-func SetupSysBackup() {
+func setupSysBackup() {
 
 	filename := "backup_" + strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
 	var err error
@@ -32,28 +31,24 @@ func SetupSysBackup() {
 		log.WithFields(log.Fields{
 			"Error": err.Error(),
 		}).Error("sysbackup Setup: Could not open log output file. Defaulting to bash output.")
-		functioning = false
+		initialized = false
 	} else {
-		functioning = true
+		initialized = true
 	}
 }
 
 func Backup(states []et.ElevState) {
-	if functioning {
-		for i := 0; i < len(states); i++ {
-			backupElevState(states[i])
-		}
-	} else {
-		log.Error("sysbackup Backup: Could not backup. Has SetupSysBackup been called?")
+	if !initialized {
+		setupSysBackup()
+	}
+	print((*logFile).Name())
+	for i := 0; i < len(states); i++ {
+		backupElevState(states[i])
 	}
 
 }
 
 func Recover(timeLimit time.Time) ([]et.ElevState, error) {
-	if !functioning {
-		log.Error("sysbackup Recover: Could not backup. Has SetupSysBackup been called?")
-		return make([]et.ElevState, 0), errors.New("sysbackup Recover: Failed, has SetupSysBackup been called?")
-	}
 
 	files, err := ioutil.ReadDir("./")
 	if err != nil {
