@@ -30,6 +30,9 @@ func TestRecover(t *testing.T) {
 			"Floor":      s.E.Floor,
 			"LastUpdate": s.LastUpdate,
 		}).Info("sysbackup Recover: Result")
+		if s.ID == "Elevator0" {
+			log.WithField("Finished Order", s.FinishedOrders).Info("Elevator 0 Finished Orders")
+		}
 	}
 }
 
@@ -44,8 +47,17 @@ func setupStates() []et.ElevState {
 	state[0].E.Floor = 0
 	state[1].E.Floor = 1
 	state[2].E.Floor = 2
-	state[0].FinishedOrders = make([]et.ElevOrder, 0)
+	state[0].FinishedOrders = make([]et.ElevOrder, 1)
+	state[0].FinishedOrders[0] = et.ElevOrder{
+		Id:                "Order of elev 0",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_Cab},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       "Elevator1",
+	}
 	state[1].FinishedOrders = make([]et.ElevOrder, 0)
 	state[2].FinishedOrders = make([]et.ElevOrder, 0)
+
 	return state
 }

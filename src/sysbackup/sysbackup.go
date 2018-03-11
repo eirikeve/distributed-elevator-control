@@ -145,21 +145,22 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 			"Floor":      state.E.Floor,
 			"LastUpdate": state.LastUpdate,
 		}).Info("sysbackup apply: Succesfully Unmarshalled")
-		if len(*states) == 0 {
-			*states = append(*states, state)
-		} else {
-			for i, s := range *states {
-				if s.ID == state.ID {
-					s = state
-				} else if i == len(*states)-1 {
-					// We don't know that ID - might have been lost due to crash etc.
-					*states = append(*states, state)
-					break // for i, s := ....
+		if len(state.ID) > 0 {
+			if len(*states) == 0 {
+				*states = append(*states, state)
+			} else {
+				for i, s := range *states {
+					if s.ID == state.ID {
+						s = state
+					} else if i == len(*states)-1 {
+						// We don't know that ID - might have been lost due to crash etc.
+						*states = append(*states, state)
+						break // for i, s := ....
+					}
 				}
 			}
+			log.WithField("states", *states).Info("sysbackup apply: States")
 		}
-
-		log.WithField("states", *states).Info("sysbackup apply: States")
 
 		/*for _, state := range *states {
 			if state.ID == elevatorId {
