@@ -3,6 +3,7 @@ package sysbackup
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -38,12 +39,21 @@ func SetupSysBackup() {
 }
 
 func Backup(states []et.ElevState) {
-	for i := 0; i < len(states); i++ {
-		backupElevState(states[i])
+	if functioning {
+		for i := 0; i < len(states); i++ {
+			backupElevState(states[i])
+		}
+	} else {
+		log.Error("sysbackup Backup: Could not backup. Has SetupSysBackup been called?")
 	}
+
 }
 
 func Recover(timeLimit time.Time) ([]et.ElevState, error) {
+	if !functioning {
+		log.Error("sysbackup Recover: Could not backup. Has SetupSysBackup been called?")
+		return make([]et.ElevState, 0), errors.New("sysbackup Recover: Failed, has SetupSysBackup been called?")
+	}
 
 	files, err := ioutil.ReadDir("./")
 	if err != nil {
