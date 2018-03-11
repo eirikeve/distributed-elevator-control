@@ -55,10 +55,13 @@ func timeToIdle(elev et.Elevator) int {
 * is best fit to take and execute an order.
 * @arg elev[]: List of Elevators
  */
-func delegateOrder(elevList []et.Elevator, newOrder et.SimpleOrder) int {
+func DelegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) int {
 	var durations []int
 
 	for _, elev := range elevList {
+		if (orderExsists(elev,newOrder)){
+			return -1		//[@TODO]: How do we want to handle this?
+		}
 		elev = insertElevatorOrder(elev, newOrder)
 		tempDuration := timeToIdle(elev)
 		durations = append(durations, tempDuration)
@@ -98,7 +101,7 @@ func findMinIndex(list []int) int {
 
 /*
  * Prints the Elevator Queue
- * @arg: An Elevator
+ * @arg: An Elevator containg the Elevator Queue
  */
 func printElevatorQueue(elev et.Elevator) {
 	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
@@ -122,7 +125,22 @@ func printElevatorQueue(elev et.Elevator) {
 * @arg ElevOrder: The new Elevator Order
 * @arg ButtonEvent: Which button was triggered and at which floor is was pressed
  */
-func insertElevatorOrder(elev et.Elevator, order et.SimpleOrder) et.Elevator {
+func insertElevatorOrder(elev et.Elevator, bEvent et.ButtonEvent) et.Elevator {
+	order := et.SimpleOrder{"",bEvent}
 	elev.Orders[order.Order.Floor][order.Order.Button] = order
 	return elev
+}
+
+/*
+ * Check if new order already exsists, then it should not be necessary
+ * to redelegate order
+ * @arg elev: An elevator contaning the current orders
+ * @arg bEvent: The button which was pressed
+ */
+func orderExsists(elev et.Elevator, bEvent et.ButtonEvent) bool{
+	if elev.Orders[bEvent.Floor][bEvent.Button].Id != ""{
+		return true
+	}else{
+		return false
+	}
 }

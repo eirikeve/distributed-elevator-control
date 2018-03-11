@@ -2,11 +2,14 @@ package nethandler
 
 import (
 	"time"
-
 	b "../elevnetwork/bcast"
+	network "../elevnetwork"
 	timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
+	sb  "../sysbackup"
+	ss  "../sysstate"
+	eval "../elevorderevaluation"
 )
 
 var signalNetHandlerToStop chan bool
@@ -18,7 +21,6 @@ func StartNetHandler(
 	signalNetHandlerToStop = make(chan bool)
 	go netHandler(signalNetHandlerToStop, networkToElev, elevToNetwork)
 }
-
 func StopNetHandler() {
 	log.Info("elevnetworkhandler StopNetHandler: Stopping")
 	//@BUG this does not send
@@ -33,8 +35,8 @@ func netHandler(
 	elevToNetwork <-chan et.ButtonEvent,
 ) {
 	// Start Heartbeat
-	// defer stop Heartbeat
-
+	go network.StartHeartBeat()
+	defer network.StopHeartBeat()
 	// Init netState with backup, if applicable
 	// might be best to pass it as an argument to netHandler, which then pushes the necessary orders to the elevhandler?
 
@@ -62,15 +64,16 @@ func netHandler(
 		// if order is for this Elev, push order to elevhandler
 
 		// "Regular backup"
+		sb.Backup(ss.GetSystems())
 
 		select {
 		// Net Handler Control
 		case <-signalNetHandlerToStop:
 			return
 
-		case _ = <-elevToNetwork:
-			// Delegate this order and update netState <- Update netState?
-			// [@SUGGESTION]: Send to orderDelegation, to decide which elevator should take the order
+		case newOrder:= <-elevToNetwork:
+			optElevStateIndex := eval.DelegateOrder(ss.GetSystems(),newOrder)	
+			// Delegate this order and update netState
 
 		}
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {

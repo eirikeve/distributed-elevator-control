@@ -20,7 +20,7 @@ const (
 type Elevator struct {
 	Floor               int
 	MovementDirection   MotorDirection
-	MovDirFromLastFloor MotorDirection // [@TODO]Not needed, since the stop button is not used?
+	MovDirFromLastFloor MotorDirection 
 	Orders              [NumFloors][NumButtons]SimpleOrder
 	State               ElevatorState
 	ErrorState          ElevatorErrorState
