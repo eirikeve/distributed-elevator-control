@@ -21,8 +21,15 @@ func TestBackup(t *testing.T) {
 func TestRecover(t *testing.T) {
 	states, err := Recover(time.Now().Add(-time.Second * 20))
 	if err != nil {
+		log.WithField("err", err.Error()).Info("sysbackup Test: Could not recover")
 		// @todo
 		return
+	}
+	if len(states) == 0 {
+		log.Info("sysbackup Test: Nothing to recover")
+		return
+	} else {
+		log.WithField("num", len(states)).Info("sysbackup Test: Recovered states")
 	}
 	for _, s := range states {
 		log.WithFields(log.Fields{
