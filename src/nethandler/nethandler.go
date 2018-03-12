@@ -2,14 +2,15 @@ package nethandler
 
 import (
 	"time"
-	b "../elevnetwork/bcast"
+
 	network "../elevnetwork"
+	b "../elevnetwork/bcast"
+	eval "../elevorderevaluation"
 	timer "../elevtimer"
 	et "../elevtype"
+	sb "../sysbackup"
+	ss "../sysstate"
 	log "github.com/sirupsen/logrus"
-	sb  "../sysbackup"
-	ss  "../sysstate"
-	eval "../elevorderevaluation"
 )
 
 var signalNetHandlerToStop chan bool
@@ -34,9 +35,27 @@ func netHandler(
 	networkToElev chan<- et.GeneralOrder,
 	elevToNetwork <-chan et.ButtonEvent,
 ) {
-	// Start Heartbeat
+	// Recover system backup
+	backup, err := sb.Recover(time.Now().Add(-time.Second * 20))
+	if err != nil {
+		log.Info("nethandler netHandler: No backup to recover")
+		backup = make([]et.ElevState, 1)
+		// @TODO init state here
+	}
+	ss.SetSystems(backup)
+
+	// Start Transmitter and Receiver for sending messages
+	var sendAckNack = make(chan et.AckNackMsg, 6)
+	var recvAckNack = make(chan et.AckNackMsg, 6)
+	var sendRegularUpdates = make(chan et.ElevState, 6)
+	var recvRegularUpdates = make(chan et.ElevState, 6)
+
+	go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
+	go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
+	// Start Heartbeat for
 	go network.StartHeartBeat()
 	defer network.StopHeartBeat()
+
 	// Init netState with backup, if applicable
 	// might be best to pass it as an argument to netHandler, which then pushes the necessary orders to the elevhandler?
 
@@ -45,25 +64,19 @@ func netHandler(
 
 	netHandlerDebugLogMsgTimer := time.Now()
 	netHandlerDebugLogMsgFreq := 2 * time.Second
+
 	timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevHandler Watchdog: timeout") })
 	defer timer.Stop("ElevHandler Watchdog")
 
 	for {
 		timer.Update("ElevNetHandler Watchdog", time.Second*3)
 
-		var sendAckNack = make(chan et.AckNackMsg, 6)
-		var recvAckNack = make(chan et.AckNackMsg, 6)
-		var sendRegularUpdates = make(chan et.ElevState, 6)
-		var recvRegularUpdates = make(chan et.ElevState, 6)
-
-		go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
-		go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
-
 		// monitor ACK
 		// if order ACK'd by all, update netState to Accepted
 		// if order is for this Elev, push order to elevhandler
 
 		// "Regular backup"
+		//@TODO should this be called every loop?
 		sb.Backup(ss.GetSystems())
 
 		select {
@@ -71,8 +84,9 @@ func netHandler(
 		case <-signalNetHandlerToStop:
 			return
 
-		case newOrder:= <-elevToNetwork:
-			optElevStateIndex := eval.DelegateOrder(ss.GetSystems(),newOrder)	
+		case newOrderButtonPress := <-elevToNetwork:
+			optSysIndex := eval.DelegateOrder(ss.GetSystemElevators(), newOrderButtonPress)
+			log.WithField("sysid", ss.GetSystems()[optSysIndex].ID).Debug("nethandler netHandler: New order, found optimal sys to take order")
 			// Delegate this order and update netState
 
 		}
