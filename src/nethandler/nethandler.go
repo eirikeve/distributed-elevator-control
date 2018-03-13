@@ -3,12 +3,9 @@ package nethandler
 import (
 	"time"
 
-	network "../elevnetwork"
-	b "../elevnetwork/bcast"
 	eval "../elevorderevaluation"
 	timer "../elevtimer"
 	et "../elevtype"
-	sb "../sysbackup"
 	ss "../sysstate"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,16 +33,16 @@ func netHandler(
 	elevToNetwork <-chan et.ButtonEvent,
 ) {
 	// Start Transmitter and Receiver for sending messages
-	var sendAckNack = make(chan et.AckNackMsg, 6)
-	var recvAckNack = make(chan et.AckNackMsg, 6)
-	var sendRegularUpdates = make(chan et.ElevState, 6)
-	var recvRegularUpdates = make(chan et.ElevState, 6)
+	//var sendAckNack = make(chan et.AckNackMsg, 6)
+	//var recvAckNack = make(chan et.AckNackMsg, 6)
+	//var sendRegularUpdates = make(chan et.ElevState, 6)
+	//var recvRegularUpdates = make(chan et.ElevState, 6)
 
-	go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
-	go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
+	//go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
+	//go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
 	// Start Heartbeat for
-	go network.StartHeartBeat()
-	defer network.StopHeartBeat()
+	//go network.StartHeartBeat()
+	//defer network.StopHeartBeat()
 
 	// Init netState with backup, if applicable
 	// might be best to pass it as an argument to netHandler, which then pushes the necessary orders to the elevhandler?
@@ -56,8 +53,8 @@ func netHandler(
 	netHandlerDebugLogMsgTimer := time.Now()
 	netHandlerDebugLogMsgFreq := 2 * time.Second
 
-	timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevHandler Watchdog: timeout") })
-	defer timer.Stop("ElevHandler Watchdog")
+	timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
+	defer timer.Stop("ElevNetHandler Watchdog")
 
 	for {
 		timer.Update("ElevNetHandler Watchdog", time.Second*3)
@@ -68,22 +65,23 @@ func netHandler(
 
 		// "Regular backup"
 		//@TODO should this be called every loop?
-		sb.Backup(ss.GetSystems())
-
+		//sb.Backup(ss.GetSystems())
 		select {
 		// Net Handler Control
 		case <-signalNetHandlerToStop:
 			return
 
 		case newOrderButtonPress := <-elevToNetwork:
+			log.WithField("btn", newOrderButtonPress).Debug("nethandler handler: recv button press")
 			optSysIndex := eval.DelegateOrder(ss.GetSystemElevators(), newOrderButtonPress)
 			log.WithField("sysid", ss.GetSystems()[optSysIndex].ID).Debug("nethandler netHandler: New order, found optimal sys to take order")
 			// Delegate this order and update netState
-
+		default:
 		}
+
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
-			log.Debug("elevhandler handler: Running")
+			log.Debug("nethandler handler: Running")
 		}
 	}
 }

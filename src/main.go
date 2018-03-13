@@ -42,10 +42,10 @@ func run() {
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
 	ss.SetSystems(systemStates)
 
-	log.Debug("main run: Setup sysstates")
+	log.WithField("states", ss.GetSystems()).Debug("main run: Setup sysstates")
 
-	var networkToElev chan et.GeneralOrder
-	var elevToNetwork chan et.ButtonEvent
+	networkToElev := make(chan et.GeneralOrder, 12)
+	elevToNetwork := make(chan et.ButtonEvent, 12)
 
 	eh.StartElevatorHandler(networkToElev, elevToNetwork)
 	nh.StartNetHandler(networkToElev, elevToNetwork)

@@ -3,7 +3,7 @@ package elevfsm
 import (
 	"time"
 
-	timer "../elevtimer"
+	//timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,7 +29,7 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		elevator := &e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
-	timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
+	//timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
 	// Start by moving downwards
 	initialize()
 }
@@ -79,6 +79,7 @@ func HandleOrders() {
 		} else if OrderLogicCheckIfRequestsAtCurrentFloor(elevator) {
 			unload()
 		}
+	default:
 
 	}
 }
@@ -92,7 +93,7 @@ func RegisterFloor(floor int) {
 
 	switch elevator.State {
 	case et.Initializing:
-		timer.Stop("Initialization") // No need to signal timeout, since we reached a floor
+		//timer.Stop("Initialization") // No need to signal timeout, since we reached a floor
 		idle()
 	case et.Moving:
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
@@ -125,7 +126,7 @@ func RegisterTimerTimeout() {
 		case et.MD_Down: // normal initialization
 			setDir(et.MD_Up)
 			errorCount++
-			timer.Start("InitializationRetry", initFailTimeout, doorTimeoutSignalOutput)
+			//timer.Start("InitializationRetry", initFailTimeout, doorTimeoutSignalOutput)
 			log.Warning("elevfsm RegisterTimerTimeout: Retrying Init, moving up")
 
 		case et.MD_Up:
@@ -191,7 +192,7 @@ func initialize() {
 
 func unload() {
 	log.WithField("floor", elevator.Floor).Debug("elevfsm unload: Unloading")
-	timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
+	//timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
 	setState(et.Unloading)
 	setDir(et.MD_Stop)
 	elevator = OrderLogicClearRequestsOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)

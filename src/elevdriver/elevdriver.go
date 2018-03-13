@@ -168,6 +168,7 @@ func driver(
 		case doorOpenLampVal := <-doorOpenLampInput:
 			//log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
 			setDoorOpenLamp(doorOpenLampVal)
+		default:
 		}
 		if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
 			driverDebugLogMsgTimer = time.Now()

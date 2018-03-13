@@ -3,8 +3,9 @@ package elevtype
 type ElevatorState int
 
 const (
-	Initializing ElevatorState = iota
-	Idle         ElevatorState = iota
+	UnknownState ElevatorState = iota
+	Initializing               = iota
+	Idle                       = iota
 	Unloading                  = iota
 	Moving                     = iota
 )
@@ -20,8 +21,13 @@ const (
 type Elevator struct {
 	Floor               int
 	MovementDirection   MotorDirection
-	MovDirFromLastFloor MotorDirection 
+	MovDirFromLastFloor MotorDirection
 	Orders              [NumFloors][NumButtons]SimpleOrder
 	State               ElevatorState
 	ErrorState          ElevatorErrorState
+}
+
+func EmptyElevator() Elevator {
+	elev := Elevator{State: UnknownState, ErrorState: FullFunctionality}
+	return elev
 }
