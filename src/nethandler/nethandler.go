@@ -35,15 +35,6 @@ func netHandler(
 	networkToElev chan<- et.GeneralOrder,
 	elevToNetwork <-chan et.ButtonEvent,
 ) {
-	// Recover system backup
-	backup, err := sb.Recover(time.Now().Add(-time.Second * 20))
-	if err != nil {
-		log.Info("nethandler netHandler: No backup to recover")
-		backup = make([]et.ElevState, 1)
-		// @TODO init state here
-	}
-	ss.SetSystems(backup)
-
 	// Start Transmitter and Receiver for sending messages
 	var sendAckNack = make(chan et.AckNackMsg, 6)
 	var recvAckNack = make(chan et.AckNackMsg, 6)
