@@ -232,3 +232,12 @@ func RunSensorAndMotorTest(
 	wg.Done()
 
 }
+
+func StartStopButtonService(stopPressed chan<- bool) {
+	go pollStopButton(stopPressed, stopBtnShutdownChan, &stopBtnWg)
+}
+
+func StopStopButtonService() {
+	stopBtnShutdownChan <- true
+	stopBtnWg.Wait()
+}
