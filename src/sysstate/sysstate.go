@@ -24,7 +24,6 @@ func initSysState() {
 		newElevState := et.ElevState{ID: LocalIP, E: et.EmptyElevator()}
 		systems = append(systems, newElevState)
 	}
-	println("init syss")
 
 }
 
@@ -41,4 +40,18 @@ func GetSystemElevators() []et.Elevator {
 		elevList = append(elevList, elev.E)
 	}
 	return elevList
+}
+
+func UpdateLocalElevator(e *et.Elevator) {
+	exsistsInSystems := false
+	for index, element := range systems {
+		if element.ID == LocalIP {
+			exsistsInSystems = true
+			systems[index].E = *e
+			break
+		}
+	}
+	if !exsistsInSystems {
+		// log TODO
+	}
 }

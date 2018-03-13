@@ -1,10 +1,10 @@
 package nethandler
 
 import (
+	"strconv"
 	"time"
 
 	eval "../elevorderevaluation"
-	timer "../elevtimer"
 	et "../elevtype"
 	ss "../sysstate"
 	log "github.com/sirupsen/logrus"
@@ -13,11 +13,15 @@ import (
 var signalNetHandlerToStop chan bool
 
 func StartNetHandler(
-	networkToElev chan<- et.GeneralOrder,
-	elevToNetwork <-chan et.ButtonEvent,
+	ordersDelegatedFromNetwork chan<- et.GeneralOrder,
+	buttonPressesToNetwork <-chan et.ButtonEvent,
+	elevStateToNetwork <-chan et.Elevator,
 ) {
 	signalNetHandlerToStop = make(chan bool)
-	go netHandler(signalNetHandlerToStop, networkToElev, elevToNetwork)
+	go netHandler(signalNetHandlerToStop,
+		ordersDelegatedFromNetwork,
+		buttonPressesToNetwork,
+		elevStateToNetwork)
 }
 func StopNetHandler() {
 	log.Info("elevnetworkhandler StopNetHandler: Stopping")
@@ -29,8 +33,9 @@ func StopNetHandler() {
 
 func netHandler(
 	signalNetHandlerToStop <-chan bool,
-	networkToElev chan<- et.GeneralOrder,
-	elevToNetwork <-chan et.ButtonEvent,
+	ordersDelegatedFromNetwork chan<- et.GeneralOrder,
+	buttonPressesToNetwork <-chan et.ButtonEvent,
+	elevStateToNetwork <-chan et.Elevator,
 ) {
 	// Start Transmitter and Receiver for sending messages
 	//var sendAckNack = make(chan et.AckNackMsg, 6)
@@ -53,11 +58,11 @@ func netHandler(
 	netHandlerDebugLogMsgTimer := time.Now()
 	netHandlerDebugLogMsgFreq := 2 * time.Second
 
-	timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
-	defer timer.Stop("ElevNetHandler Watchdog")
+	//timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
+	//defer timer.Stop("ElevNetHandler Watchdog")
 
 	for {
-		timer.Update("ElevNetHandler Watchdog", time.Second*3)
+		//timer.Update("ElevNetHandler Watchdog", time.Second*3)
 
 		// monitor ACK
 		// if order ACK'd by all, update netState to Accepted
@@ -71,10 +76,25 @@ func netHandler(
 		case <-signalNetHandlerToStop:
 			return
 
-		case newOrderButtonPress := <-elevToNetwork:
+		case elev := <-elevStateToNetwork:
+			ss.UpdateLocalElevator(&elev)
+			//log.WithField("e", ss.GetSystemElevators()[0]).Debug("updated local elev:")
+
+		case newOrderButtonPress := <-buttonPressesToNetwork:
 			log.WithField("btn", newOrderButtonPress).Debug("nethandler handler: recv button press")
-			optSysIndex := eval.DelegateOrder(ss.GetSystemElevators(), newOrderButtonPress)
-			log.WithField("sysid", ss.GetSystems()[optSysIndex].ID).Debug("nethandler netHandler: New order, found optimal sys to take order")
+			optSysIndex, err := eval.DelegateOrder(ss.GetSystemElevators(), newOrderButtonPress)
+			if err != nil {
+				// already existing order
+			} else {
+				log.WithField("sysid" /*ss.GetSystems()[*/, optSysIndex /*].ID*/).Debug("nethandler netHandler: New order, found optimal sys to take order")
+				ordersDelegatedFromNetwork <- et.ElevOrder{
+					Id:                strconv.FormatInt(time.Now().Unix(), 16),
+					Order:             newOrderButtonPress,
+					TimestampReceived: time.Now().Unix(),
+					Status:            et.Accepted,
+				}
+			}
+
 			// Delegate this order and update netState
 		default:
 		}

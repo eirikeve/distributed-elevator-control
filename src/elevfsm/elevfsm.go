@@ -3,7 +3,7 @@ package elevfsm
 import (
 	"time"
 
-	//timer "../elevtimer"
+	timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
 )
@@ -192,7 +192,7 @@ func initialize() {
 
 func unload() {
 	log.WithField("floor", elevator.Floor).Debug("elevfsm unload: Unloading")
-	//timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
+	timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
 	setState(et.Unloading)
 	setDir(et.MD_Stop)
 	elevator = OrderLogicClearRequestsOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)

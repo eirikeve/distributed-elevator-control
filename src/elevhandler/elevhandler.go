@@ -14,15 +14,20 @@ var signalHandlerToStop chan bool
 var fsmTimeoutSignal chan bool
 
 func StartElevatorHandler(
-	networkToElev <-chan et.GeneralOrder,
-	elevToNetwork chan<- et.ButtonEvent) {
+	ordersDelegatedFromNetwork <-chan et.GeneralOrder,
+	buttonPressesToNetwork chan<- et.ButtonEvent,
+	elevStateToNetwork chan<- et.Elevator,
+) {
 	log.Info("elevhandler StartElevatorHandler: Starting")
 	// @TODO Finish initialization
 	signalHandlerToStop = make(chan bool, 2)
 	fsmTimeoutSignal = make(chan bool, 2)
 
 	fsm.InitFSM(fsmTimeoutSignal, nil)
-	go handler(signalHandlerToStop, networkToElev, elevToNetwork)
+	go handler(signalHandlerToStop,
+		ordersDelegatedFromNetwork,
+		buttonPressesToNetwork,
+		elevStateToNetwork)
 
 	log.Error("elevhandler StartElevatorHandler: Started")
 
@@ -38,14 +43,15 @@ func StopElevatorHandler() {
 
 func handler(
 	signalHandlerToStop <-chan bool,
-	networkToElev <-chan et.GeneralOrder,
-	elevToNetwork chan<- et.ButtonEvent) {
+	ordersDelegatedFromNetwork <-chan et.GeneralOrder,
+	buttonPressesToNetwork chan<- et.ButtonEvent,
+	elevStateToNetwork chan<- et.Elevator) {
 	log.Debug("elevhandler handler: Starting")
 
 	motorDirectionInput := make(chan et.MotorDirection, 2)
 	buttonLampInput := make(chan et.ButtonLamp, 12)
 	floorIndicatorInput := make(chan int, 2)
-	doorOpenLampInput := make(chan bool)
+	doorOpenLampInput := make(chan bool, 2)
 	//buttonPressSensorOut := elevToNetwork //make(chan et.ButtonEvent, 12)
 	floorSensorOut := make(chan int, 2)
 
@@ -55,7 +61,7 @@ func handler(
 		buttonLampInput,
 		floorIndicatorInput,
 		doorOpenLampInput,
-		elevToNetwork,
+		buttonPressesToNetwork,
 		floorSensorOut,
 	)
 	defer driver.StopDriver()
@@ -66,8 +72,8 @@ func handler(
 	//@TODO program loop
 	handlerDebugLogMsgTimer := time.Now()
 	handlerDebugLogMsgFreq := 2 * time.Second
-	driverSendUpdateFreq := 10 * time.Millisecond
-	driverSendUpdateTimer := time.Now()
+	sendFSMUpdatesFreq := 10 * time.Millisecond
+	sendFSMUpdatesTimer := time.Now()
 	//timer.StartDelayedFunction("ElevHandler Watchdog", time.Second*2, func() { panic("ElevHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevHandler Watchdog")
 	for {
@@ -77,9 +83,10 @@ func handler(
 
 		// Get values to be sent
 
-		if time.Now().Sub(driverSendUpdateTimer) > driverSendUpdateFreq {
-			driverSendUpdateTimer = time.Now()
+		if time.Now().Sub(sendFSMUpdatesTimer) > sendFSMUpdatesFreq {
+			sendFSMUpdatesTimer = time.Now()
 
+			elev := fsm.GetElevator()
 			buttonLamps := fsm.GetPanelLights()
 			doorOpenLamp := fsm.GetDoorOpenLight()
 			motorDir := fsm.GetMotorDir()
@@ -89,6 +96,7 @@ func handler(
 			case motorDirectionInput <- motorDir:
 			case floorIndicatorInput <- floor:
 			case doorOpenLampInput <- doorOpenLamp:
+			case elevStateToNetwork <- elev:
 			default:
 			}
 
@@ -116,7 +124,7 @@ func handler(
 		// Pushing elevator state to Network Handler
 
 		// Receiving orders from the Network Handler
-		case o := <-networkToElev:
+		case o := <-ordersDelegatedFromNetwork:
 			fsm.PushOrderToQueue(o)
 		// Checking floor, registering in FSM
 		case f := <-floorSensorOut:

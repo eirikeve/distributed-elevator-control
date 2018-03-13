@@ -44,11 +44,16 @@ func run() {
 
 	log.WithField("states", ss.GetSystems()).Debug("main run: Setup sysstates")
 
-	networkToElev := make(chan et.GeneralOrder, 12)
-	elevToNetwork := make(chan et.ButtonEvent, 12)
+	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
+	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)
+	elevStateToNetwork := make(chan et.Elevator, 12)
 
-	eh.StartElevatorHandler(networkToElev, elevToNetwork)
-	nh.StartNetHandler(networkToElev, elevToNetwork)
+	eh.StartElevatorHandler(ordersDelegatedFromNetwork,
+		buttonPressesToNetwork,
+		elevStateToNetwork)
+	nh.StartNetHandler(ordersDelegatedFromNetwork,
+		buttonPressesToNetwork,
+		elevStateToNetwork)
 
 	var running = true
 	for running == true {
