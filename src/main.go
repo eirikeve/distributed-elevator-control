@@ -1,21 +1,19 @@
 package main
 
-
 func main() {
+	// Recover from a panic from https://github.com/golang/go/wiki/PanicAndRecover
 
-	
-
-	/*
-		for {
-			err := run()
-			if err != nil {
-				elevlog.log(err)
-			} else {
-				os.Exit(0)
+	/*defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			var err error
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("pkg: %v", r)
 			}
-
 		}
-	*/
+	}()*/
+
 }
 
 func run() /*error*/ {
@@ -26,5 +24,9 @@ func run() /*error*/ {
 		}
 		// etc
 	*/
+
+}
+
+func RecoverIfPanic() {
 
 }
