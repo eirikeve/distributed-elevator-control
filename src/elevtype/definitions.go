@@ -1,5 +1,9 @@
 package elevtype
 
+import (
+	"time"
+)
+
 //Debugging: if true, log trace statements
 const VerboseDebugLog = false
 
@@ -10,6 +14,8 @@ const BOTTOMFLOOR = 0
 const TOPFLOOR = 3
 
 const AckHandlerPort = 26969
+
+const BackupRecoverInterval = -time.Second * 20
 
 type MessageType int
 
