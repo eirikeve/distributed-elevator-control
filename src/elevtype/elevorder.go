@@ -4,11 +4,11 @@ package elevtype
 type OrderStatus int
 
 const (
-	Timeout  OrderStatus = -2
-	Unknown  OrderStatus = -1
-	Received OrderStatus = 0
-	Accepted OrderStatus = 1
-	Finished OrderStatus = 2
+	Timeout  OrderStatus = -1
+	Unknown  OrderStatus = 0
+	Received OrderStatus = 1
+	Accepted OrderStatus = 2
+	Finished OrderStatus = 3
 )
 
 // https://stackoverflow.com/questions/35660467/how-to-access-fields-of-a-json-in-go

@@ -1,9 +1,6 @@
 package sysstate
 
 import (
-	"strconv"
-	"time"
-
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
 )
@@ -43,27 +40,4 @@ func GetSystemElevators() []et.Elevator {
 		elevList = append(elevList, elev.E)
 	}
 	return elevList
-}
-
-func UpdateLocalElevator(e *et.Elevator) {
-	exsistsInSystems := false
-	for index, element := range systems {
-		if element.ID == LocalIP {
-			exsistsInSystems = true
-			systems[index].E = *e
-			break
-		}
-	}
-	if !exsistsInSystems {
-		// log TODO
-	}
-}
-
-func UpdateSysElevator(sysIndex int, o et.ButtonEvent) {
-	systems[sysIndex].CurrentOrders[o.Floor][int(o.Button)] = et.ElevOrder{
-		Id:                strconv.FormatInt(time.Now().Unix(), 16),
-		Order:             o,
-		TimestampReceived: time.Now().Unix(),
-		Status:            et.Received,
-	}
 }

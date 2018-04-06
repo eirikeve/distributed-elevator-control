@@ -1,7 +1,6 @@
 package nethandler
 
 import (
-	"strconv"
 	"time"
 
 	network "../elevnetwork"
@@ -87,7 +86,7 @@ func netHandler(
 			if err != nil {
 				// already existing order
 			} else {
-				ss.UpdateSysElevator(optSysIndex, newOrderButtonPress)
+				ss.PushButtonEvent(optSysIndex, newOrderButtonPress)
 				//log.WithField("sysid" /*ss.GetSystems()[*/, optSysIndex /*].ID*/).Debug("nethandler netHandler: New order, found optimal sys to take order")
 				/*ordersDelegatedFromNetwork <- et.ElevOrder{
 					Id:                strconv.FormatInt(time.Now().Unix(), 16),
@@ -102,12 +101,11 @@ func netHandler(
 			log.Info("Recv regular update! :)")
 			for floor_index := 0; floor_index < et.NumFloors; floor_index++ {
 				for btn_index := 0; btn_index < 3; btn_index++ {
-					if state.CurrentOrders[floor_index][btn_index].Id != "" {
-						//@TODO actual logic. Here we dont even check if accepted
+					if state.CurrentOrders[floor_index][btn_index].Id != "" && state.CurrentOrders[floor_index][btn_index].Status == et.Accepted {
+						//@TODO actual logic.
 						ordersDelegatedFromNetwork <- state.CurrentOrders[floor_index][btn_index]
 					}
 					log.WithField("order", state.CurrentOrders[floor_index][btn_index]).Debug("nethandler handler: recv order")
-
 				}
 
 			}
@@ -118,21 +116,19 @@ func netHandler(
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
 			log.Debug("nethandler handler: Running")
-			s := ss.GetSystems()[0]
-			s.CurrentOrders[0][0] = et.ElevOrder{
-				Id:                strconv.FormatInt(time.Now().Unix(), 16),
-				Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallDown},
-				TimestampReceived: time.Now().Unix(),
-				Status:            et.Accepted,
-			}
-			select {
-			case sendRegularUpdates <- s:
-				log.Info("Sent regular updates")
-			case sendAckNack <- et.AckNackMsg{et.MsgACK, "hi"}:
-			case a := <-recvAckNack:
-				log.WithField("msg", a.MsgData).Info("recv ack")
+			systems := ss.GetSystems()
+			for _, s := range systems {
+				select {
+				case sendRegularUpdates <- s:
+					log.Info("Sent regular updates")
+				/*case sendAckNack <- et.AckNackMsg{et.MsgACK, "hi"}:
+				case a := <-recvAckNack:
+					log.WithField("msg", a.MsgData).Info("recv ack")*/
 
-			default:
+				default:
+					log.WithField("ID", s.ID).Warn("nethandler handler: sendRegularUpdated chan buf full, could not send")
+				}
+
 			}
 		}
 	}
