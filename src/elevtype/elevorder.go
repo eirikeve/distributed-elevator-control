@@ -14,17 +14,19 @@ const (
 // https://stackoverflow.com/questions/35660467/how-to-access-fields-of-a-json-in-go
 type ElevOrder struct {
 	// ID of request IP+timestamp+ButtonEvent
-	Id string
+	Id string `json: "orderID"`
 	// Floor & order type
-	Order ButtonEvent
+	Order ButtonEvent `json: "orderBtnEv"`
 	// Timestamp at order creation [UNIX timestamp]
-	TimestampReceived int64 //[@todo]: Changed to float64 from int64, is this right?]
+	TimestampReceived int64 `json: "orderLastUpdate"`
+	//[@todo]: Changed to float64 from int64, is this right?]
 	// Current status of order
-	Status OrderStatus
+	Status OrderStatus `json: "orderStatus"`
 	// Last update of order [UNIX timestamp]
-	TimestampLastOrderStatusChange int64 //[@todo]: Same as for TimestampReceived
+	TimestampLastOrderStatusChange int64 `json: "orderLastStatusChange"`
+	//[@todo]: Same as for TimestampReceived
 	// Assigned to elev @ IP
-	Assignee string
+	Assignee string `json: "orderAssignee"`
 }
 
 type SimpleOrder struct {

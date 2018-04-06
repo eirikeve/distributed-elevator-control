@@ -9,8 +9,8 @@ const (
 )
 
 type ButtonEvent struct {
-	Floor  int
-	Button ButtonType
+	Floor  int        `json: "btneventFloor"`
+	Button ButtonType `json: "btneventType"`
 }
 
 type ButtonLamp struct {
