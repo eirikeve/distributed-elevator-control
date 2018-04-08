@@ -45,7 +45,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 			Id:                LocalIP + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
 			Order:             btn,
 			TimestampReceived: t,
-			Status:            et.Received,
+			Status:            et.Received, //@TODO change to received instead.
 			TimestampLastOrderStatusChange: t,
 			Assignee:                       sysID,
 			SentToAssigneeElevator:         false,
