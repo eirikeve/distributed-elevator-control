@@ -47,7 +47,7 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 		n, _, _ := conn.ReadFrom(buf[0:])
 
 		id_formated := string(buf[:n])
-		id,msgType,err:= np.DeFormatMessage(id_formated)
+		id, msgType, err := np.DeFormatMessage(id_formated)
 
 		// Adding new connection
 		p.New = ""
@@ -59,10 +59,10 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 				updated = true
 			}
 			lastSeen[id] = time.Now()
-		}else if id != "" && msgType != np.MsgHeartbeat{
+		} else if id != "" && msgType != np.MsgHeartbeat {
 			log.WithField("msgType", msgType).Warning("peers Receiver: Received a msgType not equal to MsgHeartbeat")
-		}else if id != "" && err != nil{
-			log.WithField("Error",err).Warning("peers Receiver: Received a id with err != nil")
+		} else if id != "" && err != nil {
+			log.WithField("Error", err).Warning("peers Receiver: Received a id with err != nil")
 		}
 
 		// Removing dead connection
@@ -87,9 +87,9 @@ func Receiver(port int, peerUpdateCh chan<- et.PeerUpdate) {
 			sort.Strings(p.Lost)
 			peerUpdateCh <- p
 		}
-	
-	/*else{
-		
-	}*/
+
+		/*else{
+
+		}*/
 	}
 }
