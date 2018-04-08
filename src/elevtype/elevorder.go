@@ -27,6 +27,8 @@ type ElevOrder struct {
 	//[@todo]: Same as for TimestampReceived
 	// Assigned to elev @ IP
 	Assignee string `json: "orderAssignee"`
+	// Marks whether the order has been sent to the Assignee local elevator queue (to the FSM queue)
+	SentToAssigneeElevator bool `json: "sent"`
 }
 
 type SimpleOrder struct {
@@ -72,6 +74,12 @@ func (o SimpleOrder) IsActive() bool {
 	return o.Id != ""
 }
 func (o ElevOrder) IsActive() bool {
+	return o.Id != "" && (o.Status == Accepted || o.Status == Received)
+}
+func (o SimpleOrder) IsAccepted() bool {
+	return o.Id != ""
+}
+func (o ElevOrder) IsAccepted() bool {
 	return o.Id != "" && o.Status == Accepted
 }
 func (o SimpleOrder) IsSame(other GeneralOrder) bool {
@@ -101,5 +109,6 @@ func EmptyOrder() ElevOrder {
 		Status:            Unknown,
 		TimestampLastOrderStatusChange: 0,
 		Assignee:                       "",
+		SentToAssigneeElevator:         false,
 	}
 }
