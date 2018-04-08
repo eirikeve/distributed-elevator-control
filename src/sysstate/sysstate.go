@@ -13,7 +13,7 @@ var initialized = false
 //var systems map[string]et.ElevState
 var systems = make(map[string]et.ElevState)
 var netstate et.NetState
-var acks = make(map[string]int)
+var acksForBroadcasting []et.AckNackMsg
 
 func initSysState() {
 

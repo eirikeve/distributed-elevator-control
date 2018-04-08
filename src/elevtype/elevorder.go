@@ -51,6 +51,7 @@ type GeneralOrder interface {
 	GetFloor() int
 	GetButton() ButtonType
 	GetOrder() ButtonEvent
+	IsCabOrder() bool
 }
 
 func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
@@ -103,6 +104,8 @@ func (o SimpleOrder) GetButton() ButtonType { return o.Order.Button }
 func (o ElevOrder) GetButton() ButtonType   { return o.Order.Button }
 func (o SimpleOrder) GetOrder() ButtonEvent { return o.Order }
 func (o ElevOrder) GetOrder() ButtonEvent   { return o.Order }
+func (o ElevOrder) IsCabOrder() bool        { return o.Order.Button == BT_Cab }
+func (o SimpleOrder) IsCabOrder() bool      { return o.Order.Button == BT_Cab }
 
 func EmptyOrder() ElevOrder {
 	return ElevOrder{
