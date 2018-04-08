@@ -324,7 +324,8 @@ func acceptOrdersWeCanGuarantee() {
 		for b := 0; b < et.NumButtons; b++ {
 			if localSystem.CurrentOrders[f][b].Status == et.Received &&
 				canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]) {
-				accept(localSystem.CurrentOrders[f][b])
+				log.WithField("o", localSystem.CurrentOrders[f][b]).Debug("sysstate acceptOrders: Can guarantee order; accepting")
+				accept(&localSystem, localSystem.CurrentOrders[f][b])
 			}
 		}
 	}
@@ -407,11 +408,9 @@ func updateFinishedOrders() {
 
 }
 
-func accept(o et.ElevOrder) {
-	s := systems[LocalIP]
-	s.CurrentOrders[o.GetFloor()][int(o.GetButton())].Status = et.Accepted
-	s.CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
-	systems[LocalIP] = s
+func accept(localSys *et.ElevState, o et.ElevOrder) {
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Status = et.Accepted
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
 }
 
 func findOrder(orderID string) (et.ElevOrder, error) {
