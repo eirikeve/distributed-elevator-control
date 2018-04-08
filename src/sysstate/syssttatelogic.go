@@ -12,98 +12,103 @@ import (
  */
 func UpdateLocalElevator(e *et.Elevator) {
 	//log.Debug("sysstate Update: Update local elevator")
-	exsistsInSystems := false
-	for index, element := range systems {
-		if element.ID == LocalIP {
-			exsistsInSystems = true
-			systems[index].E = *e
-			updateOrderStatesUponElevatorUpdate()
-			break
-		}
 
+	if !initialized {
+		initSysState()
 	}
-	if !exsistsInSystems {
-		log.Error("sysstate Update: Failed to update local elevator - has sysstate been initialized?")
-	}
+
+	system, _ := systems[LocalIP]
+	system.E = *e
+	systems[LocalIP] = system
+
+	updateFinishedOrders()
 }
 
 /*PushButtonEvent creates an order to handle the received btn event, but only if it is not yet an active order.
  *
  */
-func PushButtonEvent(sysIndex int, btn et.ButtonEvent) {
+func PushButtonEvent(sysID string, btn et.ButtonEvent) {
+
+	if !initialized {
+		initSysState()
+	}
+
 	log.Debug("sysstate Push: Pushing btn")
 	if !isOrderAlreadyAccepted(btn) {
 		log.Debug("sysstate Push: Is new order!")
 
 		t := time.Now().Unix()
 		o := et.ElevOrder{
-			Id:                strconv.FormatInt(time.Now().Unix(), 16),
+			Id:                LocalIP + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
 			Order:             btn,
 			TimestampReceived: t,
-			Status:            et.Accepted, //@TODO change to received instead.
+			Status:            et.Received, //@TODO change to received instead.
 			TimestampLastOrderStatusChange: t,
-			Assignee:                       systems[sysIndex].ID,
+			Assignee:                       sysID,
 		}
 		// Note that sysIndex says which system should perform the order.
 		// But, since THIS system is the one delegating,
 		// The order is stored in THIS system|s ElevState!
 		// Other system's elevstate is only used for updating which orders
 		// we will perform locally, we don't modify them
-		exsistsInSystems := false
-		for index, element := range systems {
-			if element.ID == LocalIP {
-				exsistsInSystems = true
-				systems[index].CurrentOrders[btn.Floor][int(btn.Button)] = o
-				log.Debug("sysstate Update: Set order")
-			}
-		}
-		if !exsistsInSystems {
-			log.Error("sysstate Push: Failed to push order - has sysstate been initialized?")
+
+		// Verify that the system the order is assigned to exists
+		_, ok := systems[sysID]
+		// The order is saved in the currentOrders of the local elevator
+		system, _ := systems[LocalIP]
+		if ok {
+			system.CurrentOrders[btn.Floor][int(btn.Button)] = o
+			systems[LocalIP] = system
+			log.WithField("o", o).Debug("sysstate Update: Set received order")
+		} else {
+			log.WithField("sysID", sysID).Error("sysstate Push: Order assigned to unknown system")
 		}
 	}
 	// @TODO check if only one sys is active, if so, do NOT accept order!!!
 }
 
-/*Will contain logic to do stuff with orders that have been finished etc.
+/*updateFinishedOrders checks which orders have been finished by the local elevator
+ * these orders are marked as status Finished and moved to the FinishedOrderList of the local system.
  */
-func updateOrderStatesUponElevatorUpdate() {
-	for index, element := range systems {
-		if element.ID == LocalIP {
-			// Check which accepted orders were finished
-			updateFinishedOrders(systems[index])
-		}
+func updateFinishedOrders() {
+	if !initialized {
+		initSysState()
 	}
-}
+	s, _ := systems[LocalIP]
 
-func updateFinishedOrders(es et.ElevState) {
-	e := es.E
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			if isAcceptedOrder(es.CurrentOrders[f][b]) &&
-				e.Orders[f][b].IsEmpty() {
-				es.CurrentOrders[f][b].Status = et.Finished
+			if s.CurrentOrders[f][b].Assignee == LocalIP && // Check that this elevator is supposed to carry out the order
+				s.CurrentOrders[f][b].SentToAssigneeElevator && // Check that the order has been sent to the elevator FSM
+				s.CurrentOrders[f][b].IsAccepted() && // Check if the order has been accepted
+				s.E.Orders[f][b].IsEmpty() { // Check that the elevator FSM has carried out the order
+				markOrderFinished(s, f, b)
+				putOrderInFinishedOrdersList(s, f, b)
 			}
 		}
 	}
+	systems[LocalIP] = s
 
+}
+
+func markOrderFinished(es et.ElevState, floor int, button int) {
+	es.CurrentOrders[floor][button].Status = et.Finished
+	es.CurrentOrders[floor][button].TimestampLastOrderStatusChange = time.Now().Unix()
+}
+func putOrderInFinishedOrdersList(s et.ElevState, floor int, button int) {
+	s.FinishedOrders = append(s.FinishedOrders, s.CurrentOrders[floor][button])
+	s.CurrentOrders[floor][button] = et.EmptyOrder()
 }
 
 func isLocalOrder(o et.ElevOrder) bool {
 	return o.Assignee == LocalIP
 }
 
-func isActiveOrder(o et.ElevOrder) bool {
-	return o.Status == et.Accepted || o.Status == et.Received
-}
-
-func isAcceptedOrder(o et.ElevOrder) bool {
-	return o.Status == et.Accepted
-}
-
+// Confusing name.... checks if an order already exists
 func isOrderAlreadyAccepted(btn et.ButtonEvent) bool {
-	for _, element := range systems {
-		if isActiveOrder(element.CurrentOrders[btn.Floor][int(btn.Button)]) {
-			log.WithField("Order", element.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyAcc: This is the order which registers as the same")
+	for _, system := range systems {
+		if system.CurrentOrders[btn.Floor][int(btn.Button)].IsActive() {
+			log.WithField("Order", system.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyAcc: This is the order which registers as the same")
 			return true
 		}
 	}

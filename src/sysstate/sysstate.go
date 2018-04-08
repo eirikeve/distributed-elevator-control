@@ -6,38 +6,55 @@ import (
 )
 
 var LocalIP string
+var initialized = false
 
 //var systems map[string]et.ElevState
-var systems []et.ElevState
+var systems = make(map[string]et.ElevState)
 var netstate et.NetState
 
 func initSysState() {
-	exsistsInSystems := false
+
+	if initialized {
+		return
+	}
+
 	LocalIP, _ = locIP.LocalIP()
-	for _, element := range systems {
-		if element.ID == LocalIP {
-			exsistsInSystems = true
-			break
-		}
-	}
-	if !exsistsInSystems {
+
+	_, localSysExists := systems[LocalIP]
+
+	if !localSysExists {
 		newElevState := et.ElevState{ID: LocalIP, E: et.EmptyElevator()}
-		systems = append(systems, newElevState)
+		systems[LocalIP] = newElevState
 	}
+
+	initialized = true
 
 }
 
 func SetSystems(sys []et.ElevState) {
-	systems = sys
-	initSysState()
+	systems = make(map[string]et.ElevState)
+	for _, system := range sys {
+		systems[system.ID] = system
+	}
+	// Initialize after the assignment since this guarantees local system being in systems after func call
+	if !initialized {
+		initSysState()
+	}
+
 }
 
-func GetSystems() []et.ElevState { return systems }
+func GetSystems() []et.ElevState {
+	var sys []et.ElevState
+	for _, system := range systems {
+		sys = append(sys, system)
+	}
+	return sys
+}
 
 func GetSystemElevators() []et.Elevator {
 	var elevList []et.Elevator
-	for _, elev := range systems {
-		elevList = append(elevList, elev.E)
+	for _, system := range systems {
+		elevList = append(elevList, system.E)
 	}
 	return elevList
 }
