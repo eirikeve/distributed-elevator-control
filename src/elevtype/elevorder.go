@@ -51,6 +51,7 @@ type GeneralOrder interface {
 	GetFloor() int
 	GetButton() ButtonType
 	GetOrder() ButtonEvent
+	IsCabOrder() bool //[@TODO] is this implemented correct?
 }
 
 func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
@@ -58,6 +59,20 @@ func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
 }
 func (o ElevOrder) ToSimpleOrder() SimpleOrder {
 	return SimpleOrder{Id: o.Id, Order: o.Order}
+}
+func (o SimpleOrder) IsCabOrder() bool {
+	if o.Order.Button == BT_Cab {
+		return true
+	} else {
+		return false
+	}
+}
+func (o ElevOrder) IsCabOrder() bool {
+	if o.Order.Button == BT_Cab {
+		return true
+	} else {
+		return false
+	}
 }
 
 //func (o SimpleOrder) IsSimpleOrder() bool {

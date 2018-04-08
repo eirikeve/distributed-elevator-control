@@ -45,11 +45,15 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 			Id:                LocalIP + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
 			Order:             btn,
 			TimestampReceived: t,
-			Status:            et.Received, //@TODO change to received instead.
+			Status:            et.Received,
 			TimestampLastOrderStatusChange: t,
 			Assignee:                       sysID,
 			SentToAssigneeElevator:         false,
 		}
+		if o.IsCabOrder() {
+			o.Status = et.Accepted
+		}
+
 		o.Acks = append(o.Acks, LocalIP)
 
 		// Note that sysIndex says which system should perform the order.

@@ -18,3 +18,14 @@ type ButtonLamp struct {
 	Button ButtonType
 	Value  bool
 }
+
+/*
+ * Check if Button Event is a CAB press
+ */
+func IsCabButton(b ButtonEvent) bool {
+	if b.Button == BT_Cab {
+		return true
+	} else {
+		return false
+	}
+}

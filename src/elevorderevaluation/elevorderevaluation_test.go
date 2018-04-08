@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	loc "../elevnetwork/localip"
 	et "../elevtype"
 )
 
@@ -63,10 +64,59 @@ func TestOrderDelegation(t *testing.T) {
 	bEvent := et.ButtonEvent{1, et.BT_HallUp}
 
 	listElev := []et.Elevator{elevOne, elevTwo, elevThree}
-	bestElev := DelegateOrder(listElev, bEvent)
+	bestElev, _ := delegateOrder(listElev, bEvent)
 
 	fmt.Printf("TestOrderDelegation, Best elevator: %v \n", bestElev)
 
+}
+
+func TestFindOptimalSystem(t *testing.T) {
+	// Initialize elevator at Floor 1
+	elevOne := initializeElevator(2)
+	elevTwo := initializeElevator(0)
+	elevThree := initializeElevator(1)
+
+	// Set-up for elevator 1
+	elevOne.MovementDirection = et.MD_Up
+	elevOne.State = et.Moving
+	elevOne = setElevatorOrder(elevOne, 1, et.BT_HallUp, "1")
+	elevOne = setElevatorOrder(elevOne, 0, et.BT_Cab, "2")
+	elevOne = setElevatorOrder(elevOne, 2, et.BT_HallDown, "3")
+
+	// Set-up for elevator 2
+	elevTwo = setElevatorOrder(elevTwo, 1, et.BT_HallUp, "1")
+	elevTwo = setElevatorOrder(elevTwo, 3, et.BT_Cab, "2")
+	elevTwo = setElevatorOrder(elevTwo, 1, et.BT_HallDown, "3")
+
+	// Set-up for elevator 3
+	elevThree.MovementDirection = et.MD_Up
+	elevThree.State = et.Unloading
+	elevThree = setElevatorOrder(elevThree, 1, et.BT_HallUp, "1")
+	elevThree = setElevatorOrder(elevThree, 0, et.BT_Cab, "3")
+
+	//New Order
+	bEvent := et.ButtonEvent{1, et.BT_Cab}
+
+	// Local IP
+	locIP, _ := loc.LocalIP()
+	var systemOne et.ElevState
+	var systemTwo et.ElevState
+	var systemThree et.ElevState
+
+	systemOne.ID = "Sys1"
+	systemOne.E = elevOne
+
+	systemTwo.ID = locIP
+	systemTwo.E = elevTwo
+
+	systemThree.ID = "Sys3"
+	systemThree.E = elevThree
+
+	listSystems := []et.ElevState{systemTwo, systemOne, systemThree}
+
+	bestElev, _ := FindOptimalSystem(listSystems, bEvent)
+
+	fmt.Printf("TestFindOptSystem, Best elevator: %v \n", bestElev)
 }
 
 //[@todo]: Most of these functions are used in "elevfsm/orderlogic_test", maybe they should be imported?
