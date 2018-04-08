@@ -58,6 +58,29 @@ func GetLocalSystem() et.ElevState {
 	return systems[LocalIP]
 }
 
+func GetUnsentLocalSystemOrders() []et.ElevOrder {
+	var orders []et.ElevOrder
+	s, _ := systems[LocalIP]
+	for f := 0; f < et.NumFloors; f++ {
+		for b := 0; b < et.NumButtons; b++ {
+			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalIP && !s.CurrentOrders[f][b].SentToAssigneeElevator {
+				orders = append(orders, s.CurrentOrders[f][b])
+			}
+		}
+	}
+	return orders
+}
+
+func MarkOrdersAsSent(orders []et.ElevOrder) {
+	s, _ := systems[LocalIP]
+	for _, order := range orders {
+		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.Id {
+			s.CurrentOrders[order.GetFloor()][int(order.GetButton())].SentToAssigneeElevator = true
+		}
+	}
+	systems[LocalIP] = s
+}
+
 func GetSystemElevators() []et.Elevator {
 	var elevList []et.Elevator
 	for _, system := range systems {

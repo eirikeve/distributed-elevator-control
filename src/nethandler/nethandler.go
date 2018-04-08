@@ -66,6 +66,9 @@ func netHandler(
 	netHandlerSendRegularUpdateTimer := time.Now()
 	netHandlerSendRegularUpdateFreq := 500 * time.Millisecond
 
+	netHandlerSendElevatorQueueTimer := time.Now()
+	netHandlerSendElevatorQueueFreq := 500 * time.Millisecond
+
 	//timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevNetHandler Watchdog")
 
@@ -90,7 +93,6 @@ func netHandler(
 				ss.PushButtonEvent(optSysID, newOrderButtonPress)
 			}
 		case remoteElevStateUpdate := <-recvRegularUpdates:
-			log.Info("Recv regular update! :)")
 			ss.HandleRegularUpdate(remoteElevStateUpdate)
 		default:
 		}
@@ -103,6 +105,24 @@ func netHandler(
 				log.Warn("nethandler Handler: Could not send regular update")
 			}
 		}
+		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > netHandlerSendElevatorQueueFreq {
+			log.Info("SendElevatorQueueFreq")
+			netHandlerSendElevatorQueueTimer = time.Now()
+			orders := ss.GetUnsentLocalSystemOrders()
+			var sentOrders []et.ElevOrder
+			for _, order := range orders {
+				select {
+				case ordersDelegatedFromNetwork <- order:
+					sentOrders = append(sentOrders, order)
+					log.WithField("order", order).Debug("nethandler Handler: sent order to elevator")
+				default:
+					log.WithField("order", order).Warn("nethandler Handler: failed to send")
+				}
+			}
+			ss.MarkOrdersAsSent(sentOrders)
+
+		}
+
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
 			log.Debug("nethandler handler: Running")

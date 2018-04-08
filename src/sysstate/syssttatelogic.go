@@ -36,23 +36,28 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 		initSysState()
 	}
 
-	log.Debug("sysstate Push: Pushing btn")
-	if !isOrderAlreadyAccepted(btn) {
-		log.Debug("sysstate Push: Is new order!")
+	t := time.Now().Unix()
+	o := et.ElevOrder{
+		Id:                LocalIP + "-" + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
+		Order:             btn,
+		TimestampReceived: t,
+		Status:            et.Received,
+		TimestampLastOrderStatusChange: t,
+		Assignee:                       sysID,
+		SentToAssigneeElevator:         false,
+	}
 
-		t := time.Now().Unix()
-		o := et.ElevOrder{
-			Id:                LocalIP + "-" + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
-			Order:             btn,
-			TimestampReceived: t,
-			Status:            et.Received,
-			TimestampLastOrderStatusChange: t,
-			Assignee:                       sysID,
-			SentToAssigneeElevator:         false,
-		}
-		if o.IsCabOrder() {
-			o.Status = et.Accepted
-		}
+	if o.IsCabOrder() {
+		o.Status = et.Accepted
+		o.Acks = append(o.Acks, LocalIP)
+		o.Assignee = LocalIP
+
+		system, _ := systems[LocalIP]
+		system.CurrentOrders[btn.Floor][int(btn.Button)] = o
+		systems[LocalIP] = system
+
+	} else if !isOrderAlreadyAccepted(btn) {
+		log.Debug("sysstate Push: Is new order!")
 
 		o.Acks = append(o.Acks, LocalIP)
 
@@ -387,8 +392,8 @@ func updateFinishedOrders() {
 				s.CurrentOrders[f][b].SentToAssigneeElevator && // Check that the order has been sent to the elevator FSM
 				s.CurrentOrders[f][b].IsAccepted() && // Check if the order has been accepted
 				s.E.Orders[f][b].IsEmpty() { // Check that the elevator FSM has carried out the order
-				markOrderFinished(s, f, b)
-				putOrderInFinishedOrdersList(s, f, b)
+				markOrderFinished(&s, f, b)
+				putOrderInFinishedOrdersList(&s, f, b)
 			}
 		}
 	}
@@ -430,11 +435,11 @@ func findOrder(orderID string) (et.ElevOrder, error) {
 	return o, err
 }
 
-func markOrderFinished(es et.ElevState, floor int, button int) {
+func markOrderFinished(es *et.ElevState, floor int, button int) {
 	es.CurrentOrders[floor][button].Status = et.Finished
 	es.CurrentOrders[floor][button].TimestampLastOrderStatusChange = time.Now().Unix()
 }
-func putOrderInFinishedOrdersList(s et.ElevState, floor int, button int) {
+func putOrderInFinishedOrdersList(s *et.ElevState, floor int, button int) {
 	s.FinishedOrders = append(s.FinishedOrders, s.CurrentOrders[floor][button])
 	s.CurrentOrders[floor][button] = et.EmptyOrder()
 }
