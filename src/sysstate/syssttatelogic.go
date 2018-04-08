@@ -211,6 +211,12 @@ func updateSingleOrder(localOrder et.ElevOrder, remoteOrder et.ElevOrder) (et.El
 		return localOrder, nil
 	}
 
+	if localOrder.IsEmpty() {
+		return remoteOrder, nil
+	} else if remoteOrder.IsEmpty() {
+		return localOrder, nil
+	}
+
 	// Different IDs should in theory never occur, but as we know, it probably will.
 	if localOrder.GetID() != remoteOrder.GetID() {
 		log.WithFields(log.Fields{"ID1": localOrder.GetID(), "ID2": remoteOrder.GetID()}).Error("sysstate updateSingleOrder: Non-matching IDs")
