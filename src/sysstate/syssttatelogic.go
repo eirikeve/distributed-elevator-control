@@ -328,7 +328,7 @@ func rejectOrder(orderID string) {
 
 				s.CurrentOrders[f][b] = et.EmptyOrder()
 			}
-		}log.Debug("sysstate Push: Is new order!")
+		}
 
 	}
 	systems[LocalIP] = s
