@@ -117,7 +117,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 
 func HandleRegularUpdate(es et.ElevState) {
 
-	if es.ID == LocalIP {
+	if es.ID == LocalIP || es.ID == "" {
 		return
 	}
 
