@@ -82,11 +82,13 @@ func netHandler(
 			//log.WithField("e", ss.GetSystemElevators()[0]).Debug("updated local elev:")
 		case newOrderButtonPress := <-buttonPressesToNetwork:
 			log.WithField("btn", newOrderButtonPress).Debug("nethandler handler: recv button press")
-			optSysIndex, err := eval.DelegateOrder(ss.GetSystemElevators(), newOrderButtonPress)
+
+			optSysID, err := eval.FindOptimalSystem(ss.GetSystems(), newOrderButtonPress)
+
 			if err != nil {
 				// already existing order
 			} else {
-				ss.PushButtonEvent(optSysIndex, newOrderButtonPress)
+				ss.PushButtonEvent(optSysID, newOrderButtonPress)
 				//log.WithField("sysid" /*ss.GetSystems()[*/, optSysIndex /*].ID*/).Debug("nethandler netHandler: New order, found optimal sys to take order")
 				/*ordersDelegatedFromNetwork <- et.ElevOrder{
 					Id:                strconv.FormatInt(time.Now().Unix(), 16),

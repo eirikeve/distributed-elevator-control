@@ -58,7 +58,7 @@ func timeToIdle(elev et.Elevator) int {
 * is best fit to take and execute an order.
 * @arg elev[]: List of Elevators
  */
-func DelegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error) {
+func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error) {
 	var durations []int
 	var err error = nil
 
@@ -78,6 +78,16 @@ func DelegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error)
 	optElevIndex := findMinIndex(durations)
 
 	return optElevIndex, err
+}
+
+func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (string, error) {
+	var elevators []et.Elevator
+	for _, sys := range systems {
+		elevators = append(elevators, sys.E)
+	}
+	elevIndex, err := delegateOrder(elevators, newOrder)
+	optSysID := systems[elevIndex].ID
+	return optSysID, err
 }
 
 /*
