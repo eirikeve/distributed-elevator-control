@@ -1,6 +1,8 @@
 package sysstate
 
 import (
+	"time"
+
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
 )
@@ -11,6 +13,7 @@ var initialized = false
 //var systems map[string]et.ElevState
 var systems = make(map[string]et.ElevState)
 var netstate et.NetState
+var acks = make(map[string]int)
 
 func initSysState() {
 
@@ -23,7 +26,7 @@ func initSysState() {
 	_, localSysExists := systems[LocalIP]
 
 	if !localSysExists {
-		newElevState := et.ElevState{ID: LocalIP, E: et.EmptyElevator()}
+		newElevState := et.ElevState{ID: LocalIP, E: et.EmptyElevator(), StartupTime: time.Now()}
 		systems[LocalIP] = newElevState
 	}
 

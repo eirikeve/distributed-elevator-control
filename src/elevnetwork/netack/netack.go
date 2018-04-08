@@ -14,7 +14,7 @@ import (
 )
 
 type AckNackMsg struct {
-	MsgType np.MessageType
+	MsgType et.MessageType
 	MsgData string
 }
 

@@ -27,6 +27,8 @@ type ElevOrder struct {
 	//[@todo]: Same as for TimestampReceived
 	// Assigned to elev @ IP
 	Assignee string `json: "orderAssignee"`
+	//List over IDs of elevators which have acknowledged this order
+	Acks []string `json: "Acks"`
 	// Marks whether the order has been sent to the Assignee local elevator queue (to the FSM queue)
 	SentToAssigneeElevator bool `json: "sent"`
 }
@@ -43,6 +45,7 @@ type GeneralOrder interface {
 	//IsSimpleOrder() bool
 	IsEmpty() bool
 	IsActive() bool
+	IsAccepted() bool
 	IsSame(other GeneralOrder) bool
 	GetID() string
 	GetFloor() int
