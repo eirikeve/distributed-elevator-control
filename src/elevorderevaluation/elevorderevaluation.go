@@ -7,6 +7,7 @@ import (
 	"time"
 
 	fsm "../elevfsm"
+	loc "../elevnetwork/localip"
 	et "../elevtype"
 )
 
@@ -82,6 +83,10 @@ func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error)
 
 func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (string, error) {
 	var elevators []et.Elevator
+
+	if et.IsCabButton(newOrder) {
+		return loc.LocalIP()
+	}
 	for _, sys := range systems {
 		elevators = append(elevators, sys.E)
 	}
