@@ -42,7 +42,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 
 		t := time.Now().Unix()
 		o := et.ElevOrder{
-			Id:                LocalIP + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
+			Id:                LocalIP + "-" + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
 			Order:             btn,
 			TimestampReceived: t,
 			Status:            et.Received, //@TODO change to received instead.
@@ -107,10 +107,14 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 }*/
 
 func HandleRegularUpdate(es et.ElevState) {
+
+	if es.ID == LocalIP {
+		return
+	}
+
 	oldEs, existsInSystems := systems[es.ID]
-	if !existsInSystems {
-		systems[es.ID] = es
-	} else {
+
+	if existsInSystems {
 		if oldEs.StartupTime != es.StartupTime {
 			notifySystemOfBackup(oldEs)
 			// same backup
@@ -122,8 +126,12 @@ func HandleRegularUpdate(es et.ElevState) {
 			}
 		}
 	}
+
+	systems[es.ID] = es
+
 	applyUpdatesToLocalSystem(es)
 	acceptOrdersWeCanGuarantee()
+	//@TODO backup here
 	sendAckMessages()
 }
 
@@ -170,6 +178,7 @@ func applyUpdatesToLocalSystem(es et.ElevState) {
 	addLocalAckToOrders()
 	applyRemoteOrderAckLogicalOR(es)
 }
+
 func mergeOrdersToLocalSystem(es et.ElevState) {
 	localSystem, _ := systems[LocalIP]
 	for f := 0; f < et.NumFloors; f++ {
@@ -319,7 +328,8 @@ func rejectOrder(orderID string) {
 
 				s.CurrentOrders[f][b] = et.EmptyOrder()
 			}
-		}
+		}log.Debug("sysstate Push: Is new order!")
+
 	}
 	systems[LocalIP] = s
 

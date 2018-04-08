@@ -20,9 +20,9 @@ const BackupRecoverInterval = -time.Second * 20
 type MessageType int
 
 const (
-	//MsgHeartbeat      MessageType = iota
-	MsgACK  MessageType = iota
-	MsgNACK MessageType = iota
-	//MsgRegularUpdates MessageType = iota
-	//MsgUnknown        MessageType = iota
+	MsgHeartbeat      MessageType = iota
+	MsgACK            MessageType = iota
+	MsgNACK           MessageType = iota
+	MsgRegularUpdates MessageType = iota
+	MsgUnknown        MessageType = iota
 )

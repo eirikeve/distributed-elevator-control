@@ -7,6 +7,7 @@ import (
 	b "../elevnetwork/bcast"
 	eval "../elevorderevaluation"
 	et "../elevtype"
+	sb "../sysbackup"
 	ss "../sysstate"
 	log "github.com/sirupsen/logrus"
 )
@@ -59,19 +60,17 @@ func netHandler(
 	netHandlerDebugLogMsgTimer := time.Now()
 	netHandlerDebugLogMsgFreq := 2 * time.Second
 
+	netHandlerAutoBackupTimer := time.Now()
+	netHandlerAutoBackupFreq := 5 * time.Second
+
+	netHandlerSendRegularUpdateTimer := time.Now()
+	netHandlerSendRegularUpdateFreq := 500 * time.Millisecond
+
 	//timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevNetHandler Watchdog")
 
 	for {
-		//timer.Update("ElevNetHandler Watchdog", time.Second*3)
-
-		// monitor ACK
-		// if order ACK'd by all, update netState to Accepted
-		// if order is for this Elev, push order to elevhandler
-
-		// "Regular backup"
-		//@TODO should this be called every loop?
-		//sb.Backup(ss.GetSystems())
+		// Receive messages
 		select {
 		// Net Handler Control
 		case <-signalNetHandlerToStop:
@@ -89,49 +88,29 @@ func netHandler(
 				// already existing order
 			} else {
 				ss.PushButtonEvent(optSysID, newOrderButtonPress)
-				//log.WithField("sysid" /*ss.GetSystems()[*/, optSysIndex /*].ID*/).Debug("nethandler netHandler: New order, found optimal sys to take order")
-				/*ordersDelegatedFromNetwork <- et.ElevOrder{
-					Id:                strconv.FormatInt(time.Now().Unix(), 16),
-					Order:             newOrderButtonPress,
-					TimestampReceived: time.Now().Unix(),
-					Status:            et.Accepted,
-				}*/
 			}
-		case state := <-recvRegularUpdates:
-			//'TODO
-			//ss.SetSystems(states)
+		case remoteElevStateUpdate := <-recvRegularUpdates:
 			log.Info("Recv regular update! :)")
-			for floor_index := 0; floor_index < et.NumFloors; floor_index++ {
-				for btn_index := 0; btn_index < 3; btn_index++ {
-					if state.CurrentOrders[floor_index][btn_index].Id != "" && state.CurrentOrders[floor_index][btn_index].Status == et.Accepted {
-						//@TODO actual logic.
-						ordersDelegatedFromNetwork <- state.CurrentOrders[floor_index][btn_index]
-					}
-					log.WithField("order", state.CurrentOrders[floor_index][btn_index]).Debug("nethandler handler: recv order")
-				}
-
-			}
-			// Delegate this order and update netState
+			ss.HandleRegularUpdate(remoteElevStateUpdate)
 		default:
 		}
-
+		// Send messages
+		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > netHandlerSendRegularUpdateFreq {
+			netHandlerSendRegularUpdateTimer = time.Now()
+			select {
+			case sendRegularUpdates <- ss.GetLocalSystem():
+			default:
+				log.Warn("nethandler Handler: Could not send regular update")
+			}
+		}
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
 			log.Debug("nethandler handler: Running")
-			systems := ss.GetSystems()
-			for _, s := range systems {
-				select {
-				case sendRegularUpdates <- s:
-					log.Info("Sent regular updates")
-				/*case sendAckNack <- et.AckNackMsg{et.MsgACK, "hi"}:
-				case a := <-recvAckNack:
-					log.WithField("msg", a.MsgData).Info("recv ack")*/
-
-				default:
-					log.WithField("ID", s.ID).Warn("nethandler handler: sendRegularUpdated chan buf full, could not send")
-				}
-
-			}
 		}
+		if time.Now().Sub(netHandlerAutoBackupTimer) > netHandlerAutoBackupFreq {
+			netHandlerAutoBackupTimer = time.Now()
+			sb.Backup(ss.GetSystems())
+		}
+
 	}
 }

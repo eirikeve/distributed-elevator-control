@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"../conn"
-	log "github.com/sirupsen/logrus"
 )
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
@@ -37,8 +36,8 @@ func Transmitter(port int, chans ...interface{}) {
 		chosen, value, _ := reflect.Select(selectCases)
 		buf, _ := json.Marshal(value.Interface())
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
-		log.WithField("Transmitted", value).Debug("bcast Transmitter: Sent msg")
-		log.WithField("Transmitted (str)", string(buf)).Debug("bcast Transmitter: Sent msg")
+		//log.WithField("Transmitted", value).Debug("bcast Transmitter: Sent msg")
+		//log.WithField("Transmitted (str)", string(buf)).Debug("bcast Transmitter: Sent msg")
 	}
 }
 
@@ -57,8 +56,8 @@ func Receiver(port int, chans ...interface{}) {
 			if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
 				v := reflect.New(T)
 				json.Unmarshal(buf[len(typeName):n], v.Interface())
-				log.WithField("Received", v).Debug("bcast Receiver: Recv msg")
-				log.WithField("Received (str)", string(buf[len(typeName):n])).Debug("bcast Receiver: Recv msg")
+				//log.WithField("Received", v).Debug("bcast Receiver: Recv msg")
+				//log.WithField("Received (str)", string(buf[len(typeName):n])).Debug("bcast Receiver: Recv msg")
 
 				reflect.Select([]reflect.SelectCase{{
 					Dir:  reflect.SelectSend,

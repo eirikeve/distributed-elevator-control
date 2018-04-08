@@ -54,6 +54,10 @@ func GetSystems() []et.ElevState {
 	return sys
 }
 
+func GetLocalSystem() et.ElevState {
+	return systems[LocalIP]
+}
+
 func GetSystemElevators() []et.Elevator {
 	var elevList []et.Elevator
 	for _, system := range systems {
