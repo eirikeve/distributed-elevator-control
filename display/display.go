@@ -78,7 +78,7 @@ func main() {
 				tm.Println(sys.ID + " (" + strconv.FormatInt(int64(i), 10) + ")    Secs since update: " + intToGenericString(int64(time.Now().Sub(sys.LastUpdate).Seconds())) + "|")
 				table := tm.NewTable(minWidth, tabWidth, padding, padChar, 0)
 
-				fmt.Fprintf(table, "State\t \t|\tOrders\t \t \t \t \t|\n")
+				fmt.Fprintf(table, "State\t \t|\tOrders\t \t \tDone:\t  "+intToBufferedString(int64(len(sys.FinishedOrders)), 4)+"\t|\n")
 				fmt.Fprintf(table, "---------\t-----\t|\t---------\t-----\t-----\t-----\t-----\t|\n")
 				fmt.Fprintf(table, "Floor \t%d\t|\tFloor\t0\t1\t2\t3\t|\n", sys.E.Floor)
 				fmt.Fprintf(table, "State \t%d\t|\tHallUp\t"+orderToString(&sys, 0, 0)+"\t"+orderToString(&sys, 1, 0)+"\t"+orderToString(&sys, 2, 0)+"\t"+orderToString(&sys, 3, 0)+"\t|\n", sys.E.State)
@@ -106,6 +106,16 @@ func intToGenericString(i int64) string {
 	} else {
 		return ">9"
 	}
+}
+
+func intToBufferedString(i int64, sz int) string {
+	s := strconv.FormatInt(i, 10)
+	if len(s) < sz {
+		for i := 0; i < (sz - len(s)); i++ {
+			s = " " + s
+		}
+	}
+	return s
 }
 
 func orderToString(sys *et.ElevState, f int, b int) string {
