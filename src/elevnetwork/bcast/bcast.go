@@ -46,8 +46,9 @@ func Transmitter(port int, chans ...interface{}) {
 func Receiver(port int, chans ...interface{}) {
 	checkArgs(chans...)
 
-	var buf [1028 * 4]byte
+	var buf [1028 * 100]byte
 	conn := conn.DialBroadcastUDP(port)
+
 	for {
 		n, _, _ := conn.ReadFrom(buf[0:])
 		for _, ch := range chans {
@@ -56,8 +57,8 @@ func Receiver(port int, chans ...interface{}) {
 			if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
 				v := reflect.New(T)
 				json.Unmarshal(buf[len(typeName):n], v.Interface())
-				//log.WithField("Received", v).Debug("bcast Receiver: Recv msg")
-				//log.WithField("Received (str)", string(buf[len(typeName):n])).Debug("bcast Receiver: Recv msg")
+				//log.WithField("Received", v).Info("bcast Receiver: Recv msg")
+				//log.WithField("Received (str)", string(buf[len(typeName):n])).Info("bcast Receiver: Recv msg")
 
 				reflect.Select([]reflect.SelectCase{{
 					Dir:  reflect.SelectSend,

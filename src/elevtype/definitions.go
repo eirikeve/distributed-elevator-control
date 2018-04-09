@@ -14,6 +14,7 @@ const BOTTOMFLOOR = 0
 const TOPFLOOR = 3
 
 const AckHandlerPort = 26969
+const DisplayListenerPort = 28000
 
 const BackupRecoverInterval = -time.Second * 20
 
