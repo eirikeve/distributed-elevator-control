@@ -41,7 +41,7 @@ func Backup(states []et.ElevState) {
 	if !initialized {
 		setupSysBackup()
 	}
-	print((*logFile).Name())
+	log.WithField("FileName", (*logFile).Name()).Debug("sysbackup Backup: Backed up")
 	for i := 0; i < len(states); i++ {
 		backupElevState(states[i])
 	}
@@ -74,6 +74,14 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 	for _, backupIndex := range sortedIndexes {
 		applyBackupFromFile(&states, files[backupIndex])
 	}
+	numBackupFiles := strconv.FormatInt(int64(len(backupFilesIndexes)), 10)
+	numUseableBackupFiles := strconv.FormatInt(int64(len(useableBackupIndexes)), 10)
+	numStatesRecovered := strconv.FormatInt(int64(len(states)), 10)
+
+	log.WithFields(log.Fields{"numStatesRecovered": numStatesRecovered,
+		"numBackupFiles":        numBackupFiles,
+		"numUseableBackupFiles": numUseableBackupFiles,
+	}).Info("sysbackup Recover:")
 
 	return states, nil
 }

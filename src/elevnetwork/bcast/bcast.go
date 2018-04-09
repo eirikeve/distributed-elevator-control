@@ -1,12 +1,14 @@
 package bcast
 
 import (
-	"../conn"
 	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
 	"strings"
+	"time"
+
+	"../conn"
 )
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
@@ -34,7 +36,10 @@ func Transmitter(port int, chans ...interface{}) {
 	for {
 		chosen, value, _ := reflect.Select(selectCases)
 		buf, _ := json.Marshal(value.Interface())
+		conn.SetDeadline(time.Now().Add(time.Second))
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
+		//log.WithField("Transmitted", value).Debug("bcast Transmitter: Sent msg")
+		//log.WithField("Transmitted (str)", string(buf)).Debug("bcast Transmitter: Sent msg")
 	}
 }
 
@@ -43,24 +48,31 @@ func Transmitter(port int, chans ...interface{}) {
 func Receiver(port int, chans ...interface{}) {
 	checkArgs(chans...)
 
-	var buf [1024]byte
+	var buf [1028 * 100]byte
 	conn := conn.DialBroadcastUDP(port)
-	for {
-		n, _, _ := conn.ReadFrom(buf[0:])
-		for _, ch := range chans {
-			T := reflect.TypeOf(ch).Elem()
-			typeName := T.String()
-			if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
-				v := reflect.New(T)
-				json.Unmarshal(buf[len(typeName):n], v.Interface())
 
-				reflect.Select([]reflect.SelectCase{{
-					Dir:  reflect.SelectSend,
-					Chan: reflect.ValueOf(ch),
-					Send: reflect.Indirect(v),
-				}})
+	for {
+		conn.SetDeadline(time.Now().Add(time.Second))
+		n, _, err := conn.ReadFrom(buf[0:])
+		if err == nil {
+			for _, ch := range chans {
+				T := reflect.TypeOf(ch).Elem()
+				typeName := T.String()
+				if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
+					v := reflect.New(T)
+					json.Unmarshal(buf[len(typeName):n], v.Interface())
+					//log.WithField("Received", v).Info("bcast Receiver: Recv msg")
+					//log.WithField("Received (str)", string(buf[len(typeName):n])).Info("bcast Receiver: Recv msg")
+
+					reflect.Select([]reflect.SelectCase{{
+						Dir:  reflect.SelectSend,
+						Chan: reflect.ValueOf(ch),
+						Send: reflect.Indirect(v),
+					}})
+				}
 			}
 		}
+
 	}
 }
 

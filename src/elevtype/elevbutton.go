@@ -9,12 +9,23 @@ const (
 )
 
 type ButtonEvent struct {
-	Floor  int
-	Button ButtonType
+	Floor  int        `json: "btneventFloor"`
+	Button ButtonType `json: "btneventType"`
 }
 
 type ButtonLamp struct {
 	Floor  int
 	Button ButtonType
 	Value  bool
+}
+
+/*
+ * Check if Button Event is a CAB press
+ */
+func IsCabButton(b ButtonEvent) bool {
+	if b.Button == BT_Cab {
+		return true
+	} else {
+		return false
+	}
 }

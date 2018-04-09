@@ -4,27 +4,33 @@ package elevtype
 type OrderStatus int
 
 const (
-	Timeout  OrderStatus = -2
-	Unknown  OrderStatus = -1
-	Received OrderStatus = 0
-	Accepted OrderStatus = 1
-	Finished OrderStatus = 2
+	Timeout  OrderStatus = -1
+	Unknown  OrderStatus = 0
+	Received OrderStatus = 1
+	Accepted OrderStatus = 2
+	Finished OrderStatus = 3
 )
 
 // https://stackoverflow.com/questions/35660467/how-to-access-fields-of-a-json-in-go
 type ElevOrder struct {
 	// ID of request IP+timestamp+ButtonEvent
-	Id string
+	Id string `json: "orderID"`
 	// Floor & order type
-	Order ButtonEvent
+	Order ButtonEvent `json: "orderBtnEv"`
 	// Timestamp at order creation [UNIX timestamp]
-	TimestampReceived int64 //[@todo]: Changed to float64 from int64, is this right?]
+	TimestampReceived int64 `json: "orderLastUpdate"`
+	//[@todo]: Changed to float64 from int64, is this right?]
 	// Current status of order
-	Status OrderStatus
+	Status OrderStatus `json: "orderStatus"`
 	// Last update of order [UNIX timestamp]
-	TimestampLastOrderStatusChange int64 //[@todo]: Same as for TimestampReceived
+	TimestampLastOrderStatusChange int64 `json: "orderLastStatusChange"`
+	//[@todo]: Same as for TimestampReceived
 	// Assigned to elev @ IP
-	Assignee string
+	Assignee string `json: "orderAssignee"`
+	//List over IDs of elevators which have acknowledged this order
+	Acks []string `json: "Acks"`
+	// Marks whether the order has been sent to the Assignee local elevator queue (to the FSM queue)
+	SentToAssigneeElevator bool `json: "sent"`
 }
 
 type SimpleOrder struct {
@@ -39,11 +45,13 @@ type GeneralOrder interface {
 	//IsSimpleOrder() bool
 	IsEmpty() bool
 	IsActive() bool
+	IsAccepted() bool
 	IsSame(other GeneralOrder) bool
 	GetID() string
 	GetFloor() int
 	GetButton() ButtonType
 	GetOrder() ButtonEvent
+	IsCabOrder() bool
 }
 
 func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
@@ -70,6 +78,12 @@ func (o SimpleOrder) IsActive() bool {
 	return o.Id != ""
 }
 func (o ElevOrder) IsActive() bool {
+	return o.Id != "" && (o.Status == Accepted || o.Status == Received)
+}
+func (o SimpleOrder) IsAccepted() bool {
+	return o.Id != ""
+}
+func (o ElevOrder) IsAccepted() bool {
 	return o.Id != "" && o.Status == Accepted
 }
 func (o SimpleOrder) IsSame(other GeneralOrder) bool {
@@ -90,6 +104,8 @@ func (o SimpleOrder) GetButton() ButtonType { return o.Order.Button }
 func (o ElevOrder) GetButton() ButtonType   { return o.Order.Button }
 func (o SimpleOrder) GetOrder() ButtonEvent { return o.Order }
 func (o ElevOrder) GetOrder() ButtonEvent   { return o.Order }
+func (o ElevOrder) IsCabOrder() bool        { return o.Order.Button == BT_Cab }
+func (o SimpleOrder) IsCabOrder() bool      { return o.Order.Button == BT_Cab }
 
 func EmptyOrder() ElevOrder {
 	return ElevOrder{
@@ -99,5 +115,6 @@ func EmptyOrder() ElevOrder {
 		Status:            Unknown,
 		TimestampLastOrderStatusChange: 0,
 		Assignee:                       "",
+		SentToAssigneeElevator:         false,
 	}
 }
