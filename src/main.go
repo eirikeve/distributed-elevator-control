@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	ed "./elevdriver"
 	eh "./elevhandler"
 	et "./elevtype"
 	nh "./nethandler"

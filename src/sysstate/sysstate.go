@@ -20,20 +20,9 @@ var acksForBroadcasting []et.AckNackMsg
  * initSysState is automatically called the first time we set the local systems
  */
 func initSysState() {
-<<<<<<< HEAD
-	exsistsInSystems := false
-	LocalIP, _ = locIP.LocalIP()
-	// Check that systems contains the elevator this program is running at. If not, insert this elevator system.
-	for _, element := range systems {
-		if element.ID == LocalIP {
-			exsistsInSystems = true
-			break
-		}
-=======
 
 	if initialized {
 		return
->>>>>>> d597c8aac8f40ee07545d414c695c77d43dac16f
 	}
 
 	LocalIP, _ = locIP.LocalIP()
@@ -49,28 +38,6 @@ func initSysState() {
 
 }
 
-<<<<<<< HEAD
-/*SetSystems assigns a slice to systems.
- *
- */
-func SetSystems(sys []et.ElevState) {
-	systems = sys
-	initSysState()
-}
-
-/*GetSystems is a get-function for systems
- *
- */
-func GetSystems() []et.ElevState { return systems }
-
-/*GetSystemElevators is a get-function for the elevators in systems
- *
- */
-func GetSystemElevators() []et.Elevator {
-	var elevList []et.Elevator
-	for _, elev := range systems {
-		elevList = append(elevList, elev.E)
-=======
 func SetSystemsStates(sys []et.ElevState) {
 	systems = make(map[string]et.ElevState)
 	for _, system := range sys {
@@ -98,7 +65,6 @@ func GetActiveSystemsStates() []et.ElevState {
 			sys = append(sys, system)
 		}
 
->>>>>>> d597c8aac8f40ee07545d414c695c77d43dac16f
 	}
 	return sys
 }
@@ -107,19 +73,6 @@ func GetLocalSystem() et.ElevState {
 	return systems[LocalIP]
 }
 
-<<<<<<< HEAD
-
-/*UpdateLocalElevator updates the stored local elevator system with its current state.append
- * The argument e is the newest update from elevhandler, i.e. the current state of the local FSM
- */
-func UpdateLocalElevator(e *et.Elevator) {
-	exsistsInSystems := false
-	for index, element := range systems {
-		if element.ID == LocalIP {
-			exsistsInSystems = true
-			systems[index].E = *e
-			break
-=======
 func GetUnsentLocalSystemOrders() []et.ElevOrder {
 	var orders []et.ElevOrder
 	s, _ := systems[LocalIP]
@@ -128,7 +81,6 @@ func GetUnsentLocalSystemOrders() []et.ElevOrder {
 			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalIP && !s.CurrentOrders[f][b].SentToAssigneeElevator {
 				orders = append(orders, s.CurrentOrders[f][b])
 			}
->>>>>>> d597c8aac8f40ee07545d414c695c77d43dac16f
 		}
 	}
 	return orders
@@ -151,4 +103,3 @@ func GetSystemElevators() []et.Elevator {
 	}
 	return elevList
 }
-
