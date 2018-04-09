@@ -145,6 +145,21 @@ func HandleRegularUpdate(es et.ElevState) {
 	}
 
 	systems[es.ID] = es
+	//localSys := systems[LocalIP]
+
+	/*for f := 0; f < et.NumFloors; f++ {
+		for b := 0; b < et.NumButtons; b++ {
+			log.WithFields(log.Fields{
+				"f":                       f,
+				"b":                       b,
+				"LocalOrder":              localSys.CurrentOrders[f][b].Id,
+				"LocalOrderLastTimeChng":  localSys.CurrentOrders[f][b].TimestampLastOrderStatusChange,
+				"RemoteOrder":             es.CurrentOrders[f][b].Id,
+				"RemoteOrderLastTimeChng": es.CurrentOrders[f][b].TimestampLastOrderStatusChange,
+			}).Debug("sysstate HandleRegularUpdate: Comparison of orders")
+
+		}
+	}*/
 
 	applyUpdatesToLocalSystem(es)
 	acceptOrdersWeCanGuarantee()
@@ -191,6 +206,7 @@ func isOrderAlreadyFinished(es et.ElevState, orderID string) bool {
 }
 
 func applyUpdatesToLocalSystem(es et.ElevState) {
+	mergeFinishedOrdersQueue(es)
 	mergeOrdersToLocalSystem(es)
 	addLocalAckToOrders()
 	applyRemoteOrderAckLogicalOR(es)
@@ -200,7 +216,7 @@ func mergeOrdersToLocalSystem(es et.ElevState) {
 	localSystem, _ := systems[LocalIP]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			o, err := updateSingleOrder(localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
+			o, err := updateSingleOrder(&es, localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
 			if err != nil {
 				//handle
 			} else {
@@ -211,12 +227,56 @@ func mergeOrdersToLocalSystem(es et.ElevState) {
 	systems[LocalIP] = localSystem
 }
 
-func updateSingleOrder(localOrder et.ElevOrder, remoteOrder et.ElevOrder) (et.ElevOrder, error) {
+func mergeFinishedOrdersQueue(remoteSystem et.ElevState) {
+	localSystem := systems[LocalIP]
+
+	var newSlice []et.ElevOrder
+
+	currentTime := time.Now().Unix()
+
+	for _, o := range localSystem.FinishedOrders {
+		if o.TimestampLastOrderStatusChange+60 > currentTime {
+			newSlice = append(newSlice, o)
+		}
+	}
+
+	for _, o := range remoteSystem.FinishedOrders {
+		if o.TimestampLastOrderStatusChange+60 > currentTime {
+			isAlreadyInSlice := false
+			for _, oLocal := range newSlice {
+				if oLocal.Id != o.Id {
+					isAlreadyInSlice = false
+					break
+				}
+			}
+			if !isAlreadyInSlice {
+				newSlice = append(newSlice, o)
+			}
+
+		}
+	}
+
+	systems[LocalIP] = localSystem
+}
+
+func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remoteOrder et.ElevOrder) (et.ElevOrder, error) {
 	var err error
 	var o et.ElevOrder
+	localSystem := systems[LocalIP]
 
 	if localOrder.IsCabOrder() {
 		return localOrder, nil
+	}
+
+	if isOrderAlreadyFinished(localSystem, remoteOrder.Id) {
+		// We have already done the remote order.
+		if isOrderAlreadyFinished(localSystem, localOrder.Id) {
+			// We have already done the local order. So, this order should be empty now
+			o = et.EmptyOrder()
+			return o, nil
+		}
+		o = localOrder
+		return o, nil
 	}
 
 	if localOrder.IsEmpty() {
