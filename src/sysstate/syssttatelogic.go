@@ -145,21 +145,23 @@ func HandleRegularUpdate(es et.ElevState) {
 	}
 
 	systems[es.ID] = es
-	//localSys := systems[LocalIP]
+	localSys := systems[LocalIP]
 
-	/*for f := 0; f < et.NumFloors; f++ {
+	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			log.WithFields(log.Fields{
-				"f":                       f,
-				"b":                       b,
-				"LocalOrder":              localSys.CurrentOrders[f][b].Id,
-				"LocalOrderLastTimeChng":  localSys.CurrentOrders[f][b].TimestampLastOrderStatusChange,
-				"RemoteOrder":             es.CurrentOrders[f][b].Id,
-				"RemoteOrderLastTimeChng": es.CurrentOrders[f][b].TimestampLastOrderStatusChange,
-			}).Debug("sysstate HandleRegularUpdate: Comparison of orders")
+			if localSys.CurrentOrders[f][b].Id != "" || es.CurrentOrders[f][b].Id != "" {
+				log.WithFields(log.Fields{
+					"f":                       f,
+					"b":                       b,
+					"LocalOrder":              localSys.CurrentOrders[f][b].Id,
+					"LocalOrderLastTimeChng":  localSys.CurrentOrders[f][b].TimestampLastOrderStatusChange,
+					"RemoteOrder":             es.CurrentOrders[f][b].Id,
+					"RemoteOrderLastTimeChng": es.CurrentOrders[f][b].TimestampLastOrderStatusChange,
+				}).Debug("sysstate HandleRegularUpdate: Comparison of orders")
+			}
 
 		}
-	}*/
+	}
 
 	applyUpdatesToLocalSystem(es)
 	acceptOrdersWeCanGuarantee()
@@ -255,6 +257,8 @@ func mergeFinishedOrdersQueue(remoteSystem et.ElevState) {
 
 		}
 	}
+
+	localSystem.FinishedOrders = newSlice
 
 	systems[LocalIP] = localSystem
 }
