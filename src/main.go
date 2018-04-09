@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	ed "./elevdriver"
 	eh "./elevhandler"
 	et "./elevtype"
 	nh "./nethandler"
@@ -58,11 +57,11 @@ func run() {
 	var running = true
 	for running == true {
 		select {
-		case <-stopRunning:
-			log.Info("main run: Received shutdown signal")
-			eh.StopElevatorHandler()
-			nh.StopNetHandler()
-			running = false
+		//case <-stopRunning:
+		//	log.Info("main run: Received shutdown signal")
+		//	eh.StopElevatorHandler()
+		//	nh.StopNetHandler()
+		//	running = false
 		default:
 			time.Sleep(time.Millisecond)
 		}

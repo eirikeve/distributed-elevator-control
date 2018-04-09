@@ -14,9 +14,13 @@ var LocalIP string
 var systems []et.ElevState
 var netstate et.NetState
 
+/*
+ * initSysState is automatically called the first time we set the local systems
+ */
 func initSysState() {
 	exsistsInSystems := false
 	LocalIP, _ = locIP.LocalIP()
+	// Check that systems contains the elevator this program is running at. If not, insert this elevator system.
 	for _, element := range systems {
 		if element.ID == LocalIP {
 			exsistsInSystems = true
@@ -30,13 +34,22 @@ func initSysState() {
 
 }
 
+/*SetSystems assigns a slice to systems.
+ *
+ */
 func SetSystems(sys []et.ElevState) {
 	systems = sys
 	initSysState()
 }
 
+/*GetSystems is a get-function for systems
+ *
+ */
 func GetSystems() []et.ElevState { return systems }
 
+/*GetSystemElevators is a get-function for the elevators in systems
+ *
+ */
 func GetSystemElevators() []et.Elevator {
 	var elevList []et.Elevator
 	for _, elev := range systems {
@@ -45,6 +58,10 @@ func GetSystemElevators() []et.Elevator {
 	return elevList
 }
 
+
+/*UpdateLocalElevator updates the stored local elevator system with its current state.append
+ * The argument e is the newest update from elevhandler, i.e. the current state of the local FSM
+ */
 func UpdateLocalElevator(e *et.Elevator) {
 	exsistsInSystems := false
 	for index, element := range systems {
@@ -67,3 +84,4 @@ func UpdateSysElevator(sysIndex int, o et.ButtonEvent) {
 		Status:            et.Received,
 	}
 }
+

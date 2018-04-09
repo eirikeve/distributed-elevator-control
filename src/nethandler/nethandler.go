@@ -51,9 +51,6 @@ func netHandler(
 	go network.StartHeartBeat()
 	defer network.StopHeartBeat()
 
-	// Init netState with backup, if applicable
-	// might be best to pass it as an argument to netHandler, which then pushes the necessary orders to the elevhandler?
-
 	// Start ACK service (routine for sending and receiving ACKS)
 	// defer stop ACK service
 
@@ -117,6 +114,7 @@ func netHandler(
 
 		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
+			// @TODO not correct
 			log.Debug("nethandler handler: Running")
 			s := ss.GetSystems()[0]
 			s.CurrentOrders[0][0] = et.ElevOrder{
