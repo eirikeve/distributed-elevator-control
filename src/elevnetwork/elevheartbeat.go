@@ -2,6 +2,7 @@ package elevnetwork
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	et "../elevtype"
@@ -11,9 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var systemsInNetwork et.PeerUpdate
+var mutex = &sync.Mutex{}
+
 // Constants
-const HEARTBEATINTERVAL = 30 * time.Millisecond
-const HEARTBEATTIMEOUT = 10 * HEARTBEATINTERVAL
+const HEARTBEATINTERVAL = 15 * time.Millisecond
+const HEARTBEATTIMEOUT = 30 * HEARTBEATINTERVAL
 
 // Variable
 var signalHeartBeatToStop chan bool
@@ -59,6 +63,7 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 
 		case msg := <-recvPeerCh:
 			fmt.Printf("ID: %v \n", msg.Peers)
+			updateSystemsInNetwork(msg)
 
 		case <-signalHeartBeatToStop:
 			return
@@ -69,4 +74,17 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 
 	}
 
+}
+
+func getSystemsInNetwork() et.PeerUpdate {
+	mutex.Lock()
+	readSystems := systemsInNetwork
+	mutex.Unlock()
+	return readSystems
+}
+
+func updateSystemsInNetwork(updatedPeers et.PeerUpdate) {
+	mutex.Lock()
+	systemsInNetwork = updatedPeers
+	mutex.Unlock()
 }
