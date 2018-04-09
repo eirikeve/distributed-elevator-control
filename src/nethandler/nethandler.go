@@ -85,7 +85,7 @@ func netHandler(
 		case newOrderButtonPress := <-buttonPressesToNetwork:
 			log.WithField("btn", newOrderButtonPress).Debug("nethandler handler: recv button press")
 
-			optSysID, err := eval.FindOptimalSystem(ss.GetSystems(), newOrderButtonPress)
+			optSysID, err := eval.FindOptimalSystem(ss.GetActiveSystemsStates(), newOrderButtonPress)
 
 			if err != nil {
 				// already existing order
@@ -129,7 +129,7 @@ func netHandler(
 		}
 		if time.Now().Sub(netHandlerAutoBackupTimer) > netHandlerAutoBackupFreq {
 			netHandlerAutoBackupTimer = time.Now()
-			sb.Backup(ss.GetSystems())
+			sb.Backup(ss.GetSystemsStates())
 		}
 
 	}

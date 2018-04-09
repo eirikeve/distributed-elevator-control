@@ -76,13 +76,19 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 
 }
 
-func getSystemsInNetwork() et.PeerUpdate {
+/*
+ * Returns the active elevators by their ID in the network
+ */
+func GetSystemsInNetwork() []string {
 	mutex.Lock()
-	readSystems := systemsInNetwork
+	readActiveSystems := systemsInNetwork.Peers
 	mutex.Unlock()
-	return readSystems
+	return readActiveSystems
 }
 
+/*
+ * Updates the active elevators in the network for each Heartbeat
+ */
 func updateSystemsInNetwork(updatedPeers et.PeerUpdate) {
 	mutex.Lock()
 	systemsInNetwork = updatedPeers

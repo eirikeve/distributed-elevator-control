@@ -40,9 +40,9 @@ func run() {
 	defer ed.StopStopButtonService()
 
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
-	ss.SetSystems(systemStates)
+	ss.SetSystemsStates(systemStates)
 
-	log.WithField("states", ss.GetSystems()).Debug("main run: Setup sysstates")
+	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
 
 	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
 	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)

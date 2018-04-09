@@ -3,6 +3,7 @@ package sysstate
 import (
 	"time"
 
+	network "../elevnetwork"
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
 )
@@ -34,7 +35,7 @@ func initSysState() {
 
 }
 
-func SetSystems(sys []et.ElevState) {
+func SetSystemsStates(sys []et.ElevState) {
 	systems = make(map[string]et.ElevState)
 	for _, system := range sys {
 		systems[system.ID] = system
@@ -43,13 +44,24 @@ func SetSystems(sys []et.ElevState) {
 	if !initialized {
 		initSysState()
 	}
-
 }
 
-func GetSystems() []et.ElevState {
+func GetSystemsStates() []et.ElevState {
 	var sys []et.ElevState
 	for _, system := range systems {
 		sys = append(sys, system)
+	}
+	return sys
+}
+
+func GetActiveSystemsStates() []et.ElevState {
+	activeSys := network.GetSystemsInNetwork()
+	var sys []et.ElevState
+	for _, system := range systems {
+		if contains(activeSys, system.ID) {
+			sys = append(sys, system)
+		}
+
 	}
 	return sys
 }

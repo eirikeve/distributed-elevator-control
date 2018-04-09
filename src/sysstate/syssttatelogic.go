@@ -3,8 +3,10 @@ package sysstate
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
+	network "../elevnetwork"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
 )
@@ -57,6 +59,12 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 		systems[LocalIP] = system
 
 	} else if !isOrderAlreadyAccepted(btn) {
+
+		activeSystems := network.GetSystemsInNetwork()
+		if len(activeSystems) < 2 {
+			log.Warn("sysstate Push: Order rejected. Cannot guarantee completion")
+			return
+		}
 		log.Debug("sysstate Push: Is new order!")
 
 		o.Acks = append(o.Acks, LocalIP)
@@ -268,6 +276,8 @@ func updateSingleOrder(localOrder et.ElevOrder, remoteOrder et.ElevOrder) (et.El
 
 func addLocalAckToOrders() {
 	localSystem, _ := systems[LocalIP]
+	activeSystems := network.GetSystemsInNetwork()
+
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
 			alreadyRegistered := false
@@ -277,8 +287,10 @@ func addLocalAckToOrders() {
 				}
 			}
 			if !alreadyRegistered {
-				localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, LocalIP)
-				acksForBroadcasting = append(acksForBroadcasting, et.AckNackMsg{MsgType: et.MsgACK, MsgData: localSystem.CurrentOrders[f][b].Id, MsgSender: LocalIP})
+				if contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee) {
+					localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, LocalIP)
+					acksForBroadcasting = append(acksForBroadcasting, et.AckNackMsg{MsgType: et.MsgACK, MsgData: localSystem.CurrentOrders[f][b].Id, MsgSender: LocalIP})
+				}
 			}
 		}
 	}
@@ -299,6 +311,15 @@ func applyRemoteOrderAckLogicalOR(es et.ElevState) {
 	}
 	systems[LocalIP] = localSystem
 
+}
+
+func contains(container []string, element string) bool {
+	for _, elem := range container {
+		if strings.Compare(elem, element) == 0 { // 0 if equal
+			return true
+		}
+	}
+	return false
 }
 
 func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []string {
