@@ -36,8 +36,6 @@ func run() {
 
 	defer recoverIfPanic()
 	stopRunning := make(chan bool, 2)
-	ed.StartStopButtonService(stopRunning)
-	defer ed.StopStopButtonService()
 
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
 	ss.SetSystemsStates(systemStates)
@@ -54,6 +52,9 @@ func run() {
 	nh.StartNetHandler(ordersDelegatedFromNetwork,
 		buttonPressesToNetwork,
 		elevStateToNetwork)
+
+	ed.StartStopButtonService(stopRunning)
+	defer ed.StopStopButtonService()
 
 	var running = true
 	for running == true {
