@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"time"
 
 	"../conn"
 )
@@ -35,6 +36,7 @@ func Transmitter(port int, chans ...interface{}) {
 	for {
 		chosen, value, _ := reflect.Select(selectCases)
 		buf, _ := json.Marshal(value.Interface())
+		conn.SetDeadline(time.Now().Add(time.Second))
 		conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
 		//log.WithField("Transmitted", value).Debug("bcast Transmitter: Sent msg")
 		//log.WithField("Transmitted (str)", string(buf)).Debug("bcast Transmitter: Sent msg")
@@ -50,23 +52,27 @@ func Receiver(port int, chans ...interface{}) {
 	conn := conn.DialBroadcastUDP(port)
 
 	for {
-		n, _, _ := conn.ReadFrom(buf[0:])
-		for _, ch := range chans {
-			T := reflect.TypeOf(ch).Elem()
-			typeName := T.String()
-			if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
-				v := reflect.New(T)
-				json.Unmarshal(buf[len(typeName):n], v.Interface())
-				//log.WithField("Received", v).Info("bcast Receiver: Recv msg")
-				//log.WithField("Received (str)", string(buf[len(typeName):n])).Info("bcast Receiver: Recv msg")
+		conn.SetDeadline(time.Now().Add(time.Second))
+		n, _, err := conn.ReadFrom(buf[0:])
+		if err == nil {
+			for _, ch := range chans {
+				T := reflect.TypeOf(ch).Elem()
+				typeName := T.String()
+				if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
+					v := reflect.New(T)
+					json.Unmarshal(buf[len(typeName):n], v.Interface())
+					//log.WithField("Received", v).Info("bcast Receiver: Recv msg")
+					//log.WithField("Received (str)", string(buf[len(typeName):n])).Info("bcast Receiver: Recv msg")
 
-				reflect.Select([]reflect.SelectCase{{
-					Dir:  reflect.SelectSend,
-					Chan: reflect.ValueOf(ch),
-					Send: reflect.Indirect(v),
-				}})
+					reflect.Select([]reflect.SelectCase{{
+						Dir:  reflect.SelectSend,
+						Chan: reflect.ValueOf(ch),
+						Send: reflect.Indirect(v),
+					}})
+				}
 			}
 		}
+
 	}
 }
 

@@ -93,7 +93,7 @@ func netHandler(
 				ss.PushButtonEvent(optSysID, newOrderButtonPress)
 			}
 		case remoteElevStateUpdate := <-recvRegularUpdates:
-			if remoteElevStateUpdate.ID != "" {
+			if remoteElevStateUpdate.ID != "" && remoteElevStateUpdate.ID != ss.LocalIP {
 				log.Debug("nethandler handler: recv valid reg. update")
 			}
 
