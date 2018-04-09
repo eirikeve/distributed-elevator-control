@@ -58,7 +58,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 		system.CurrentOrders[btn.Floor][int(btn.Button)] = o
 		systems[LocalIP] = system
 
-	} else if !isOrderAlreadyAccepted(btn) {
+	} else if !isOrderAlreadyActive(btn) {
 
 		activeSystems := network.GetSystemsInNetwork()
 		if len(activeSystems) < 2 {
@@ -539,10 +539,10 @@ func isLocalOrder(o et.ElevOrder) bool {
 }
 
 // Confusing name.... checks if an order already exists
-func isOrderAlreadyAccepted(btn et.ButtonEvent) bool {
+func isOrderAlreadyActive(btn et.ButtonEvent) bool {
 	for _, system := range systems {
 		if system.CurrentOrders[btn.Floor][int(btn.Button)].IsActive() {
-			log.WithField("Order", system.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyAcc: This is the order which registers as the same")
+			log.WithField("Order", system.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyActive: This is the order which registers as the same")
 			return true
 		}
 	}
