@@ -74,7 +74,15 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 	for _, backupIndex := range sortedIndexes {
 		applyBackupFromFile(&states, files[backupIndex])
 	}
-	log.Debug("sysbackup Recover: Recovered")
+	numBackupFiles := strconv.FormatInt(int64(len(backupFilesIndexes)), 10)
+	numUseableBackupFiles := strconv.FormatInt(int64(len(useableBackupIndexes)), 10)
+	numStatesRecovered := strconv.FormatInt(int64(len(states)), 10)
+
+	log.WithFields(log.Fields{"numStatesRecovered": numStatesRecovered,
+		"numBackupFiles":        numBackupFiles,
+		"numUseableBackupFiles": numUseableBackupFiles,
+	}).Info("sysbackup Recover:")
+
 	return states, nil
 }
 
