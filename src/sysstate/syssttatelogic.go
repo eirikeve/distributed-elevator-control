@@ -49,43 +49,46 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 		SentToAssigneeElevator:         false,
 	}
 
-	if o.IsCabOrder() {
-		o.Status = et.Accepted
-		o.Acks = append(o.Acks, LocalIP)
-		o.Assignee = LocalIP
+	if !isOrderAlreadyActive(btn) {
+		if o.IsCabOrder() {
+			o.Status = et.Accepted
+			o.Acks = append(o.Acks, LocalIP)
+			o.Assignee = LocalIP
 
-		system, _ := systems[LocalIP]
-		system.CurrentOrders[btn.Floor][int(btn.Button)] = o
-		systems[LocalIP] = system
-
-	} else if !isOrderAlreadyActive(btn) {
-
-		activeSystems := network.GetSystemsInNetwork()
-		if len(activeSystems) < 2 {
-			log.Warn("sysstate Push: Order rejected. Cannot guarantee completion")
-			return
-		}
-		log.Debug("sysstate Push: Is new order!")
-
-		o.Acks = append(o.Acks, LocalIP)
-
-		// Note that sysIndex says which system should perform the order.
-		// But, since THIS system is the one delegating,
-		// The order is stored in THIS system|s ElevState!
-		// Other system's elevstate is only used for updating which orders
-		// we will perform locally, we don't modify them
-
-		// Verify that the system the order is assigned to exists
-		_, ok := systems[sysID]
-		// The order is saved in the currentOrders of the local elevator
-		system, _ := systems[LocalIP]
-		if ok {
+			system, _ := systems[LocalIP]
 			system.CurrentOrders[btn.Floor][int(btn.Button)] = o
 			systems[LocalIP] = system
-			log.WithField("o", o).Debug("sysstate Update: Set received order")
+
 		} else {
-			log.WithField("sysID", sysID).Error("sysstate Push: Order assigned to unknown system")
+
+			activeSystems := network.GetSystemsInNetwork()
+			if len(activeSystems) < 2 {
+				log.Warn("sysstate Push: Order rejected. Cannot guarantee completion")
+				return
+			}
+			log.Debug("sysstate Push: Is new order!")
+
+			o.Acks = append(o.Acks, LocalIP)
+
+			// Note that sysIndex says which system should perform the order.
+			// But, since THIS system is the one delegating,
+			// The order is stored in THIS system|s ElevState!
+			// Other system's elevstate is only used for updating which orders
+			// we will perform locally, we don't modify them
+
+			// Verify that the system the order is assigned to exists
+			_, ok := systems[sysID]
+			// The order is saved in the currentOrders of the local elevator
+			system, _ := systems[LocalIP]
+			if ok {
+				system.CurrentOrders[btn.Floor][int(btn.Button)] = o
+				systems[LocalIP] = system
+				log.WithField("o", o).Debug("sysstate Update: Set received order")
+			} else {
+				log.WithField("sysID", sysID).Error("sysstate Push: Order assigned to unknown system")
+			}
 		}
+
 	}
 	// @TODO check if only one sys is active, if so, do NOT accept order!!!
 }
@@ -571,11 +574,10 @@ func isLocalOrder(o et.ElevOrder) bool {
 
 // Confusing name.... checks if an order already exists
 func isOrderAlreadyActive(btn et.ButtonEvent) bool {
-	for _, system := range systems {
-		if system.CurrentOrders[btn.Floor][int(btn.Button)].IsActive() {
-			log.WithField("Order", system.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyActive: This is the order which registers as the same")
-			return true
-		}
+	system := systems[LocalIP]
+	if system.CurrentOrders[btn.Floor][int(btn.Button)].IsActive() {
+		log.WithField("Order", system.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyActive: This is the order which registers as the same")
+		return true
 	}
 	return false
 }
