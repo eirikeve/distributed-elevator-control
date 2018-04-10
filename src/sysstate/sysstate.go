@@ -1,13 +1,10 @@
 package sysstate
 
 import (
-	"strconv"
-	"strings"
-	"time"
-
 	network "../elevnetwork"
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
+	"time"
 )
 
 var LocalIP string
@@ -29,13 +26,7 @@ func initSysState() {
 	}
 
 	LocalIP, _ = locIP.LocalIP()
-	splitIP := strings.Split(LocalIP, ".")
-	// Get last byte of the IP
-	v, _ := strconv.Atoi(splitIP[len(splitIP)-1])
-	LocalID = int32(v)
-	if LocalID == 0 {
-		LocalID = 256
-	}
+	LocalID, _ = locIP.LocalID()
 
 	_, localSysExists := systems[LocalID]
 

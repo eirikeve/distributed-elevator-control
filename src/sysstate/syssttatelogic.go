@@ -385,9 +385,7 @@ func addLocalAckToOrders() {
 						alreadyRegistered = true
 					}
 				}
-				println("AddAck: f", f, "b", b, "id", localSystem.CurrentOrders[f][b].Id, "alreadyRegisteredAck?", alreadyRegistered, "c?", contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee))
 				if !alreadyRegistered {
-					println("Addack: sys:", activeSystems, "assignee:", localSystem.CurrentOrders[f][b].Assignee)
 					if contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee) {
 						localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, LocalID)
 						acksForBroadcasting = append(acksForBroadcasting, et.AckNackMsg{MsgType: et.MsgACK, MsgData: localSystem.CurrentOrders[f][b].Id, MsgSender: LocalIP})
@@ -446,12 +444,10 @@ func acceptOrdersWeCanGuarantee() {
 	localSystem, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			println("AcceptOrders f", f, "b", b, localSystem.CurrentOrders[f][b].Id, "can? ", canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]))
 			if localSystem.CurrentOrders[f][b].Status == et.Received &&
 				canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]) {
 				log.WithField("o", localSystem.CurrentOrders[f][b]).Debug("sysstate acceptOrders: Can guarantee order; accepting")
 				accept(&localSystem, localSystem.CurrentOrders[f][b])
-				println("accepted f", f, "b", b, localSystem.CurrentOrders[f][b].Id)
 			}
 		}
 	}
