@@ -3,7 +3,6 @@ package sysstate
 import (
 	"errors"
 	"strconv"
-	"strings"
 	"time"
 
 	network "../elevnetwork"
@@ -22,9 +21,9 @@ func UpdateLocalElevator(e *et.Elevator) {
 		initSysState()
 	}
 
-	system, _ := systems[LocalIP]
+	system, _ := systems[LocalID]
 	system.E = *e
-	systems[LocalIP] = system
+	systems[LocalID] = system
 
 	updateFinishedOrders()
 }
@@ -32,7 +31,7 @@ func UpdateLocalElevator(e *et.Elevator) {
 /*PushButtonEvent creates an order to handle the received btn event, but only if it is not yet an active order.
  *
  */
-func PushButtonEvent(sysID string, btn et.ButtonEvent) {
+func PushButtonEvent(sysID int32, btn et.ButtonEvent) {
 
 	if !initialized {
 		initSysState()
@@ -40,7 +39,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 
 	t := time.Now().Unix()
 	o := et.ElevOrder{
-		Id:                LocalIP + "-" + strconv.FormatInt(int64(btn.Floor), 10) + "-" + strconv.FormatInt(int64(btn.Button), 10) + "-" + strconv.FormatInt(time.Now().Unix(), 16),
+		Id:                LocalIP + strconv.FormatInt(int64(btn.Floor), 10) + strconv.FormatInt(int64(btn.Button), 10) + strconv.FormatInt(time.Now().Unix(), 30),
 		Order:             btn,
 		TimestampReceived: t,
 		Status:            et.Received,
@@ -52,12 +51,12 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 	if !isOrderAlreadyActive(btn) {
 		if o.IsCabOrder() {
 			o.Status = et.Accepted
-			o.Acks = append(o.Acks, LocalIP)
-			o.Assignee = LocalIP
+			o.Acks = append(o.Acks, LocalID)
+			o.Assignee = LocalID
 
-			system, _ := systems[LocalIP]
+			system, _ := systems[LocalID]
 			system.CurrentOrders[btn.Floor][int(btn.Button)] = o
-			systems[LocalIP] = system
+			systems[LocalID] = system
 
 		} else {
 
@@ -68,7 +67,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 			}
 			log.Debug("sysstate Push: Is new order!")
 
-			o.Acks = append(o.Acks, LocalIP)
+			o.Acks = append(o.Acks, LocalID)
 
 			// Note that sysIndex says which system should perform the order.
 			// But, since THIS system is the one delegating,
@@ -79,10 +78,10 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 			// Verify that the system the order is assigned to exists
 			_, ok := systems[sysID]
 			// The order is saved in the currentOrders of the local elevator
-			system, _ := systems[LocalIP]
+			system, _ := systems[LocalID]
 			if ok {
 				system.CurrentOrders[btn.Floor][int(btn.Button)] = o
-				systems[LocalIP] = system
+				systems[LocalID] = system
 				log.WithField("o", o).Debug("sysstate Update: Set received order")
 			} else {
 				log.WithField("sysID", sysID).Error("sysstate Push: Order assigned to unknown system")
@@ -128,7 +127,7 @@ func PushButtonEvent(sysID string, btn et.ButtonEvent) {
 
 func HandleRegularUpdate(es et.ElevState) {
 
-	if es.ID == LocalIP || es.ID == "" {
+	if es.ID == LocalID || es.ID == 0 {
 		return
 	}
 
@@ -225,12 +224,15 @@ func applyUpdatesToLocalSystem(es et.ElevState) {
 	}
 	println()*/
 	mergeOrdersToLocalSystem(es)
+	//localSys := systems[LocalID]
+	//println("localSystem f", 0, " b", 0, "=", localSys.CurrentOrders[0][0].Id, "stat:", localSys.CurrentOrders[0][0].Status)
 	addLocalAckToOrders()
 	applyRemoteOrderAckLogicalOR(es)
+	//println("localSystem f", 0, " b", 0, "=", localSys.CurrentOrders[0][0].Id, "stat:", localSys.CurrentOrders[0][0].Status)
 }
 
 func mergeOrdersToLocalSystem(es et.ElevState) {
-	localSystem, _ := systems[LocalIP]
+	localSystem, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
 			o, err := updateSingleOrder(&es, localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
@@ -238,50 +240,46 @@ func mergeOrdersToLocalSystem(es et.ElevState) {
 				//handle
 			} else {
 				localSystem.CurrentOrders[f][b] = o
+				//println("localSystem f", f, " b", b, "=", o.Id)
 			}
 		}
 	}
-	systems[LocalIP] = localSystem
+	systems[LocalID] = localSystem
+
 }
 
 func mergeFinishedOrdersQueue(remoteSystem et.ElevState) {
-	localSystem := systems[LocalIP]
-
-	var newSlice []et.ElevOrder
-
-	currentTime := time.Now().Unix()
-
-	for _, o := range localSystem.FinishedOrders {
-		if o.TimestampLastOrderStatusChange+60 > currentTime {
-			newSlice = append(newSlice, o)
+	localSystem := systems[LocalID]
+	// Check if the remote order is not in our finished orders list
+	for _, oRemote := range remoteSystem.FinishedOrders {
+		isInList := false
+		for _, oLocal := range localSystem.FinishedOrders {
+			if oLocal.Id == oRemote.Id {
+				isInList = true
+			}
 		}
-	}
-
-	for _, o := range remoteSystem.FinishedOrders {
-		if o.TimestampLastOrderStatusChange+60 > currentTime {
-			isAlreadyInSlice := false
-			for _, oLocal := range newSlice {
-				if oLocal.Id != o.Id {
-					isAlreadyInSlice = false
-					break
+		if !isInList {
+			// Place the remote order in our finished order list ONLY if:
+			// it was finished more recently than the oldest order in the current finished order list of localSystem
+			indexOfOldestOrder := 0
+			for index, oLocal := range localSystem.FinishedOrders {
+				if oLocal.TimestampLastOrderStatusChange < localSystem.FinishedOrders[indexOfOldestOrder].TimestampLastOrderStatusChange {
+					indexOfOldestOrder = index
 				}
 			}
-			if !isAlreadyInSlice {
-				newSlice = append(newSlice, o)
+			if oRemote.TimestampLastOrderStatusChange > localSystem.FinishedOrders[indexOfOldestOrder].TimestampLastOrderStatusChange {
+				localSystem.FinishedOrders[indexOfOldestOrder] = oRemote
 			}
-
 		}
 	}
 
-	localSystem.FinishedOrders = newSlice
-
-	systems[LocalIP] = localSystem
+	systems[LocalID] = localSystem
 }
 
 func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remoteOrder et.ElevOrder) (et.ElevOrder, error) {
 	var err error
 	var o et.ElevOrder
-	localSystem := systems[LocalIP]
+	localSystem := systems[LocalID]
 
 	if localOrder.IsCabOrder() || remoteOrder.IsCabOrder() {
 		return localOrder, nil
@@ -317,8 +315,10 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 
 	// Neither the local nor the remote order is finished. But, one may be empty, which would simplify:
 	if localOrder.IsEmpty() {
+		//println("Local empty. Returning remote order:", remoteOrder.Id)
 		return remoteOrder, nil
 	} else if remoteOrder.IsEmpty() {
+		//println("Remote emtpy. Returning local order:", localOrder.Id)
 		return localOrder, nil
 	}
 
@@ -373,30 +373,35 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 }
 
 func addLocalAckToOrders() {
-	localSystem, _ := systems[LocalIP]
+	localSystem, _ := systems[LocalID]
 	activeSystems := network.GetSystemsInNetwork()
 
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			alreadyRegistered := false
-			for _, ack := range localSystem.CurrentOrders[f][b].Acks {
-				if ack == LocalIP {
-					alreadyRegistered = true
+			if localSystem.CurrentOrders[f][b].Id != "" {
+				alreadyRegistered := false
+				for _, ack := range localSystem.CurrentOrders[f][b].Acks {
+					if ack == LocalID {
+						alreadyRegistered = true
+					}
+				}
+				println("AddAck: f", f, "b", b, "id", localSystem.CurrentOrders[f][b].Id, "alreadyRegisteredAck?", alreadyRegistered, "c?", contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee))
+				if !alreadyRegistered {
+					println("Addack: sys:", activeSystems, "assignee:", localSystem.CurrentOrders[f][b].Assignee)
+					if contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee) {
+						localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, LocalID)
+						acksForBroadcasting = append(acksForBroadcasting, et.AckNackMsg{MsgType: et.MsgACK, MsgData: localSystem.CurrentOrders[f][b].Id, MsgSender: LocalIP})
+					}
 				}
 			}
-			if !alreadyRegistered {
-				if contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee) {
-					localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, LocalIP)
-					acksForBroadcasting = append(acksForBroadcasting, et.AckNackMsg{MsgType: et.MsgACK, MsgData: localSystem.CurrentOrders[f][b].Id, MsgSender: LocalIP})
-				}
-			}
+
 		}
 	}
-	systems[LocalIP] = localSystem
+	systems[LocalID] = localSystem
 }
 
 func applyRemoteOrderAckLogicalOR(es et.ElevState) {
-	localSystem := systems[LocalIP]
+	localSystem := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
 			if es.CurrentOrders[f][b].Id == localSystem.CurrentOrders[f][b].Id {
@@ -407,21 +412,21 @@ func applyRemoteOrderAckLogicalOR(es et.ElevState) {
 			}
 		}
 	}
-	systems[LocalIP] = localSystem
+	systems[LocalID] = localSystem
 
 }
 
-func contains(container []string, element string) bool {
+func contains(container []int32, element int32) bool {
 	for _, elem := range container {
-		if strings.Compare(elem, element) == 0 { // 0 if equal
+		if elem == element { // 0 if equal
 			return true
 		}
 	}
 	return false
 }
 
-func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []string {
-	var acks []string
+func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []int32 {
+	var acks []int32
 
 	for _, remoteAck := range remote.Acks {
 		ackAlreadyRegisteredLocally := false
@@ -438,23 +443,25 @@ func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []st
 }
 
 func acceptOrdersWeCanGuarantee() {
-	localSystem, _ := systems[LocalIP]
+	localSystem, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
+			println("AcceptOrders f", f, "b", b, localSystem.CurrentOrders[f][b].Id, "can? ", canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]))
 			if localSystem.CurrentOrders[f][b].Status == et.Received &&
 				canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]) {
 				log.WithField("o", localSystem.CurrentOrders[f][b]).Debug("sysstate acceptOrders: Can guarantee order; accepting")
 				accept(&localSystem, localSystem.CurrentOrders[f][b])
+				println("accepted f", f, "b", b, localSystem.CurrentOrders[f][b].Id)
 			}
 		}
 	}
-	systems[LocalIP] = localSystem
+	systems[LocalID] = localSystem
 }
 func sendAckMessages() {
 	// seeeeeeeeeeeeend
 }
 func rejectOrder(orderID string) {
-	s, _ := systems[LocalIP]
+	s, _ := systems[LocalID]
 
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
@@ -466,7 +473,7 @@ func rejectOrder(orderID string) {
 		}
 
 	}
-	systems[LocalIP] = s
+	systems[LocalID] = s
 
 }
 
@@ -510,11 +517,11 @@ func updateFinishedOrders() {
 	if !initialized {
 		initSysState()
 	}
-	s, _ := systems[LocalIP]
+	s, _ := systems[LocalID]
 
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			if s.CurrentOrders[f][b].Assignee == LocalIP && // Check that this elevator is supposed to carry out the order
+			if s.CurrentOrders[f][b].Assignee == LocalID && // Check that this elevator is supposed to carry out the order
 				s.CurrentOrders[f][b].SentToAssigneeElevator && // Check that the order has been sent to the elevator FSM
 				s.CurrentOrders[f][b].IsAccepted() && // Check if the order has been accepted
 				s.E.Orders[f][b].IsEmpty() { // Check that the elevator FSM has carried out the order
@@ -523,7 +530,7 @@ func updateFinishedOrders() {
 			}
 		}
 	}
-	systems[LocalIP] = s
+	systems[LocalID] = s
 
 }
 
@@ -564,17 +571,23 @@ func markOrderFinished(es *et.ElevState, floor int, button int) {
 	es.CurrentOrders[floor][button].TimestampLastOrderStatusChange = time.Now().Unix()
 }
 func putOrderInFinishedOrdersList(s *et.ElevState, floor int, button int) {
-	s.FinishedOrders = append(s.FinishedOrders, s.CurrentOrders[floor][button])
+	indexOfOldestOrder := 0
+	for index, order := range (*s).FinishedOrders {
+		if order.TimestampLastOrderStatusChange < (*s).FinishedOrders[indexOfOldestOrder].TimestampLastOrderStatusChange {
+			indexOfOldestOrder = index
+		}
+	}
+	s.FinishedOrders[indexOfOldestOrder] = s.CurrentOrders[floor][button]
 	s.CurrentOrders[floor][button] = et.EmptyOrder()
 }
 
 func isLocalOrder(o et.ElevOrder) bool {
-	return o.Assignee == LocalIP
+	return o.Assignee == LocalID
 }
 
 // Confusing name.... checks if an order already exists
 func isOrderAlreadyActive(btn et.ButtonEvent) bool {
-	system := systems[LocalIP]
+	system := systems[LocalID]
 	if system.CurrentOrders[btn.Floor][int(btn.Button)].IsActive() {
 		log.WithField("Order", system.CurrentOrders[btn.Floor][int(btn.Button)]).Debug("sysstate isAlreadyActive: This is the order which registers as the same")
 		return true

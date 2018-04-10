@@ -1,6 +1,8 @@
 package sysstate
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	network "../elevnetwork"
@@ -9,10 +11,11 @@ import (
 )
 
 var LocalIP string
+var LocalID int32
 var initialized = false
 
 //var systems map[string]et.ElevState
-var systems = make(map[string]et.ElevState)
+var systems = make(map[int32]et.ElevState)
 var netstate et.NetState
 var acksForBroadcasting []et.AckNackMsg
 
@@ -26,12 +29,19 @@ func initSysState() {
 	}
 
 	LocalIP, _ = locIP.LocalIP()
+	splitIP := strings.Split(LocalIP, ".")
+	// Get last byte of the IP
+	v, _ := strconv.Atoi(splitIP[len(splitIP)-1])
+	LocalID = int32(v)
+	if LocalID == 0 {
+		LocalID = 256
+	}
 
-	_, localSysExists := systems[LocalIP]
+	_, localSysExists := systems[LocalID]
 
 	if !localSysExists {
-		newElevState := et.ElevState{ID: LocalIP, E: et.EmptyElevator(), StartupTime: time.Now()}
-		systems[LocalIP] = newElevState
+		newElevState := et.ElevState{ID: LocalID, E: et.EmptyElevator(), StartupTime: time.Now().Unix()}
+		systems[LocalID] = newElevState
 	}
 
 	initialized = true
@@ -39,7 +49,7 @@ func initSysState() {
 }
 
 func SetSystemsStates(sys []et.ElevState) {
-	systems = make(map[string]et.ElevState)
+	systems = make(map[int32]et.ElevState)
 	for _, system := range sys {
 		systems[system.ID] = system
 	}
@@ -70,15 +80,15 @@ func GetActiveSystemsStates() []et.ElevState {
 }
 
 func GetLocalSystem() et.ElevState {
-	return systems[LocalIP]
+	return systems[LocalID]
 }
 
 func GetUnsentLocalSystemOrders() []et.ElevOrder {
 	var orders []et.ElevOrder
-	s, _ := systems[LocalIP]
+	s, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalIP && !s.CurrentOrders[f][b].SentToAssigneeElevator {
+			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalID && !s.CurrentOrders[f][b].SentToAssigneeElevator {
 				orders = append(orders, s.CurrentOrders[f][b])
 			}
 		}
@@ -87,13 +97,13 @@ func GetUnsentLocalSystemOrders() []et.ElevOrder {
 }
 
 func MarkOrdersAsSent(orders []et.ElevOrder) {
-	s, _ := systems[LocalIP]
+	s, _ := systems[LocalID]
 	for _, order := range orders {
 		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.Id {
 			s.CurrentOrders[order.GetFloor()][int(order.GetButton())].SentToAssigneeElevator = true
 		}
 	}
-	systems[LocalIP] = s
+	systems[LocalID] = s
 }
 
 func GetSystemElevators() []et.Elevator {

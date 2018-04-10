@@ -26,9 +26,9 @@ type ElevOrder struct {
 	TimestampLastOrderStatusChange int64 `json: "orderLastStatusChange"`
 	//[@todo]: Same as for TimestampReceived
 	// Assigned to elev @ IP
-	Assignee string `json: "orderAssignee"`
+	Assignee int32 `json: "orderAssignee"`
 	//List over IDs of elevators which have acknowledged this order
-	Acks []string `json: "Acks"`
+	Acks []int32 `json: "Acks"`
 	// Marks whether the order has been sent to the Assignee local elevator queue (to the FSM queue)
 	SentToAssigneeElevator bool `json: "sent"`
 }
@@ -114,7 +114,7 @@ func EmptyOrder() ElevOrder {
 		TimestampReceived: 0,
 		Status:            Unknown,
 		TimestampLastOrderStatusChange: 0,
-		Assignee:                       "",
+		Assignee:                       -1,
 		SentToAssigneeElevator:         false,
 	}
 }

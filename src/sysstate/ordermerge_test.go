@@ -3,6 +3,7 @@ package sysstate
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,10 +13,20 @@ import (
 )
 
 var testLocalIP, _ = locIP.LocalIP()
+var testLocalID int32 = 32
+var testRemoteID int32 = 99
 
 func TestOrderMerge(t *testing.T) {
 	//===============================
 	// Setup of systems
+
+	splitIP := strings.Split(testLocalIP, ".")
+	// Get last byte of the IP
+	v, _ := strconv.Atoi(splitIP[len(splitIP)-1])
+	testLocalID = int32(v)
+	if testLocalID == 0 {
+		testLocalID = 256
+	}
 
 	var localSysstates []et.ElevState
 	localSys := getLocalSys()
@@ -37,10 +48,10 @@ func TestOrderMerge(t *testing.T) {
 	// Order4 is CAB in floor3 for local. Accepted
 	order4 := getOrder3()
 	order4.Id = "order4"
-	var acks []string
-	acks = append(acks, testLocalIP)
+	var acks []int32
+	acks = append(acks, testLocalID)
 	order4.Acks = acks
-	order4.Assignee = testLocalIP
+	order4.Assignee = testLocalID
 
 	// Order5 is DOWN in floor 2. It is acked buy both, finished by remote, but only accepted by local
 	order5 := getOrder5()
@@ -51,12 +62,12 @@ func TestOrderMerge(t *testing.T) {
 
 	localSys.CurrentOrders[order4.Order.Floor][int(order4.Order.Button)] = order4
 	localSys.CurrentOrders[order5.Order.Floor][int(order5.Order.Button)] = order5
-	localSys.FinishedOrders = append(localSys.FinishedOrders, order1finished)
+	localSys.FinishedOrders[0] = order1finished
 
 	remoteSys.CurrentOrders[order1.Order.Floor][int(order1.Order.Button)] = order1
 	remoteSys.CurrentOrders[order2.Order.Floor][int(order2.Order.Button)] = order2
 	remoteSys.CurrentOrders[order3.Order.Floor][int(order3.Order.Button)] = order3
-	remoteSys.FinishedOrders = append(remoteSys.FinishedOrders, order5fin)
+	remoteSys.FinishedOrders[0] = order5fin
 
 	//===============================
 	// Setup of local sysstate
@@ -68,24 +79,23 @@ func TestOrderMerge(t *testing.T) {
 	// Tests
 
 	println("Before update: ")
-	println("remote")
+	println(testRemoteID, "remote")
 	printSystemInfoAsTable(remoteSys)
 	println("-")
-	println(testLocalIP)
+	println(testLocalID, testLocalIP)
 	printSystemInfoAsTable(GetSystemsStates()[0])
 
 	HandleRegularUpdate(remoteSys)
 
 	println("After update: ")
-	println(testLocalIP)
+	println(testLocalID, testLocalIP)
 	printSystemInfoAsTable(GetSystemsStates()[0])
 }
 
 func getLocalSys() et.ElevState {
 	var localSys et.ElevState
-	localSys.ID = testLocalIP
-	localSys.LastUpdate = time.Now()
-	localSys.StartupTime = time.Now().Add(-time.Second)
+	localSys.ID = testLocalID
+	localSys.StartupTime = time.Now().Add(-time.Second).Unix()
 	localSys.E.Floor = 1
 	localSys.E.MovementDirection = et.MD_Stop
 	localSys.E.MovDirFromLastFloor = et.MD_Down
@@ -97,9 +107,8 @@ func getLocalSys() et.ElevState {
 func getRemoteSys() et.ElevState {
 	var remoteSys et.ElevState
 
-	remoteSys.ID = "remote"
-	remoteSys.LastUpdate = time.Now()
-	remoteSys.StartupTime = time.Now().Add(-time.Second * 2)
+	remoteSys.ID = testRemoteID
+	remoteSys.StartupTime = time.Now().Add(-time.Second * 2).Unix()
 	remoteSys.E.Floor = 2
 	remoteSys.E.MovementDirection = et.MD_Stop
 	remoteSys.E.MovDirFromLastFloor = et.MD_Down
@@ -116,9 +125,9 @@ func getOrder1() et.ElevOrder {
 	order1.Order.Button = et.BT_HallUp
 	order1.Status = et.Accepted
 	order1.TimestampLastOrderStatusChange = time.Now().Add(-time.Millisecond * 100).Unix()
-	order1.Assignee = testLocalIP
-	order1.Acks = append(order1.Acks, testLocalIP)
-	order1.Acks = append(order1.Acks, "remote")
+	order1.Assignee = testLocalID
+	order1.Acks = append(order1.Acks, testLocalID)
+	order1.Acks = append(order1.Acks, testRemoteID)
 
 	return order1
 }
@@ -130,8 +139,8 @@ func getOrder2() et.ElevOrder {
 	order2.Order.Button = et.BT_HallUp
 	order2.Status = et.Received
 	order2.TimestampLastOrderStatusChange = time.Now().Add(-time.Millisecond * 180).Unix()
-	order2.Assignee = testLocalIP
-	order2.Acks = append(order2.Acks, "remote")
+	order2.Assignee = testLocalID
+	order2.Acks = append(order2.Acks, testRemoteID)
 	return order2
 }
 
@@ -142,8 +151,8 @@ func getOrder3() et.ElevOrder {
 	order3.Order.Button = et.BT_Cab
 	order3.Status = et.Accepted
 	order3.TimestampLastOrderStatusChange = time.Now().Add(-time.Millisecond * 250).Unix()
-	order3.Assignee = testLocalIP
-	order3.Acks = append(order3.Acks, testLocalIP)
+	order3.Assignee = testLocalID
+	order3.Acks = append(order3.Acks, testLocalID)
 	return order3
 }
 
@@ -154,8 +163,8 @@ func getOrder4() et.ElevOrder {
 	order3.Order.Button = et.BT_Cab
 	order3.Status = et.Accepted
 	order3.TimestampLastOrderStatusChange = time.Now().Add(-time.Millisecond * 200).Unix()
-	order3.Assignee = "remote"
-	order3.Acks = append(order3.Acks, "remote")
+	order3.Assignee = testRemoteID
+	order3.Acks = append(order3.Acks, testRemoteID)
 	return order3
 }
 
@@ -166,9 +175,9 @@ func getOrder5() et.ElevOrder {
 	order2.Order.Button = et.BT_HallDown
 	order2.Status = et.Accepted
 	order2.TimestampLastOrderStatusChange = time.Now().Add(-time.Millisecond * 200).Unix()
-	order2.Assignee = "remote"
-	order2.Acks = append(order2.Acks, testLocalIP)
-	order2.Acks = append(order2.Acks, "remote")
+	order2.Assignee = testRemoteID
+	order2.Acks = append(order2.Acks, testLocalID)
+	order2.Acks = append(order2.Acks, testRemoteID)
 	return order2
 }
 func getOrder5finished() et.ElevOrder {
@@ -178,9 +187,9 @@ func getOrder5finished() et.ElevOrder {
 	order2.Order.Button = et.BT_HallDown
 	order2.Status = et.Finished
 	order2.TimestampLastOrderStatusChange = time.Now().Add(-time.Millisecond * 200).Unix()
-	order2.Assignee = "remote"
-	order2.Acks = append(order2.Acks, testLocalIP)
-	order2.Acks = append(order2.Acks, "remote")
+	order2.Assignee = testRemoteID
+	order2.Acks = append(order2.Acks, testLocalID)
+	order2.Acks = append(order2.Acks, testRemoteID)
 	return order2
 }
 

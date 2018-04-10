@@ -2,6 +2,8 @@ package elevnetwork
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,11 +81,19 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 /*
  * Returns the active elevators by their ID in the network
  */
-func GetSystemsInNetwork() []string {
+func GetSystemsInNetwork() []int32 {
 	mutex.Lock()
-	readActiveSystems := systemsInNetwork.Peers
+	activeSystemsString := systemsInNetwork.Peers
 	mutex.Unlock()
-	return readActiveSystems
+
+	var activeSystems []int32
+	for _, sys := range activeSystemsString {
+		splitIP := strings.Split(sys, ".")
+		val, _ := strconv.Atoi(splitIP[len(splitIP)-1])
+		activeSystems = append(activeSystems, int32(val))
+	}
+
+	return activeSystems
 }
 
 /*

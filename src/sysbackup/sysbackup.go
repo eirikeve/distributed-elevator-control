@@ -160,7 +160,7 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 		//	"Floor":      state.E.Floor,
 		//	"LastUpdate": state.LastUpdate,
 		//}).Info("sysbackup apply: Succesfully Unmarshalled")
-		if len(state.ID) > 0 {
+		if state.ID > 0 {
 			if len(*states) == 0 {
 				*states = append(*states, state)
 			} else {
@@ -202,7 +202,7 @@ func getIDFromBackup(line *string) string {
 func backupElevState(state et.ElevState) {
 	buf, _ := json.Marshal(state)
 	backup := string(buf)
-	backupMsg := "time=" + strconv.FormatInt(time.Now().Unix(), 10) + " id=" + state.ID + " backup=" + backup + "\n"
+	backupMsg := "time=" + strconv.FormatInt(time.Now().Unix(), 10) + " id=" + strconv.FormatInt(int64(state.ID), 10) + " backup=" + backup + "\n"
 
 	logFile.Write([]byte(backupMsg))
 }
