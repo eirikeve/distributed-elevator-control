@@ -17,8 +17,9 @@ var systemsInNetwork et.PeerUpdate
 var mutex = &sync.Mutex{}
 
 // Constants
-const HEARTBEATINTERVAL = 15 * time.Millisecond
-const HEARTBEATTIMEOUT = 30 * HEARTBEATINTERVAL
+const HEARTBEATINTERVAL = 5 * time.Millisecond
+
+//const HEARTBEATTIMEOUT = 30 * HEARTBEATINTERVAL
 
 // Variable
 var signalHeartBeatToStop chan bool
@@ -55,7 +56,6 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 	go p.Receiver(port, recvPeerCh)
 
 	for {
-
 		if time.Now().Sub(lastTranmissionTime) > HEARTBEATINTERVAL {
 			sendPeerCh <- true
 			lastTranmissionTime = time.Now()
@@ -85,9 +85,7 @@ func GetSystemsInNetwork() []int32 {
 	mutex.Lock()
 	activeSystemsString := systemsInNetwork.Peers
 	mutex.Unlock()
-	for _, v := range activeSystemsString {
-		println(v)
-	}
+
 	var activeSystems []int32
 	for _, sys := range activeSystemsString {
 		val, _ := strconv.Atoi(sys)
