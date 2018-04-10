@@ -61,10 +61,10 @@ func netHandler(
 	netHandlerAutoBackupFreq := 5 * time.Second
 
 	netHandlerSendRegularUpdateTimer := time.Now()
-	netHandlerSendRegularUpdateFreq := 500 * time.Millisecond
+	netHandlerSendRegularUpdateFreq := 20 * time.Millisecond
 
 	netHandlerSendElevatorQueueTimer := time.Now()
-	netHandlerSendElevatorQueueFreq := 500 * time.Millisecond
+	netHandlerSendElevatorQueueFreq := 100 * time.Millisecond
 
 	//timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevNetHandler Watchdog")
