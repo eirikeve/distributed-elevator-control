@@ -27,6 +27,9 @@ func main() {
 	var sendRegularUpdates = make(chan et.ElevState, 12)
 	var recvRegularUpdates = make(chan et.ElevState, 12)
 
+	var countReceivedMsg int64
+	var countReceivedMsgUsable int64
+
 	go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
 	go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
 
@@ -42,7 +45,9 @@ func main() {
 			return
 
 		case remoteUpdate := <-recvRegularUpdates:
+			countReceivedMsg++
 			if remoteUpdate.ID != "" {
+				countReceivedMsgUsable++
 				regularUpdateTimer = time.Now()
 				existsInSystems := false
 				index := -1
@@ -66,7 +71,7 @@ func main() {
 		}
 
 		tm.MoveCursor(1, 1)
-		tm.Println("Elevator Display Tool\nLocal IP:  \t" + LocIP + "\nActive systems:\t" + strconv.FormatInt(int64(len(systems)), 10) + "\nTimeout in:  \t" + strconv.FormatInt(60-int64(time.Now().Sub(regularUpdateTimer).Seconds()), 10) + "s")
+		tm.Println("Elevator Display Tool\nLocal IP:  \t" + LocIP + "\nActive systems:\t" + strconv.FormatInt(int64(len(systems)), 10) + "\nTimeout in:  \t" + strconv.FormatInt(60-int64(time.Now().Sub(regularUpdateTimer).Seconds()), 10) + "s" + "\nTotal recv messages: " + strconv.FormatInt(countReceivedMsg, 10) + " (non-empty: " + strconv.FormatInt(countReceivedMsgUsable, 10) + ")")
 
 		minWidth := 0
 		tabWidth := 10
