@@ -1,9 +1,9 @@
 package main
 
 import (
-	"flag"
-
 	el "./elevlog"
+	et "./elevtype"
+	"flag"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,6 +15,8 @@ func parseCmdLineArgs() {
 	isDebugEnvironment := flag.Bool("debug", false, "in debug, all log messages are recorded. Otherwise, only more important log messages are recorded.")
 	doLog := flag.Bool("log", true, "if logging, log messages are displayed in bash or file, (where and which depending on logtobash flag and debug flag)")
 	doLogToFile := flag.Bool("logtofile", false, "if true, logs to a timestamped file instead of to bash")
+	ipPort := flag.String("port", "15657", "port nr for local ip address")
+
 	flag.Parse()
 
 	logToFileInsteadOfBash = *doLogToFile
@@ -25,6 +27,7 @@ func parseCmdLineArgs() {
 		logLevel = log.FatalLevel
 		logToFileInsteadOfBash = false
 	}
+	et.SystemIpPort = *ipPort
 }
 
 func setupLog() {
