@@ -81,11 +81,11 @@ func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error)
 	return optElevIndex, err
 }
 
-func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (string, error) {
+func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (int32, error) {
 	var elevators []et.Elevator
 
 	if et.IsCabButton(newOrder) {
-		return loc.LocalIP()
+		return loc.LocalID()
 	}
 	for _, sys := range systems {
 		elevators = append(elevators, sys.E)
