@@ -208,7 +208,19 @@ func isOrderAlreadyFinished(es et.ElevState, orderID string) bool {
 }
 
 func applyUpdatesToLocalSystem(es et.ElevState) {
+	localSys := GetLocalSystem()
+	print("Finished Orders before merge: ")
+	for _, order := range localSys.FinishedOrders {
+		print(order.Id, " ")
+	}
+	println()
 	mergeFinishedOrdersQueue(es)
+	localSys = GetLocalSystem()
+	print("Finished Orders after merge: ")
+	for _, order := range localSys.FinishedOrders {
+		print(order.Id, " ")
+	}
+	println()
 	mergeOrdersToLocalSystem(es)
 	addLocalAckToOrders()
 	applyRemoteOrderAckLogicalOR(es)
@@ -268,28 +280,47 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 	var o et.ElevOrder
 	localSystem := systems[LocalIP]
 
-	if localOrder.IsCabOrder() {
+	if localOrder.IsCabOrder() || remoteOrder.IsCabOrder() {
 		return localOrder, nil
 	}
+	// PRINTS
+	/*if localOrder.Order.Floor == 1 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
+		remoteOrder.Order.Floor == 1 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
+		println("floor 1, hallup")
+		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
+		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
+		println("..end")
+	} else if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
+		remoteOrder.Order.Floor == 0 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
+		println("floor 0, hallup")
+		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
+		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
+		println("..end")
+	}*/
 
-	if isOrderAlreadyFinished(localSystem, remoteOrder.Id) {
-		// We have already done the remote order.
-		if isOrderAlreadyFinished(localSystem, localOrder.Id) {
-			// We have already done the local order. So, this order should be empty now
-			o = et.EmptyOrder()
-			return o, nil
-		}
+	// If the order {f, b} is finished either locally and/or remotely, we don't need any complex logic:
+	remoteFinished := isOrderAlreadyFinished(localSystem, remoteOrder.Id)
+	localFinished := isOrderAlreadyFinished(localSystem, localOrder.Id)
+	if localFinished && remoteFinished {
+		o = et.EmptyOrder()
+		return o, nil
+	} else if localFinished {
+		o = remoteOrder
+		return o, nil
+	} else if remoteFinished {
 		o = localOrder
 		return o, nil
 	}
 
+	// Neither the local nor the remote order is finished. But, one may be empty, which would simplify:
 	if localOrder.IsEmpty() {
 		return remoteOrder, nil
 	} else if remoteOrder.IsEmpty() {
 		return localOrder, nil
 	}
 
-	// Different IDs should in theory never occur, but as we know, it probably will.
+	// So, we have two orders in the same floor/button. Likely, it is the same order ID.
+	// Still, though different IDs should in theory never occur, as we know, it probably will.
 	if localOrder.GetID() != remoteOrder.GetID() {
 		log.WithFields(log.Fields{"ID1": localOrder.GetID(), "ID2": remoteOrder.GetID()}).Error("sysstate updateSingleOrder: Non-matching IDs")
 		err = errors.New("sysstate updateSingleOrder: Non-matching IDs: " + localOrder.GetID() + ", " + remoteOrder.GetID())
