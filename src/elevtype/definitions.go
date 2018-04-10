@@ -13,6 +13,10 @@ const NumButtons = 3
 const BOTTOMFLOOR = 0
 const TOPFLOOR = 3
 
+var SystemIpPort string = "15657"
+
+const SystemIpPortDefault = "15657"
+
 const AckHandlerPort = 26969
 const DisplayListenerPort = 28000
 
