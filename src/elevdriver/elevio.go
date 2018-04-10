@@ -18,6 +18,8 @@ var ioInitialized = false
 var ioNumFloorsElevator int
 var ioLock sync.Mutex
 var ioConn net.Conn
+var stopBtnWg sync.WaitGroup
+var stopBtnShutdownChan = make(chan bool, 2)
 
 func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
 	if ioInitialized {

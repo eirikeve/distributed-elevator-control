@@ -168,10 +168,20 @@ func driver(
 		case doorOpenLampVal := <-doorOpenLampInput:
 			//log.WithField("DoorOpenLamp", doorOpenLampVal).Debug("elevdriver Driver: Setting door open lamp val")
 			setDoorOpenLamp(doorOpenLampVal)
+		default:
 		}
 		if time.Now().Sub(driverDebugLogMsgTimer) > driverDebugLogMsgFreq {
 			driverDebugLogMsgTimer = time.Now()
 			log.Debug("elevdriver driver: Running")
 		}
 	}
+}
+
+func StartStopButtonService(stopPressed chan<- bool) {
+	go pollStopButton(stopPressed, stopBtnShutdownChan, &stopBtnWg)
+}
+
+func StopStopButtonService() {
+	stopBtnShutdownChan <- true
+	stopBtnWg.Wait()
 }

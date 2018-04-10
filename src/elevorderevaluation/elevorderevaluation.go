@@ -1,9 +1,13 @@
 package elevorderevaluation
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"time"
 
 	fsm "../elevfsm"
+	loc "../elevnetwork/localip"
 	et "../elevtype"
 )
 
@@ -55,11 +59,16 @@ func timeToIdle(elev et.Elevator) int {
 * is best fit to take and execute an order.
 * @arg elev[]: List of Elevators
  */
-func delegateOrder(elevList []et.Elevator, newOrder et.SimpleOrder) int {
+func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error) {
 	var durations []int
+	var err error = nil
 
 	for _, elev := range elevList {
+		if orderExsists(elev, newOrder) {
+			err = errors.New("elevorderevalution: Order exists")
+		}
 		elev = insertElevatorOrder(elev, newOrder)
+		printElevatorQueue(elev)
 		tempDuration := timeToIdle(elev)
 		durations = append(durations, tempDuration)
 	}
@@ -68,7 +77,22 @@ func delegateOrder(elevList []et.Elevator, newOrder et.SimpleOrder) int {
 	}
 
 	optElevIndex := findMinIndex(durations)
-	return optElevIndex
+
+	return optElevIndex, err
+}
+
+func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (string, error) {
+	var elevators []et.Elevator
+
+	if et.IsCabButton(newOrder) {
+		return loc.LocalIP()
+	}
+	for _, sys := range systems {
+		elevators = append(elevators, sys.E)
+	}
+	elevIndex, err := delegateOrder(elevators, newOrder)
+	optSysID := systems[elevIndex].ID
+	return optSysID, err
 }
 
 /*
@@ -98,7 +122,7 @@ func findMinIndex(list []int) int {
 
 /*
  * Prints the Elevator Queue
- * @arg: An Elevator
+ * @arg: An Elevator containg the Elevator Queue
  */
 func printElevatorQueue(elev et.Elevator) {
 	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
@@ -122,7 +146,23 @@ func printElevatorQueue(elev et.Elevator) {
 * @arg ElevOrder: The new Elevator Order
 * @arg ButtonEvent: Which button was triggered and at which floor is was pressed
  */
-func insertElevatorOrder(elev et.Elevator, order et.SimpleOrder) et.Elevator {
+func insertElevatorOrder(elev et.Elevator, bEvent et.ButtonEvent) et.Elevator {
+	//'TODO make actual order id :)
+	order := et.SimpleOrder{strconv.FormatInt(time.Now().Unix(), 16), bEvent}
 	elev.Orders[order.Order.Floor][order.Order.Button] = order
 	return elev
+}
+
+/*
+ * Check if new order already exsists, then it should not be necessary
+ * to redelegate order
+ * @arg elev: An elevator contaning the current orders
+ * @arg bEvent: The button which was pressed
+ */
+func orderExsists(elev et.Elevator, bEvent et.ButtonEvent) bool {
+	if elev.Orders[bEvent.Floor][bEvent.Button].Id != "" {
+		return true
+	} else {
+		return false
+	}
 }
