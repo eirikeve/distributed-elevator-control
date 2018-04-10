@@ -3,7 +3,7 @@ package main
 import (
 	ed "./elevdriver"
 	eh "./elevhandler"
-	localIp "./elevnetwork/localip"
+	//localIp "./elevnetwork/localip"
 	et "./elevtype"
 	nh "./nethandler"
 	sb "./sysbackup"
@@ -32,10 +32,6 @@ func main() {
 	/*@SIM*/
 
 	parseCmdLineArgs()
-	locip, _ := localIp.LocalIPWithPort()
-	locid, _ := localIp.LocalID()
-	println("Startup. Local IP: ", locip)
-	println("Startup. Local ID: ", locid)
 	setupLog()
 	run()
 }
