@@ -208,19 +208,19 @@ func isOrderAlreadyFinished(es et.ElevState, orderID string) bool {
 }
 
 func applyUpdatesToLocalSystem(es et.ElevState) {
-	localSys := GetLocalSystem()
-	print("Finished Orders before merge: ")
+	//localSys := GetLocalSystem()
+	/*print("Finished Orders before merge: ")
 	for _, order := range localSys.FinishedOrders {
 		print(order.Id, " ")
 	}
-	println()
+	println()*/
 	mergeFinishedOrdersQueue(es)
-	localSys = GetLocalSystem()
-	print("Finished Orders after merge: ")
+	//localSys = GetLocalSystem()
+	/*print("Finished Orders after merge: ")
 	for _, order := range localSys.FinishedOrders {
 		print(order.Id, " ")
 	}
-	println()
+	println()*/
 	mergeOrdersToLocalSystem(es)
 	addLocalAckToOrders()
 	applyRemoteOrderAckLogicalOR(es)
