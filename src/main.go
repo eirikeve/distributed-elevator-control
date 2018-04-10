@@ -31,6 +31,7 @@ func main() {
 	}()*/
 	
 	/*@SIM*/
+	
 	fmt.Print("Enter text: ")
 	fmt.Scanln(&ed.PortNum)
 	fmt.Print(ed.PortNum)
