@@ -1,5 +1,6 @@
 package netprotocol
 
+/*
 import "testing"
 import log "github.com/sirupsen/logrus"
 import "../../elevlog"
@@ -25,3 +26,4 @@ func TestFormatAndDeformat(t *testing.T) {
 		log.WithField("err", err2.Error()).Debug("netprotocol Test: Tried deformatting unknown msg")
 	}
 }
+*/

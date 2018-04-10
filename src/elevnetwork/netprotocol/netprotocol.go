@@ -1,5 +1,6 @@
 package netprotocol
 
+/*
 import (
 	"errors"
 	"regexp"
@@ -16,7 +17,7 @@ var msgTypeStringMap map[et.MessageType]string
 
 const msgTypeTag = "msgtype="
 const msgDataTag = " msgdata="
-
+*/
 /*MsgAsProtocol converts a string message to a message on the form
  * "msgtype=<type>, msg=<message>"
  * and returns it
@@ -24,6 +25,7 @@ const msgDataTag = " msgdata="
  * @arg msgType: The kind of message to be represented. An identifier.
  * @return: msg represented with our protocol
  */
+/*
 func FormatForTransmission(msgData string, msgType et.MessageType) string {
 	if !(initialized) {
 		initMsgTypeStringMap()
@@ -83,3 +85,4 @@ func initMsgTypeStringMap() {
 	msgTypeStringMap[et.MsgRegularUpdates] = "OP_EIRIK_MSG_REGULAR"
 	msgTypeStringMap[et.MsgUnknown] = "OP_EIRIK_MSG_UNKNOWN"
 }
+*/
