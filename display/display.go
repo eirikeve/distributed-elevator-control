@@ -46,7 +46,7 @@ func main() {
 
 		case remoteUpdate := <-recvRegularUpdates:
 			countReceivedMsg++
-			if remoteUpdate.ID != "" {
+			if remoteUpdate.ID != 0 {
 				countReceivedMsgUsable++
 				regularUpdateTimer = time.Now()
 				existsInSystems := false
@@ -60,10 +60,8 @@ func main() {
 				}
 				if existsInSystems {
 					systems[index] = remoteUpdate
-					systems[index].LastUpdate = time.Now()
 				} else {
 					systems = append(systems, remoteUpdate)
-					systems[len(systems)-1].LastUpdate = time.Now()
 				}
 			}
 		default:
@@ -80,7 +78,7 @@ func main() {
 		if len(systems) > 0 {
 			for i, sys := range systems {
 				tm.Println("============================================-")
-				tm.Println(sys.ID + " (" + strconv.FormatInt(int64(i), 10) + ")    Secs since update: " + intToGenericString(int64(time.Now().Sub(sys.LastUpdate).Seconds())) + "|")
+				tm.Println(strconv.FormatInt(int64(sys.ID), 10) + " (" + strconv.FormatInt(int64(i), 10) + ")                 " + "                  |")
 				table := tm.NewTable(minWidth, tabWidth, padding, padChar, 0)
 
 				fmt.Fprintf(table, "State\t \t|\tOrders\t \t \tDone:\t  "+intToBufferedString(int64(len(sys.FinishedOrders)), 4)+"\t|\n")
@@ -134,7 +132,10 @@ func orderToString(sys *et.ElevState, f int, b int) string {
 	case et.Received:
 		return "R"
 	case et.Accepted:
-		return "A"
+		if (*sys).ID == sys.CurrentOrders[f][b].Assignee {
+			return "A"
+		}
+		return "a"
 	case et.Finished:
 		return "F"
 	default:
