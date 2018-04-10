@@ -3,8 +3,8 @@ package localip
 import (
 	"net"
 	"strings"
+	ed "../../elevdriver" //@SIM
 )
-
 var localIP string
 
 func LocalIP() (string, error) {
@@ -14,7 +14,7 @@ func LocalIP() (string, error) {
 			return "", err
 		}
 		defer conn.Close()
-		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
+		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]+":"+ed.PortNum // @SIM added '":"+ed.PortNUM"'
 	}
 	return localIP, nil
 }

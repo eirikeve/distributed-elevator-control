@@ -9,11 +9,10 @@ import (
 	"time"
 
 	et "../elevtype"
-
 	log "github.com/sirupsen/logrus"
 )
-
-const elevatorAddress = "127.0.0.1:15657" // port taken from c driver at https://github.com/TTK4145/driver-c
+// @SIM PORT :15657 removed from elevator Address
+const elevatorAddress = "127.0.0.1"// port taken from c driver at https://github.com/TTK4145/driver-c
 const stdNumFloorsElevator = 4
 const timeWaitForDriverToStartMs = 20
 
