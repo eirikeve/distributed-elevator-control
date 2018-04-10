@@ -3,7 +3,6 @@ package elevnetwork
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -27,11 +26,12 @@ var signalHeartBeatToStop chan bool
 func StartHeartBeat() {
 	signalHeartBeatToStop = make(chan bool)
 	port := 20102
-	ID, err := l.LocalIP()
+	ID, err := l.LocalID()
 	if err != nil {
 		log.Debug("elevheartbeat startHeartBeat: Couldnt get local ip")
 	}
-	runHeartBeat(port, ID, signalHeartBeatToStop)
+	IDstring := strconv.FormatInt(int64(ID), 10)
+	runHeartBeat(port, IDstring, signalHeartBeatToStop)
 
 }
 
@@ -85,11 +85,12 @@ func GetSystemsInNetwork() []int32 {
 	mutex.Lock()
 	activeSystemsString := systemsInNetwork.Peers
 	mutex.Unlock()
-
+	for _, v := range activeSystemsString {
+		println(v)
+	}
 	var activeSystems []int32
 	for _, sys := range activeSystemsString {
-		splitIP := strings.Split(sys, ".")
-		val, _ := strconv.Atoi(splitIP[len(splitIP)-1])
+		val, _ := strconv.Atoi(sys)
 		activeSystems = append(activeSystems, int32(val))
 	}
 
