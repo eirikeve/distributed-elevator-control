@@ -1,20 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
 	ed "./elevdriver"
 	eh "./elevhandler"
+	localIp "./elevnetwork/localip"
 	et "./elevtype"
 	nh "./nethandler"
 	sb "./sysbackup"
 	ss "./sysstate"
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
-
-
-
 
 func main() {
 	// Recover from a panic from https://github.com/golang/go/wiki/PanicAndRecover
@@ -29,17 +26,16 @@ func main() {
 			}
 		}
 	}()*/
-	
+
 	/*@SIM*/
-	
-	fmt.Print("Enter text: ")
-	fmt.Scanln(&ed.PortNum)
-	fmt.Print(ed.PortNum)
+
 	/*@SIM*/
-	
-	
 
 	parseCmdLineArgs()
+	locip, _ := localIp.LocalIPWithPort()
+	locid, _ := localIp.LocalID()
+	println("Startup. Local IP: ", locip)
+	println("Startup. Local ID: ", locid)
 	setupLog()
 	run()
 }
@@ -50,9 +46,10 @@ func run() {
 	stopRunning := make(chan bool, 2)
 
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
-	ss.SetSystemsStates(systemStates)
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
+	ss.SetSystemsStates(systemStates)
+	log.WithField("states", ss.GetLocalSystem()).Debug("main run: Done w/ setup of sysstates")
 
 	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
 	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)
