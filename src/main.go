@@ -13,6 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+
+
+
 func main() {
 	// Recover from a panic from https://github.com/golang/go/wiki/PanicAndRecover
 
@@ -26,6 +29,15 @@ func main() {
 			}
 		}
 	}()*/
+	
+	/*@SIM*/
+	
+	fmt.Print("Enter text: ")
+	fmt.Scanln(&ed.PortNum)
+	fmt.Print(ed.PortNum)
+	/*@SIM*/
+	
+	
 
 	parseCmdLineArgs()
 	setupLog()
