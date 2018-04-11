@@ -14,4 +14,6 @@ Todo:
     - slette ubrukt kode
     - se over heartbeat
 7) Kommentering
+8) Rydding i Git
+    - Slette gamle brancher
 
