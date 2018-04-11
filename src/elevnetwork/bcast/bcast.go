@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"../conn"
-	log "github.com/sirupsen/logrus"
 )
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
@@ -40,7 +39,7 @@ func Transmitter(port int, chans ...interface{}) {
 		conn.SetDeadline(time.Now().Add(time.Second))
 		_, err := conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
 		if err != nil {
-			log.WithError(err).Error("bcast: Could not send")
+			//log.WithError(err).Error("bcast: Could not send")
 		}
 		//log.WithField("Transmitted", value).Debug("bcast Transmitter: Sent msg")
 		//log.WithField("Transmitted (str)", string(buf)).Debug("bcast Transmitter: Sent msg")
