@@ -1,10 +1,10 @@
 package recover
 
+//[@TODO]: MIGHT need a defer/recover/panic function to stop elevator from moving, preventing the elevator to reach bottom.
 import (
 	"encoding/json"
 	"net"
 	"os/exec"
-	"syscall"
 	"time"
 
 	et "../elevtype"
@@ -14,25 +14,26 @@ import (
 const BROADCAST_PERIOD = 300
 const MSG_MISSED_THRESHOLD = 10
 
+//Starts the process for monitoring the Primary system
 func StartSurveillanceOfPrimary() {
 	runSurveillanceProcess()
-
 }
 
+/* Starts as secondary system, monitoring  the primary.
+ * If primary crashes i.e. fails to send 10 continous messages, the secondary becomes
+ * primary and creates a new backup
+ */
 func runSurveillanceProcess() {
 	isBackUp := true
-	isAlive := false
 
-	var signalStopListen = make(chan int)
 	var markTimeout = make(chan int)
 	var lastBroadcast time.Time
 	if isBackUp {
-		go surveillanceListenProcess(signalStopListen, markTimeout)
+		go surveillanceListenProcess(markTimeout)
 	}
 	<-markTimeout
 
 	isBackUp = false
-	isAlive = true
 
 	time.Sleep(time.Millisecond * 500)
 
@@ -42,15 +43,19 @@ func runSurveillanceProcess() {
 			for {
 				if time.Now().Sub(lastBroadcast) > time.Millisecond*BROADCAST_PERIOD {
 					lastBroadcast = time.Now()
-					primaryBroadcastProcess(isAlive)
+					primaryBroadcastProcess()
 				}
 			}
 		}()
 	}
 }
 
-func surveillanceListenProcess(stop chan int, marktimeout chan int) {
-	var isRunning bool
+/* Monitors the primary process, by listening for messages
+ * If 10 messages are continously dropped, the timeout is set
+ * and the function returns
+ * @arg marktimeout: channel written to if primary is not broadcasting
+ */
+func surveillanceListenProcess(marktimeout chan int) {
 	missedMSG := 0
 	localUDPAddress, err := net.ResolveUDPAddr("udp", ":"+et.BackupPort)
 	if err != nil {
@@ -67,14 +72,13 @@ func surveillanceListenProcess(stop chan int, marktimeout chan int) {
 
 		conn.SetDeadline(time.Now().Add(time.Millisecond * BROADCAST_PERIOD))
 
-		n, _, err := conn.ReadFromUDP(buf[:])
-		json.Unmarshal(buf[0:n], isRunning)
+		_, _, err := conn.ReadFromUDP(buf[:])
 
 		if err == nil {
-			log.Info("Secondary Recv message from Primary")
+			log.Info("Secondary: Recv message from Primary")
 			missedMSG = 0
 		} else {
-			log.Warning("Secondary Missed msg from Primary")
+			log.Warning("Secondary: Missed msg from Primary")
 			missedMSG += 1
 			if missedMSG >= MSG_MISSED_THRESHOLD {
 				marktimeout <- 1
@@ -85,7 +89,12 @@ func surveillanceListenProcess(stop chan int, marktimeout chan int) {
 	}
 }
 
-func primaryBroadcastProcess(isAlive bool) {
+/* Broadcast a boolean value, enabling the monotring process
+ * to know that the primary is running
+ */
+func primaryBroadcastProcess() {
+
+	isAlive := true
 
 	remoteUDPAddress, err := net.ResolveUDPAddr("udp4", "127.0.0.1:"+et.BackupPort)
 	if err != nil {
@@ -101,17 +110,10 @@ func primaryBroadcastProcess(isAlive bool) {
 	conn.Write(jsonBuf)
 }
 
+// Spawns a new terminal running the main program
 func spawnBackup() {
+
 	// For Ubuntu:
-	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go setup.go -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run() // "go test")).Run()
-	//For OSX:
-	//(exec.Command("osascript", "-e", "tell app \"Terminal\" to do script \"go run ..."")).Run()
-
+	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go setup.go -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
 	log.Info("Secondary is created and is now surveillance!")
-}
-
-func Reboot() {
-	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go test -run TestReboot")).Run()
-	syscall.Exit(1)
-
 }
