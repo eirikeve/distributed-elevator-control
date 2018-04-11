@@ -7,6 +7,7 @@ import (
 
 	network "../elevnetwork"
 	et "../elevtype"
+	sb "../sysbackup"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,10 +54,12 @@ func PushButtonEvent(sysID int32, btn et.ButtonEvent) {
 			o.Status = et.Accepted
 			o.Acks = append(o.Acks, LocalID)
 			o.Assignee = LocalID
+			o.TimestampLastOrderStatusChange = time.Now().Unix()
 
 			system, _ := systems[LocalID]
 			system.CurrentOrders[btn.Floor][int(btn.Button)] = o
 			systems[LocalID] = system
+			sb.Backup(GetSystemsStates())
 
 		} else {
 
@@ -448,6 +451,8 @@ func acceptOrdersWeCanGuarantee() {
 				canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]) {
 				log.WithField("o", localSystem.CurrentOrders[f][b]).Debug("sysstate acceptOrders: Can guarantee order; accepting")
 				accept(&localSystem, localSystem.CurrentOrders[f][b])
+				sb.Backup(GetSystemsStates())
+
 			}
 		}
 	}
