@@ -182,6 +182,63 @@ func setupStates2() []et.ElevState {
 	state[1].E.Floor = 0
 	state[2].E.Floor = 1
 	state[3].E.Floor = 2
+
+	state[1].CurrentOrders[0][0] = et.ElevOrder{
+		Id:                "Active Order 0 of elev 0",
+		Order:             et.ButtonEvent{Floor: 0, Button: et.BT_HallUp},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Received,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       1,
+	}
+	state[1].CurrentOrders[1][0] = et.ElevOrder{
+		Id:                "Active Order 1 of elev 0",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallUp},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       1,
+	}
+	state[1].CurrentOrders[1][1] = et.ElevOrder{
+		Id:                "Active Order 2 of elev 0",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallDown},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       2,
+	}
+	state[2].CurrentOrders[1][0] = et.ElevOrder{
+		Id:                "Active Order 1 of elev 1",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallUp},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       1,
+	}
+	state[2].CurrentOrders[1][1] = et.ElevOrder{
+		Id:                "Active Order 2 of elev 1",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallDown},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       2,
+	}
+	state[3].CurrentOrders[1][0] = et.ElevOrder{
+		Id:                "Active Order 1 of elev 2",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallUp},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       1,
+	}
+	state[3].CurrentOrders[1][1] = et.ElevOrder{
+		Id:                "Active Order 2 of elev 2",
+		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_HallDown},
+		TimestampReceived: time.Now().Add(time.Second * -10).Unix(),
+		Status:            et.Accepted,
+		TimestampLastOrderStatusChange: time.Now().Unix(),
+		Assignee:                       2,
+	}
 	state[1].FinishedOrders[0] = et.ElevOrder{
 		Id:                "Finished Order 1 of elev 0",
 		Order:             et.ButtonEvent{Floor: 1, Button: et.BT_Cab},
