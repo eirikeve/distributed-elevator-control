@@ -159,9 +159,9 @@ func PushOrderToQueue(order et.GeneralOrder) {
 		"button":          button,
 	}).Info("elevfsm PushOrderToQueue: Added to queue")
 }
-func RemOrderFromQueue(order et.ElevOrder) {
+func RemOrderFromQueue(order et.GeneralOrder) {
 	floor := order.GetFloor()
-	var button = int(order.GetButton())
+	button := int(order.GetButton())
 	elevator.Orders[floor][button] = et.SimpleOrder{} // Default ID is "" which evaluates to Empty
 }
 
