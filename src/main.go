@@ -4,13 +4,14 @@ import (
 	ed "./elevdriver"
 	eh "./elevhandler"
 	//localIp "./elevnetwork/localip"
+	"fmt"
+	"time"
+
 	et "./elevtype"
 	nh "./nethandler"
 	sb "./sysbackup"
 	ss "./sysstate"
-	"fmt"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 func main() {
@@ -44,7 +45,7 @@ func run() {
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
-	ss.SetSystemsStates(systemStates)
+	ss.SetSystemsStatesFromBackup(systemStates)
 	log.WithField("states", ss.GetLocalSystem()).Debug("main run: Done w/ setup of sysstates")
 
 	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
