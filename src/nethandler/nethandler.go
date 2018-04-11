@@ -97,6 +97,9 @@ func netHandler(
 			ss.HandleRegularUpdate(remoteElevStateUpdate)
 		default:
 		}
+
+		ss.CheckForAndHandleOrderTimeouts()
+
 		// Send messages
 		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > netHandlerSendRegularUpdateFreq {
 			netHandlerSendRegularUpdateTimer = time.Now()
