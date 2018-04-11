@@ -100,10 +100,10 @@ func GetUnsentLocalSystemOrders() []et.SimpleOrder {
 	return orders
 }
 
-func MarkOrdersAsSent(orders []et.ElevOrder) {
+func MarkOrdersAsSent(orders []et.SimpleOrder) {
 	s, _ := systems[LocalID]
 	for _, order := range orders {
-		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.Id {
+		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.GetID() {
 			s.CurrentOrders[order.GetFloor()][int(order.GetButton())].SentToAssigneeElevator = true
 		}
 	}
