@@ -185,9 +185,9 @@ func CheckForAndHandleOrderTimeouts() {
 			if o.TimeSinceTimeout() > 0 {
 				handleSingleOrderTimeout(&sys, o)
 			}
-
 		}
 	}
+	systems[LocalID] = sys
 }
 
 func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
