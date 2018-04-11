@@ -184,6 +184,8 @@ func CheckForAndHandleOrderTimeouts() {
 			o := sys.CurrentOrders[f][b]
 			if o.TimeSinceTimeout() > 0 {
 				handleSingleOrderTimeout(&sys, o)
+				o := sys.CurrentOrders[f][b]
+				log.WithFields(log.Fields{"orderID": o.Id, "newAssignee": o.Assignee}).Warn("Order timeout")
 			}
 		}
 	}
@@ -193,7 +195,7 @@ func CheckForAndHandleOrderTimeouts() {
 func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 
 	//t := o.TimeSinceTimeout()
-	log.WithField("orderID", o.Id).Warn("Order timeout")
+	
 	// We haven't accepted the order, so we remove it from the queue.
 	if o.Status == et.Received {
 		empty(localSys, o)
@@ -351,13 +353,13 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
 		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
 		println("..end")
-	} else if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
+	} else*/ if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
 		remoteOrder.Order.Floor == 0 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
 		println("floor 0, hallup")
 		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
 		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
 		println("..end")
-	}*/
+	}
 
 	// If the order {f, b} is finished either locally and/or remotely, we don't need any complex logic:
 	remoteFinished := isOrderAlreadyFinished(localSystem, remoteOrder.Id)
@@ -410,6 +412,7 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 		}
 	} else {
 		// Same order ID
+		log.WithFields(log.Fields{"ID": localOrder.GetID()}).Info("sysstate updateSingleOrder: Matching IDs")
 		if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
 			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
 				o = localOrder
@@ -601,6 +604,7 @@ func empty(localSys *et.ElevState, o et.ElevOrder) {
 
 func redelegate(localSys *et.ElevState, o et.ElevOrder, newAssignee int32) {
 	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Assignee = newAssignee
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].SentToAssigneeElevator = false
 	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
 	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampReceived = time.Now().Unix()
 }

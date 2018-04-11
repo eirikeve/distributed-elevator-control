@@ -111,7 +111,7 @@ func netHandler(
 		}
 		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > netHandlerSendElevatorQueueFreq {
 			netHandlerSendElevatorQueueTimer = time.Now()
-			orders := ss.GetUnsentLocalSystemOrders()
+			orders := ss.()
 			var sentOrders []et.ElevOrder
 			for _, order := range orders {
 				select {

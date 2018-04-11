@@ -39,7 +39,8 @@ type SimpleOrder struct {
 	// ID of request IP+timestamp+ButtonEvent
 	Id string
 	// Floor & order type
-	Order ButtonEvent
+	Order          ButtonEvent
+	TagRemoveOrder bool
 }
 
 type GeneralOrder interface {
@@ -55,6 +56,7 @@ type GeneralOrder interface {
 	GetOrder() ButtonEvent
 	IsCabOrder() bool
 	TimeSinceTimeout() int64
+	TagRemove() bool
 }
 
 func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
@@ -119,6 +121,8 @@ func (o ElevOrder) TimeSinceTimeout() int64 {
 func (o SimpleOrder) TimeSinceTimeout() int64 {
 	return -1
 }
+func (o ElevOrder) TagRemove() bool   { return false }
+func (o SimpleOrder) TagRemove() bool { return o.TagRemoveOrder }
 
 func EmptyOrder() ElevOrder {
 	return ElevOrder{
