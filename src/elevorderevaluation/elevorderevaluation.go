@@ -148,7 +148,7 @@ func printElevatorQueue(elev et.Elevator) {
  */
 func insertElevatorOrder(elev et.Elevator, bEvent et.ButtonEvent) et.Elevator {
 	//'TODO make actual order id :)
-	order := et.SimpleOrder{strconv.FormatInt(time.Now().Unix(), 16), bEvent}
+	order := et.SimpleOrder{Id: strconv.FormatInt(time.Now().Unix(), 16), Order: bEvent}
 	elev.Orders[order.Order.Floor][order.Order.Button] = order
 	return elev
 }
