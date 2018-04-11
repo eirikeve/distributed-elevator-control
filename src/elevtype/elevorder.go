@@ -1,5 +1,7 @@
 package elevtype
 
+import "time"
+
 // OrderStatus is the current state of an elevator order
 type OrderStatus int
 
@@ -52,6 +54,7 @@ type GeneralOrder interface {
 	GetButton() ButtonType
 	GetOrder() ButtonEvent
 	IsCabOrder() bool
+	TimeSinceTimeout() int64
 }
 
 func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
@@ -106,6 +109,16 @@ func (o SimpleOrder) GetOrder() ButtonEvent { return o.Order }
 func (o ElevOrder) GetOrder() ButtonEvent   { return o.Order }
 func (o ElevOrder) IsCabOrder() bool        { return o.Order.Button == BT_Cab }
 func (o SimpleOrder) IsCabOrder() bool      { return o.Order.Button == BT_Cab }
+func (o ElevOrder) TimeSinceTimeout() int64 {
+	if !o.IsEmpty() {
+		return time.Now().Unix() - (o.TimestampReceived + OrderTimeoutSeconds)
+	}
+	return -1
+
+}
+func (o SimpleOrder) TimeSinceTimeout() int64 {
+	return -1
+}
 
 func EmptyOrder() ElevOrder {
 	return ElevOrder{
