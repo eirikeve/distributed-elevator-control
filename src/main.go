@@ -47,7 +47,8 @@ func run() {
 	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
 	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)
 	elevStateToNetwork := make(chan et.Elevator, 12)
-
+	re.StartSurveillanceOfPrimary()
+	
 	eh.StartElevatorHandler(ordersDelegatedFromNetwork,
 		buttonPressesToNetwork,
 		elevStateToNetwork)
