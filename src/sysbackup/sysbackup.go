@@ -21,17 +21,26 @@ var backupRegexp, _ = regexp.Compile("^backup_[0-9]+.elevlog$")
 var idRegexp, _ = regexp.Compile("id=.+ backup=")
 var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
+const folderDir = "../backup/"
+
 func setupSysBackup() {
 
-	filename := "backup_" + strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
+	filename := folderDir + "backup_" + strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
 	var err error
 	logFile, err = os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
 		// Could not open file
-		log.WithFields(log.Fields{
-			"Error": err.Error(),
-		}).Error("sysbackup Setup: Could not open log output file. Defaulting to bash output.")
-		initialized = false
+		os.MkdirAll(folderDir, os.ModePerm)
+		log.WithError(err).Error("sysbackup Setup: Could not open log output file. Created backup folder " + folderDir)
+
+		logFile, err = os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0755)
+		if err != nil {
+			log.WithError(err).Error("sysbackup Setup: Could not initialize")
+			initialized = false
+		} else {
+			initialized = true
+		}
+
 	} else {
 		initialized = true
 	}
@@ -50,7 +59,7 @@ func Backup(states []et.ElevState) {
 
 func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 
-	files, err := ioutil.ReadDir("./")
+	files, err := ioutil.ReadDir(folderDir)
 	if err != nil {
 		log.WithField("err", err.Error()).Error("sysbackup Recover: Failed")
 		return make([]et.ElevState, 0), err
@@ -62,16 +71,19 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 	for _, index := range backupFilesIndexes {
 		if files[index].ModTime().Sub(timeLimit) > 0*time.Second {
 			useableBackupIndexes = append(useableBackupIndexes, index)
+			log.WithField("usable file", files[index].Name()).Info("sysbackup Recover: Valid file for recovery")
 		}
 	}
+
 	sortedIndexes, _ := getBackupFileIndexesSortedInIncreasingTime(files, useableBackupIndexes)
 	//log.WithField("Match sorted", sortedIndexes).Info("Indexes")
 	//for _, index := range sortedIndexes {
-	//log.WithField("File", files[index].Name()).Info("Sorted file order")
+	//	log.WithField("File", files[index].Name()).Info("Sorted file order")
 	//}
 
 	states := make([]et.ElevState, 0)
 	for _, backupIndex := range sortedIndexes {
+		log.WithField("File", files[backupIndex].Name()).Info("sysbackup: Applying backup")
 		applyBackupFromFile(&states, files[backupIndex])
 	}
 	numBackupFiles := strconv.FormatInt(int64(len(backupFilesIndexes)), 10)
@@ -135,8 +147,9 @@ func getBackupFileIndexesSortedInIncreasingTime(files []os.FileInfo, backupIndex
 
 func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 	log.WithField("filaname", backupFile.Name()).Debug("sysbackup apply: Applying backup")
-	file, err := os.OpenFile(backupFile.Name(), os.O_RDONLY, 0755)
+	file, err := os.OpenFile(folderDir+backupFile.Name(), os.O_RDONLY, 0755)
 	if err != nil {
+		log.WithError(err).Error("sysbackup: Unable to apply backup from this file")
 		return
 	}
 	var backupReader = bufio.NewReader(file)
@@ -153,7 +166,7 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 		jsonErr := json.Unmarshal([]byte(elevatorJson), &state)
 		if jsonErr != nil {
 			//@BUG this always logs
-			//log.WithField("err", jsonErr.Error()).Warn("sysbackup apply: Error applying backup")
+			log.WithField("err", jsonErr.Error()).Warn("sysbackup apply: Error applying backup")
 		}
 		//log.WithFields(log.Fields{
 		//	"ID":         elevatorId,
@@ -200,6 +213,10 @@ func getIDFromBackup(line *string) string {
 	return id
 }
 func backupElevState(state et.ElevState) {
+	if logFile == nil {
+		log.WithField("err", "Nonexistent logfile").Error("sysbackup backup: Could not back up")
+		return
+	}
 	buf, _ := json.Marshal(state)
 	backup := string(buf)
 	backupMsg := "time=" + strconv.FormatInt(time.Now().Unix(), 10) + " id=" + strconv.FormatInt(int64(state.ID), 10) + " backup=" + backup + "\n"
@@ -207,9 +224,9 @@ func backupElevState(state et.ElevState) {
 	logFile.Write([]byte(backupMsg))
 }
 
-func backupTestWrite(str string) {
+/*func backupTestWrite(str string) {
 	logFile.Write([]byte(str))
-}
+}*/
 
 /*for {
 	n, _, _ := conn.ReadFrom(buf[0:])
