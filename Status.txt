@@ -1,13 +1,17 @@
 Lokal heis virker.
 
-Vi får hentet knapper osv ut av den, og pushet det inn.
-
-Branch vi jobbet i sist er network-main.
-
-Problem nå er når ordre kommer til nethandler:
-- sender over nett, men mottar tom struct
-- klarer å sende ACK! Men mye av pakkene forsvinner.  mulig dette er knyttet opp mot forrige problem.
-- trenger logikk for å sette inn ordre, og så pushe til lokal heis
-- bruker ikke enda backup, men den fungerer
+Problemet:
 - det er noe galt med timer, som skapte stopp i handlererene
-- trenger feilhåndtering når vi sender ordre, og hvordan man legger inn ordre i systemet etter å ha mopttatt, + ack osv.
+
+Todo:
+1) Fikse timeout på ordre (+redelegering)
+2) Fikse reboot
+3) Fikse crash monitor
+4) Fikse timer (muligens bare slette delayedfunction)
+5) Fikse sysbackup (nå gjenoppretter den ikke ordrene)
+6) Rydding i kode
+    - Bedre modularisering, inndeling i funksjoner
+    - slette ubrukt kode
+    - se over heartbeat
+7) Kommentering
+
