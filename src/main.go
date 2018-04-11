@@ -8,6 +8,7 @@ import (
 	nh "./nethandler"
 	sb "./sysbackup"
 	ss "./sysstate"
+	re "./recover"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -26,10 +27,6 @@ func main() {
 			}
 		}
 	}()*/
-
-	/*@SIM*/
-
-	/*@SIM*/
 
 	parseCmdLineArgs()
 	setupLog()
