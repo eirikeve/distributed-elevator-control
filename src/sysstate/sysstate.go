@@ -1,10 +1,12 @@
 package sysstate
 
 import (
+	"time"
+
 	network "../elevnetwork"
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
-	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 var LocalIP string
@@ -37,6 +39,8 @@ func initSysState() {
 
 	initialized = true
 
+	log.WithField("localID", LocalID).Info("sysstate: Initialized")
+
 }
 
 func SetSystemsStates(sys []et.ElevState) {
@@ -47,6 +51,21 @@ func SetSystemsStates(sys []et.ElevState) {
 	// Initialize after the assignment since this guarantees local system being in systems after func call
 	if !initialized {
 		initSysState()
+	}
+}
+
+func SetSystemsStatesFromBackup(sys []et.ElevState) {
+	SetSystemsStates(sys)
+	// mark orders as not sent to elevator, so ensure that local orders are resent to the elevator immediately
+	for key, es := range systems {
+		for f := 0; f < et.NumFloors; f++ {
+			for b := 0; b < et.NumButtons; b++ {
+				if es.CurrentOrders[f][b].Id != "" {
+					es.CurrentOrders[f][b].SentToAssigneeElevator = false
+				}
+			}
+		}
+		systems[key] = es
 	}
 }
 
