@@ -12,14 +12,15 @@ import (
 var LocalIP string
 var LocalID int32
 var initialized = false
+var backInit = false
 
 //var systems map[string]et.ElevState
 var systems = make(map[int32]et.ElevState)
 var netstate et.NetState
 var acksForBroadcasting []et.AckNackMsg
 
-func IsInitialized() bool {
-	return initialized
+func SysIsInitialized() bool {
+	return backInit
 }
 
 /*
@@ -38,14 +39,15 @@ func initSysState() {
 	_, localSysExists := systems[LocalID]
 
 	if !localSysExists {
-		print("\n\n\n\n initSysState: INIT SYSTATE \n\n\n\n")
 		newElevState := et.ElevState{ID: LocalID, E: et.EmptyElevator(), StartupTime: time.Now().Unix()}
 		systems[LocalID] = newElevState
+	} else {
+		backInit = true
 	}
 
 	initialized = true
 
-	log.WithField("localID", LocalID).Info("sysstate: Initialized")
+	log.WithField("localID", LocalID).Warn("sysstate: Initialized")
 
 }
 

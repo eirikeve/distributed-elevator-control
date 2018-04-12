@@ -16,12 +16,21 @@ import (
 
 //var backuplogger log.Logger
 var initialized = false
+var numUseableBackupFiles string
 var logFile *os.File
 var backupRegexp, _ = regexp.Compile("^backup_[0-9]+.elevlog$")
 var idRegexp, _ = regexp.Compile("id=.+ backup=")
 var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
 const folderDir = "../backup/"
+
+func IsInitializedFromBackup() bool {
+	if numUseableBackupFiles != "0" {
+		return true
+	} else {
+		return false
+	}
+}
 
 func setupSysBackup() {
 
@@ -39,10 +48,12 @@ func setupSysBackup() {
 			initialized = false
 		} else {
 			initialized = true
+
 		}
 
 	} else {
 		initialized = true
+
 	}
 }
 
@@ -87,7 +98,7 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 		applyBackupFromFile(&states, files[backupIndex])
 	}
 	numBackupFiles := strconv.FormatInt(int64(len(backupFilesIndexes)), 10)
-	numUseableBackupFiles := strconv.FormatInt(int64(len(useableBackupIndexes)), 10)
+	numUseableBackupFiles = strconv.FormatInt(int64(len(useableBackupIndexes)), 10)
 	numStatesRecovered := strconv.FormatInt(int64(len(states)), 10)
 
 	log.WithFields(log.Fields{"numStatesRecovered": numStatesRecovered,
@@ -207,7 +218,7 @@ func getStateJSONFromBackup(line *string) string {
 	return state
 }
 
-func getIDFromBackup(line *string) string {
+func GetIDFromBackup(line *string) string {
 	idWithSuffixAndPrefix := idRegexp.FindString(*line)
 	id := strings.TrimSuffix(strings.TrimPrefix(idWithSuffixAndPrefix, "id="), " backup=")
 	return id
