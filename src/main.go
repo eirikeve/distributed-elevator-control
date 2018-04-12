@@ -46,7 +46,7 @@ func run() {
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
 	ss.SetSystemsStatesFromBackup(systemStates)
-	log.WithField("states", ss.GetLocalSystem()).Debug("main run: Done w/ setup of sysstates")
+	log.WithField("states", ss.GetLocalSystem().CurrentOrders).Debug("main run: Done w/ setup of sysstates")
 
 	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
 	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)

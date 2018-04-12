@@ -22,7 +22,6 @@ func StartElevatorHandler(
 	// @TODO Finish initialization
 	signalHandlerToStop = make(chan bool, 2)
 	fsmTimeoutSignal = make(chan bool, 2)
-
 	fsm.InitFSM(fsmTimeoutSignal, nil)
 	go handler(signalHandlerToStop,
 		ordersDelegatedFromNetwork,

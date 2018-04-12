@@ -58,7 +58,7 @@ func netHandler(
 	netHandlerDebugLogMsgFreq := 2 * time.Second
 
 	netHandlerAutoBackupTimer := time.Now()
-	netHandlerAutoBackupFreq := 5 * time.Second
+	netHandlerAutoBackupFreq := 2 * time.Second
 
 	netHandlerSendRegularUpdateTimer := time.Now()
 	netHandlerSendRegularUpdateFreq := 20 * time.Millisecond

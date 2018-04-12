@@ -17,15 +17,14 @@ const ackRetainTime = 30 * time.Second
  */
 func UpdateLocalElevator(e *et.Elevator) {
 	//log.Debug("sysstate Update: Update local elevator")
-
 	if !initialized {
 		initSysState()
 	}
 
 	system, _ := systems[LocalID]
+
 	system.E = *e
 	systems[LocalID] = system
-
 	updateFinishedOrders()
 }
 

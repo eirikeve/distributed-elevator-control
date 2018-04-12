@@ -3,6 +3,8 @@ package elevfsm
 import (
 	"time"
 
+	ss "../sysstate"
+
 	timer "../elevtimer"
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
@@ -29,9 +31,15 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		elevator := &e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
-	//timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
-	// Start by moving downwards
-	initialize()
+	// If recovered from Backup, elevator is set to equal backUp data
+	if ss.IsInitialized() {
+		elevator = ss.GetLocalSystem().E
+	} else {
+		//timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
+		// Start by moving downwards
+
+		initialize()
+	}
 }
 
 // Functions for running the local elevator

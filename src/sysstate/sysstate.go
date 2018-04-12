@@ -18,12 +18,17 @@ var systems = make(map[int32]et.ElevState)
 var netstate et.NetState
 var acksForBroadcasting []et.AckNackMsg
 
+func IsInitialized() bool {
+	return initialized
+}
+
 /*
  * initSysState is automatically called the first time we set the local systems
  */
 func initSysState() {
 
 	if initialized {
+
 		return
 	}
 
@@ -33,6 +38,7 @@ func initSysState() {
 	_, localSysExists := systems[LocalID]
 
 	if !localSysExists {
+		print("\n\n\n\n initSysState: INIT SYSTATE \n\n\n\n")
 		newElevState := et.ElevState{ID: LocalID, E: et.EmptyElevator(), StartupTime: time.Now().Unix()}
 		systems[LocalID] = newElevState
 	}
