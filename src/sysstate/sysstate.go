@@ -6,10 +6,7 @@ import (
 	network "../elevnetwork"
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
-<<<<<<< HEAD
 	log "github.com/sirupsen/logrus"
-=======
->>>>>>> feature/order-timeout
 )
 
 var LocalIP string

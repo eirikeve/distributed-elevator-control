@@ -31,7 +31,6 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		elevator := &e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
-<<<<<<< HEAD
 	// If recovered from Backup, elevator is set to equal backUp data
 	if sb.IsInitializedFromBackup() && ss.SysIsInitialized() {
 		elevator = ss.GetLocalSystem().E
@@ -41,11 +40,6 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 
 		initialize()
 	}
-=======
-	timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
-	// Start by moving downwards
-	initialize()
->>>>>>> feature/order-timeout
 }
 
 // Functions for running the local elevator
