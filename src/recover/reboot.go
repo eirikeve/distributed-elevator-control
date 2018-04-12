@@ -114,6 +114,7 @@ func primaryBroadcastProcess() {
 func spawnBackup() {
 
 	// For Ubuntu:
+	(exec.Command("gnome-terminal", "-x", "sh", "-c", "ElevatorServer")).Run()
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go setup.go -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
 	log.Info("Secondary is created and is now surveillance!")
 }
