@@ -14,9 +14,10 @@ const BOTTOMFLOOR = 0
 const TOPFLOOR = 3
 
 var SystemIpPort string = "15657"
+var BackupPort string = "23003"
 
 const SystemIpPortDefault = "15657"
-
+const BackupPortDefault = "23003"
 const AckHandlerPort = 26969
 const DisplayListenerPort = 28000
 

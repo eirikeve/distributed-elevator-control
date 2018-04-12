@@ -11,6 +11,11 @@ import (
 	nh "./nethandler"
 	sb "./sysbackup"
 	ss "./sysstate"
+<<<<<<< HEAD
+=======
+	re "./recover"
+	"fmt"
+>>>>>>> feature/reboot-backup
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,10 +33,6 @@ func main() {
 		}
 	}()*/
 
-	/*@SIM*/
-
-	/*@SIM*/
-
 	parseCmdLineArgs()
 	setupLog()
 	run()
@@ -42,6 +43,8 @@ func run() {
 	defer recoverIfPanic()
 	stopRunning := make(chan bool, 2)
 
+	re.StartSurveillanceOfPrimary()
+
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
@@ -51,7 +54,8 @@ func run() {
 	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
 	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)
 	elevStateToNetwork := make(chan et.Elevator, 12)
-
+	
+	
 	eh.StartElevatorHandler(ordersDelegatedFromNetwork,
 		buttonPressesToNetwork,
 		elevStateToNetwork)
