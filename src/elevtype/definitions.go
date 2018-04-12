@@ -22,7 +22,7 @@ const DisplayListenerPort = 28000
 
 const BackupRecoverInterval = -time.Second * 20
 
-const OrderTimeoutSeconds int64 = 5                  //seconds
+const OrderTimeoutSeconds int64 = 20                  //seconds
 const RedelegationTimeLimitFromOriginalRecv int64 = 0 // seconds
 const RedelegationTimeLimitFromOtherSys int64 = 5
 

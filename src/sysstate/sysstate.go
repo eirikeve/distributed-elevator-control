@@ -90,7 +90,7 @@ func GetUnsentLocalSystemOrders() []et.SimpleOrder {
 	// Get orders to removed from local elevator queue (due to redelegation after timeout)
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			if s.E.Orders[f][b].IsActive() && s.CurrentOrders[f][b].Assignee != LocalID {
+			if s.E.Orders[f][b].IsActive() && s.CurrentOrders[f][b].Assignee != LocalID && !(et.IsCabButton(s.E.Orders[f][b].Order)) {
 				o := s.E.Orders[f][b]
 				o.TagRemoveOrder = true
 				orders = append(orders, o)
