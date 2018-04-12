@@ -31,6 +31,7 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		elevator := &e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
+<<<<<<< HEAD
 	// If recovered from Backup, elevator is set to equal backUp data
 	if sb.IsInitializedFromBackup() && ss.SysIsInitialized() {
 		elevator = ss.GetLocalSystem().E
@@ -40,6 +41,11 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 
 		initialize()
 	}
+=======
+	timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
+	// Start by moving downwards
+	initialize()
+>>>>>>> feature/order-timeout
 }
 
 // Functions for running the local elevator
@@ -101,7 +107,7 @@ func RegisterFloor(floor int) {
 
 	switch elevator.State {
 	case et.Initializing:
-		//timer.Stop("Initialization") // No need to signal timeout, since we reached a floor
+		timer.Stop("Initialization") // No need to signal timeout, since we reached a floor
 		idle()
 	case et.Moving:
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
@@ -134,7 +140,7 @@ func RegisterTimerTimeout() {
 		case et.MD_Down: // normal initialization
 			setDir(et.MD_Up)
 			errorCount++
-			//timer.Start("InitializationRetry", initFailTimeout, doorTimeoutSignalOutput)
+			timer.Start("InitializationRetry", initFailTimeout, doorTimeoutSignalOutput)
 			log.Warning("elevfsm RegisterTimerTimeout: Retrying Init, moving up")
 
 		case et.MD_Up:
@@ -167,9 +173,9 @@ func PushOrderToQueue(order et.GeneralOrder) {
 		"button":          button,
 	}).Info("elevfsm PushOrderToQueue: Added to queue")
 }
-func RemOrderFromQueue(order et.ElevOrder) {
+func RemOrderFromQueue(order et.GeneralOrder) {
 	floor := order.GetFloor()
-	var button = int(order.GetButton())
+	button := int(order.GetButton())
 	elevator.Orders[floor][button] = et.SimpleOrder{} // Default ID is "" which evaluates to Empty
 }
 

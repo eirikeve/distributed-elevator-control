@@ -6,7 +6,10 @@ import (
 	network "../elevnetwork"
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
+<<<<<<< HEAD
 	log "github.com/sirupsen/logrus"
+=======
+>>>>>>> feature/order-timeout
 )
 
 var LocalIP string
@@ -101,23 +104,35 @@ func GetLocalSystem() et.ElevState {
 	return systems[LocalID]
 }
 
-func GetUnsentLocalSystemOrders() []et.ElevOrder {
-	var orders []et.ElevOrder
+func GetUnsentLocalSystemOrders() []et.SimpleOrder {
+	var orders []et.SimpleOrder
+	// Get new orders to delegate
 	s, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
 			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalID && !s.CurrentOrders[f][b].SentToAssigneeElevator {
-				orders = append(orders, s.CurrentOrders[f][b])
+				o := s.CurrentOrders[f][b].ToSimpleOrder()
+				orders = append(orders, o)
+			}
+		}
+	}
+	// Get orders to removed from local elevator queue (due to redelegation after timeout)
+	for f := 0; f < et.NumFloors; f++ {
+		for b := 0; b < et.NumButtons; b++ {
+			if s.E.Orders[f][b].IsActive() && s.CurrentOrders[f][b].Assignee != LocalID && !(et.IsCabButton(s.E.Orders[f][b].Order)) {
+				o := s.E.Orders[f][b]
+				o.TagRemoveOrder = true
+				orders = append(orders, o)
 			}
 		}
 	}
 	return orders
 }
 
-func MarkOrdersAsSent(orders []et.ElevOrder) {
+func MarkOrdersAsSent(orders []et.SimpleOrder) {
 	s, _ := systems[LocalID]
 	for _, order := range orders {
-		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.Id {
+		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.GetID() {
 			s.CurrentOrders[order.GetFloor()][int(order.GetButton())].SentToAssigneeElevator = true
 		}
 	}

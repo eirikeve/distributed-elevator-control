@@ -74,8 +74,11 @@ func Update(timerName string, newDuration time.Duration) {
 		// @TODO possible error here if c is non-existent due to some bug
 		//log.WithFields(log.Fields{"timerName": timerName, "duration": newDuration}).Debug("elevtimer Update: New duration")
 		//@BUG? Might get stuck here.
+		select {
+		case c <- newDuration:
+		default:
 
-		c <- newDuration
+		}
 
 	} else {
 		log.WithField("timerName", timerName).Error("elevtimer Update: Not found")

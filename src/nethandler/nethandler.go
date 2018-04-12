@@ -97,6 +97,9 @@ func netHandler(
 			ss.HandleRegularUpdate(remoteElevStateUpdate)
 		default:
 		}
+
+		ss.CheckForAndHandleOrderTimeouts()
+
 		// Send messages
 		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > netHandlerSendRegularUpdateFreq {
 			netHandlerSendRegularUpdateTimer = time.Now()
@@ -109,7 +112,7 @@ func netHandler(
 		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > netHandlerSendElevatorQueueFreq {
 			netHandlerSendElevatorQueueTimer = time.Now()
 			orders := ss.GetUnsentLocalSystemOrders()
-			var sentOrders []et.ElevOrder
+			var sentOrders []et.SimpleOrder
 			for _, order := range orders {
 				select {
 				case ordersDelegatedFromNetwork <- order:

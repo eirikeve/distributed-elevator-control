@@ -124,7 +124,7 @@ func handler(
 
 		// Receiving orders from the Network Handler
 		case o := <-ordersDelegatedFromNetwork:
-			fsm.PushOrderToQueue(o)
+			sendOrderToFSM(o)
 		// Checking floor, registering in FSM
 		case f := <-floorSensorOut:
 			if et.BOTTOMFLOOR <= f && f <= et.TOPFLOOR {
@@ -146,6 +146,14 @@ func handler(
 			log.Debug("elevhandler handler: Running")
 		}
 		//log.Error("elevhandler handler: Running")
+	}
+}
+
+func sendOrderToFSM(o et.GeneralOrder) {
+	if o.TagRemove() == true {
+		fsm.RemOrderFromQueue(o)
+	} else {
+		fsm.PushOrderToQueue(o)
 	}
 }
 
