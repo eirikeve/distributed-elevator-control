@@ -51,9 +51,7 @@ func setMotorDirection(dir et.MotorDirection) {
 	ioLock.Lock()
 	defer ioLock.Unlock()
 	ioConn.Write([]byte{1, byte(dir), 0, 0})
-	if dir == et.MD_Stop {
-		println("\n\n\n motor direction set \n\n\n")
-	}
+
 }
 
 func setButtonLamp(b et.ButtonLamp) {
