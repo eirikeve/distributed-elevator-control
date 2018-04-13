@@ -3,6 +3,7 @@ package nethandler
 import (
 	"time"
 
+	def "../elevdef"
 	network "../elevnetwork"
 	b "../elevnetwork/bcast"
 	eval "../elevorderevaluation"
@@ -45,8 +46,8 @@ func netHandler(
 	var sendRegularUpdates = make(chan et.ElevState, 12)
 	var recvRegularUpdates = make(chan et.ElevState, 12)
 
-	go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
-	go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
+	go b.Transmitter(def.AckHandlerPort, sendAckNack, sendRegularUpdates)
+	go b.Receiver(def.AckHandlerPort, recvAckNack, recvRegularUpdates)
 	// Start Heartbeat
 	go network.StartHeartBeat()
 	defer network.StopHeartBeat()

@@ -1,4 +1,4 @@
-package elevtype
+package elevdef
 
 import (
 	"time"
@@ -26,13 +26,3 @@ const BackupRecoverInterval = -time.Second * 20
 const OrderTimeoutSeconds int64 = 20                  //seconds
 const RedelegationTimeLimitFromOriginalRecv int64 = 0 // seconds
 const RedelegationTimeLimitFromOtherSys int64 = 5
-
-type MessageType int
-
-const (
-	MsgHeartbeat      MessageType = iota
-	MsgACK            MessageType = iota
-	MsgNACK           MessageType = iota
-	MsgRegularUpdates MessageType = iota
-	MsgUnknown        MessageType = iota
-)

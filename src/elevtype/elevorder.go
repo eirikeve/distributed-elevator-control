@@ -1,6 +1,8 @@
 package elevtype
 
 import "time"
+import locip "../elevnetwork/localip"
+import def "../elevdef"
 
 // OrderStatus is the current state of an elevator order
 type OrderStatus int
@@ -40,6 +42,7 @@ type SimpleOrder struct {
 	Id string
 	// Floor & order type
 	Order          ButtonEvent
+	IsLocalOrder   bool
 	TagRemoveOrder bool
 }
 
@@ -57,13 +60,16 @@ type GeneralOrder interface {
 	IsCabOrder() bool
 	TimeSinceTimeout() int64
 	TagRemove() bool
+	IsLocal() bool
 }
 
 func (o SimpleOrder) ToSimpleOrder() SimpleOrder {
 	return o
 }
 func (o ElevOrder) ToSimpleOrder() SimpleOrder {
-	return SimpleOrder{Id: o.Id, Order: o.Order}
+	localID, _ := locip.LocalID()
+
+	return SimpleOrder{Id: o.Id, Order: o.Order, TagRemoveOrder: false, IsLocalOrder: o.Assignee == localID}
 }
 
 //func (o SimpleOrder) IsSimpleOrder() bool {
@@ -113,7 +119,7 @@ func (o ElevOrder) IsCabOrder() bool        { return o.Order.Button == BT_Cab }
 func (o SimpleOrder) IsCabOrder() bool      { return o.Order.Button == BT_Cab }
 func (o ElevOrder) TimeSinceTimeout() int64 {
 	if !o.IsEmpty() {
-		return time.Now().Unix() - (o.TimestampReceived + OrderTimeoutSeconds)
+		return time.Now().Unix() - (o.TimestampReceived + def.OrderTimeoutSeconds)
 	}
 	return -1
 
@@ -123,6 +129,11 @@ func (o SimpleOrder) TimeSinceTimeout() int64 {
 }
 func (o ElevOrder) TagRemove() bool   { return false }
 func (o SimpleOrder) TagRemove() bool { return o.TagRemoveOrder }
+func (o ElevOrder) IsLocal() bool {
+	localID, _ := locip.LocalID()
+	return o.Assignee == localID
+}
+func (o SimpleOrder) IsLocal() bool { return o.IsLocalOrder }
 
 func EmptyOrder() ElevOrder {
 	return ElevOrder{

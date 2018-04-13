@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	def "../elevdef"
 	network "../elevnetwork"
 	et "../elevtype"
 	sb "../sysbackup"
@@ -151,8 +152,8 @@ func HandleRegularUpdate(es et.ElevState) {
 	systems[es.ID] = es
 	//localSys := systems[LocalIP]
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			/*if localSys.CurrentOrders[f][b].Id != "" || es.CurrentOrders[f][b].Id != "" {
 				log.WithFields(log.Fields{
 					"f":                       f,
@@ -181,8 +182,8 @@ func HandleRegularUpdate(es et.ElevState) {
 func CheckForAndHandleOrderTimeouts() {
 	sys := systems[LocalID]
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			o := sys.CurrentOrders[f][b]
 			if o.TimeSinceTimeout() > 0 {
 				handleSingleOrderTimeout(&sys, o)
@@ -197,7 +198,7 @@ func CheckForAndHandleOrderTimeouts() {
 func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 
 	//t := o.TimeSinceTimeout()
-	
+
 	// We haven't accepted the order, so we remove it from the queue.
 	if o.Status == et.Received {
 		empty(localSys, o)
@@ -240,8 +241,8 @@ func notifySystemOfBackup(es et.ElevState) {
 }
 
 func verifyOrderChangesOk(es et.ElevState, oldEs et.ElevState) bool {
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			// Only care about where orders may have been lost, so if there was no order in the old ElevState, skip
 			if !(oldEs.CurrentOrders[f][b].GetID() == "") {
 				// Check if IDs are different
@@ -297,8 +298,8 @@ func applyUpdatesToLocalSystem(es et.ElevState) {
 
 func mergeOrdersToLocalSystem(es et.ElevState) {
 	localSystem, _ := systems[LocalID]
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			o, err := updateSingleOrder(&es, localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
 			if err != nil {
 				//handle
@@ -345,6 +346,10 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 	var o et.ElevOrder
 	localSystem := systems[LocalID]
 
+	if !localOrder.SentToAssigneeElevator && remoteOrder.SentToAssigneeElevator {
+		remoteOrder.SentToAssigneeElevator = false
+	}
+
 	if localOrder.IsCabOrder() || remoteOrder.IsCabOrder() {
 		return localOrder, nil
 	}
@@ -355,7 +360,7 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
 		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
 		println("..end")
-	} else*/ if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
+	} else*/if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
 		remoteOrder.Order.Floor == 0 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
 		println("floor 0, hallup")
 		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
@@ -441,8 +446,8 @@ func addLocalAckToOrders() {
 	localSystem, _ := systems[LocalID]
 	activeSystems := network.GetSystemsInNetwork()
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			if localSystem.CurrentOrders[f][b].Id != "" {
 				alreadyRegistered := false
 				for _, ack := range localSystem.CurrentOrders[f][b].Acks {
@@ -465,8 +470,8 @@ func addLocalAckToOrders() {
 
 func applyRemoteOrderAckLogicalOR(es et.ElevState) {
 	localSystem := systems[LocalID]
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			if es.CurrentOrders[f][b].Id == localSystem.CurrentOrders[f][b].Id {
 				newAcks := getAcksOnlyRegisteredRemotely(localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
 				for _, ack := range newAcks {
@@ -507,8 +512,8 @@ func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []in
 
 func acceptOrdersWeCanGuarantee() {
 	localSystem, _ := systems[LocalID]
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			if localSystem.CurrentOrders[f][b].Status == et.Received &&
 				canGuaranteeOrderCompletion(localSystem.CurrentOrders[f][b]) {
 				log.WithField("o", localSystem.CurrentOrders[f][b]).Debug("sysstate acceptOrders: Can guarantee order; accepting")
@@ -526,8 +531,8 @@ func sendAckMessages() {
 func rejectOrder(orderID string) {
 	s, _ := systems[LocalID]
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			if s.CurrentOrders[f][b].GetID() == orderID && // Found order to reject
 				!s.CurrentOrders[f][b].IsAccepted() { // Only reject if we have not yet accepted!
 
@@ -582,8 +587,8 @@ func updateFinishedOrders() {
 	}
 	s, _ := systems[LocalID]
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			if s.CurrentOrders[f][b].Assignee == LocalID && // Check that this elevator is supposed to carry out the order
 				s.CurrentOrders[f][b].SentToAssigneeElevator && // Check that the order has been sent to the elevator FSM
 				s.CurrentOrders[f][b].IsAccepted() && // Check if the order has been accepted
@@ -617,8 +622,8 @@ func findOrder(orderID string) (et.ElevOrder, error) {
 	var o et.ElevOrder = et.EmptyOrder()
 	var err error
 	for _, system := range systems {
-		for f := 0; f < et.NumFloors; f++ {
-			for b := 0; b < et.NumButtons; b++ {
+		for f := 0; f < def.NumFloors; f++ {
+			for b := 0; b < def.NumButtons; b++ {
 				if system.CurrentOrders[f][b].Id == orderID {
 					if system.CurrentOrders[f][b].TimestampLastOrderStatusChange > o.TimestampLastOrderStatusChange {
 						o = system.CurrentOrders[f][b]

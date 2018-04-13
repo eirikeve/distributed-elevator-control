@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	et "../elevtype"
+	def "../elevdef"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,7 +57,7 @@ func runSurveillanceProcess() {
  */
 func surveillanceListenProcess(marktimeout chan int) {
 	missedMSG := 0
-	localUDPAddress, err := net.ResolveUDPAddr("udp", ":"+et.BackupPort)
+	localUDPAddress, err := net.ResolveUDPAddr("udp", ":"+def.BackupPort)
 	if err != nil {
 		log.WithField("Failed to Resolve UPD ADDR", err).Error("Reboot listenProcess")
 	}
@@ -96,7 +96,7 @@ func primaryBroadcastProcess() {
 
 	isAlive := true
 
-	remoteUDPAddress, err := net.ResolveUDPAddr("udp4", "127.0.0.1:"+et.BackupPort)
+	remoteUDPAddress, err := net.ResolveUDPAddr("udp4", "127.0.0.1:"+def.BackupPort)
 	if err != nil {
 		println(err.Error())
 	}
@@ -115,6 +115,6 @@ func spawnBackup() {
 
 	// For Ubuntu:
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "ElevatorServer")).Run()
-	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go setup.go -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
+	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go setup.go -port="+def.SystemIpPort+" -backupPort="+def.BackupPort)).Run()
 	log.Info("Secondary is created and is now surveillance!")
 }

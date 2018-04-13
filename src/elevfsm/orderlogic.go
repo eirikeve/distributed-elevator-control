@@ -1,14 +1,15 @@
 package elevfsm
 
 import (
+	def "../elevdef"
 	et "../elevtype"
 )
 
 func OrderLogicOrdersAbove(e et.Elevator) bool {
 	// @todo handle if floor is -1
-	for f := e.Floor + 1; f < et.NumFloors; f++ {
-		for btn := 0; btn < et.NumButtons; btn++ {
-			if e.Orders[f][btn].IsActive() {
+	for f := e.Floor + 1; f < def.NumFloors; f++ {
+		for btn := 0; btn < def.NumButtons; btn++ {
+			if e.Orders[f][btn].IsActive() && e.Orders[f][btn].IsLocal() {
 				return true
 			}
 		}
@@ -18,8 +19,8 @@ func OrderLogicOrdersAbove(e et.Elevator) bool {
 func OrderLogicOrdersBelow(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := 0; f < e.Floor; f++ {
-		for btn := 0; btn < et.NumButtons; btn++ {
-			if e.Orders[f][btn].IsActive() {
+		for btn := 0; btn < def.NumButtons; btn++ {
+			if e.Orders[f][btn].IsActive() && e.Orders[f][btn].IsLocal() {
 				return true
 			}
 		}
@@ -54,15 +55,15 @@ func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	switch e.MovementDirection {
 	case et.MD_Down:
-		if e.Orders[e.Floor][et.BT_HallDown].IsActive() ||
-			e.Orders[e.Floor][et.BT_Cab].IsActive() ||
+		if e.Orders[e.Floor][et.BT_HallDown].IsActive() && e.Orders[e.Floor][et.BT_HallDown].IsLocal() ||
+			e.Orders[e.Floor][et.BT_Cab].IsActive() && e.Orders[e.Floor][et.BT_Cab].IsLocal() ||
 			!OrderLogicOrdersBelow(e) {
 			return true
 		}
 		return false
 	case et.MD_Up:
-		if e.Orders[e.Floor][et.BT_HallUp].IsActive() ||
-			e.Orders[e.Floor][et.BT_Cab].IsActive() ||
+		if e.Orders[e.Floor][et.BT_HallUp].IsActive() && e.Orders[e.Floor][et.BT_HallUp].IsLocal() ||
+			e.Orders[e.Floor][et.BT_Cab].IsActive() && e.Orders[e.Floor][et.BT_Cab].IsLocal() ||
 			!OrderLogicOrdersAbove(e) {
 			return true
 		}
@@ -73,7 +74,7 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 		// [@TODO] log - this should probably not happen.
 		return true
 	}
-		
+
 }
 func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator {
 	//@TODO add support for storing finished orders in some list
@@ -82,22 +83,31 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 	e.Orders[e.Floor][et.BT_Cab] = et.SimpleOrder{}
 	switch travelDirFromFloor {
 	case et.MD_Up:
-		e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
+		if e.Orders[e.Floor][et.BT_HallUp].IsLocal() {
+			e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
+		}
 
-		if !OrderLogicOrdersAbove(e) {
+		if !OrderLogicOrdersAbove(e) && e.Orders[e.Floor][et.BT_HallDown].IsLocal() {
 			e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
 		}
 
 	case et.MD_Down:
-		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
-		if !OrderLogicOrdersBelow(e) {
+		if e.Orders[e.Floor][et.BT_HallDown].IsLocal() {
+			e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
+		}
+
+		if !OrderLogicOrdersBelow(e) && e.Orders[e.Floor][et.BT_HallUp].IsLocal() {
 			e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
 		}
 	case et.MD_Stop:
 		fallthrough
 	default:
-		e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
-		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
+		if e.Orders[e.Floor][et.BT_HallUp].IsLocal() {
+			e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
+		}
+		if e.Orders[e.Floor][et.BT_HallDown].IsLocal() {
+			e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
+		}
 	}
 	return e
 }

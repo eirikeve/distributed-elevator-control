@@ -1,5 +1,7 @@
 package elevtype
 
+import def "../elevdef"
+
 type ElevatorState int
 
 const (
@@ -22,7 +24,7 @@ type Elevator struct {
 	Floor               int
 	MovementDirection   MotorDirection
 	MovDirFromLastFloor MotorDirection
-	Orders              [NumFloors][NumButtons]SimpleOrder
+	Orders              [def.NumFloors][def.NumButtons]SimpleOrder
 	State               ElevatorState
 	ErrorState          ElevatorErrorState
 }

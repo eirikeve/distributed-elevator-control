@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	def "../elevdef"
 	fsm "../elevfsm"
 	loc "../elevnetwork/localip"
 	et "../elevtype"
@@ -126,9 +127,9 @@ func findMinIndex(list []int) int {
  */
 func printElevatorQueue(elev et.Elevator) {
 	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
-	for floor := 0; floor < et.NumFloors; floor++ {
+	for floor := 0; floor < def.NumFloors; floor++ {
 		fmt.Printf("Floor %v: \t  ", floor)
-		for button := 0; button < et.NumButtons; button++ {
+		for button := 0; button < def.NumButtons; button++ {
 			if elev.Orders[floor][button].IsActive() {
 				print("TRUE \t\t  ")
 			} else {

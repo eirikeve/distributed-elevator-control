@@ -11,6 +11,7 @@ import "net"
 import et "../elevtype"
 
 import log "github.com/sirupsen/logrus"
+import def "../elevdef"
 
 const _pollRate = 20 * time.Millisecond
 
@@ -31,7 +32,7 @@ func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
 	ioNumFloorsElevator = NumFloorsElevator
 	ioLock = sync.Mutex{}
 	var err error
-	ioConn, err = net.Dial("tcp", addr+":"+et.SystemIpPort)
+	ioConn, err = net.Dial("tcp", addr+":"+def.SystemIpPort)
 	if err != nil {
 		log.WithField("Err", err.Error()).Fatal("elevdriver initConnectionAndSetNumFloors: Cannot establish conn")
 	}

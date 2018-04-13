@@ -3,6 +3,7 @@ package sysstate
 import (
 	"time"
 
+	def "../elevdef"
 	network "../elevnetwork"
 	locIP "../elevnetwork/localip"
 	et "../elevtype"
@@ -16,7 +17,6 @@ var backInit = false
 
 //var systems map[string]et.ElevState
 var systems = make(map[int32]et.ElevState)
-var netstate et.NetState
 var acksForBroadcasting []et.AckNackMsg
 
 func SysIsInitialized() bool {
@@ -66,8 +66,8 @@ func SetSystemsStatesFromBackup(sys []et.ElevState) {
 	SetSystemsStates(sys)
 	// mark orders as not sent to elevator, so ensure that local orders are resent to the elevator immediately
 	for key, es := range systems {
-		for f := 0; f < et.NumFloors; f++ {
-			for b := 0; b < et.NumButtons; b++ {
+		for f := 0; f < def.NumFloors; f++ {
+			for b := 0; b < def.NumButtons; b++ {
 				if es.CurrentOrders[f][b].Id != "" {
 					es.CurrentOrders[f][b].SentToAssigneeElevator = false
 				}
@@ -103,20 +103,20 @@ func GetLocalSystem() et.ElevState {
 
 func GetUnsentLocalSystemOrders() []et.SimpleOrder {
 	var orders []et.SimpleOrder
-	// Get new orders to delegate
+	// Get orders to delegate
 	s, _ := systems[LocalID]
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
-			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalID && !s.CurrentOrders[f][b].SentToAssigneeElevator {
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
+			if s.CurrentOrders[f][b].IsAccepted() && !s.CurrentOrders[f][b].SentToAssigneeElevator {
 				o := s.CurrentOrders[f][b].ToSimpleOrder()
 				orders = append(orders, o)
 			}
 		}
 	}
-	// Get orders to removed from local elevator queue (due to redelegation after timeout)
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
-			if s.E.Orders[f][b].IsActive() && s.CurrentOrders[f][b].Assignee != LocalID && !(et.IsCabButton(s.E.Orders[f][b].Order)) {
+	// Get orders to remove from local elevator queue
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
+			if s.E.Orders[f][b].IsActive() && s.CurrentOrders[f][b].Id == "" && !(et.IsCabButton(s.E.Orders[f][b].Order)) {
 				o := s.E.Orders[f][b]
 				o.TagRemoveOrder = true
 				orders = append(orders, o)

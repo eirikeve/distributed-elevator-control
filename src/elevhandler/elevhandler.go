@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	def "../elevdef"
 	driver "../elevdriver"
 	fsm "../elevfsm"
 	et "../elevtype"
@@ -55,7 +56,7 @@ func handler(
 	floorSensorOut := make(chan int, 2)
 
 	driver.StartDriver(
-		et.NumFloors,
+		def.NumFloors,
 		motorDirectionInput,
 		buttonLampInput,
 		floorIndicatorInput,
@@ -100,8 +101,8 @@ func handler(
 			}
 
 			// Push button lamps
-			for i := 0; i < et.NumFloors; i++ {
-				for j := 0; j < et.NumButtons; j++ {
+			for i := 0; i < def.NumFloors; i++ {
+				for j := 0; j < def.NumButtons; j++ {
 					select {
 					// try to send buttonLamp inputs
 					case buttonLampInput <- buttonLamps[i][j]:
@@ -127,7 +128,7 @@ func handler(
 			sendOrderToFSM(o)
 		// Checking floor, registering in FSM
 		case f := <-floorSensorOut:
-			if et.BOTTOMFLOOR <= f && f <= et.TOPFLOOR {
+			if def.BOTTOMFLOOR <= f && f <= def.TOPFLOOR {
 				fsm.RegisterFloor(f)
 			}
 		// Checking timer timeout, registering in FSM

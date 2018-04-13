@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 
+	def "./elevdef"
 	el "./elevlog"
-	et "./elevtype"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,8 +29,8 @@ func parseCmdLineArgs() {
 		logLevel = log.FatalLevel
 		logToFileInsteadOfBash = false
 	}
-	et.SystemIpPort = *ipPort
-	et.BackupPort = *backupPort
+	def.SystemIpPort = *ipPort
+	def.BackupPort = *backupPort
 }
 
 func setupLog() {

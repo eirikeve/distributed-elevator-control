@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	def "./elevdef"
 	et "./elevtype"
 	nh "./nethandler"
 	re "./recover"
@@ -41,7 +42,7 @@ func run() {
 
 	re.StartSurveillanceOfPrimary()
 
-	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
+	systemStates, _ := sb.Recover(time.Now().Add(def.BackupRecoverInterval))
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
 	ss.SetSystemsStatesFromBackup(systemStates)

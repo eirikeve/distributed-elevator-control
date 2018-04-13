@@ -3,6 +3,7 @@ package elevfsm
 import (
 	"time"
 
+	def "../elevdef"
 	timer "../elevtimer"
 	et "../elevtype"
 	sb "../sysbackup"
@@ -21,7 +22,7 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	doorTimeoutSignalOutput = doorTimeoutSignal
 	if e == nil {
 		elevator = et.Elevator{
-			Floor:               et.BOTTOMFLOOR,
+			Floor:               def.BOTTOMFLOOR,
 			MovementDirection:   et.MD_Down,
 			MovDirFromLastFloor: et.MD_Down,
 			State:               et.Initializing,
@@ -48,10 +49,10 @@ func GetMovementDirection() elevtype.MotorDirection {
 	return OrderLogicGetMovementDirection(elevator)
 }
 */
-func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
-	var lights [et.NumFloors][et.NumButtons]et.ButtonLamp
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
+func GetPanelLights() [def.NumFloors][def.NumButtons]et.ButtonLamp {
+	var lights [def.NumFloors][def.NumButtons]et.ButtonLamp
+	for f := 0; f < def.NumFloors; f++ {
+		for b := 0; b < def.NumButtons; b++ {
 			// @TODO If order is nil this will not work //@BUG
 			// make a get function or something else that returns the value.
 			lights[f][b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: (elevator.Orders[f][b].GetID() != "")}
@@ -106,8 +107,8 @@ func RegisterFloor(floor int) {
 	case et.Moving:
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
 			unload()
-		} else if floor == et.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||
-			floor == et.TOPFLOOR && elevator.MovementDirection == et.MD_Up {
+		} else if floor == def.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||
+			floor == def.TOPFLOOR && elevator.MovementDirection == et.MD_Up {
 			idle()
 		}
 	case et.Unloading:
@@ -232,5 +233,5 @@ func updateFloor(floor int) {
 }
 
 func isValidFloor(floor int) bool {
-	return (0 <= floor && floor < et.NumFloors)
+	return (0 <= floor && floor < def.NumFloors)
 }

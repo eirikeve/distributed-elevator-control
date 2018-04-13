@@ -1,10 +1,11 @@
 package localip
 
 import (
-	et "../../elevtype"
 	"net"
 	"strconv"
 	"strings"
+
+	def "../../elevdef"
 )
 
 var localIP string
@@ -32,7 +33,7 @@ func LocalID() (int32, error) {
 			splitIP := strings.Split(localIP, ".")
 			v, _ := strconv.Atoi(splitIP[len(splitIP)-1])
 			localID = int32(v)
-			v2, _ := strconv.Atoi(et.SystemIpPort)
+			v2, _ := strconv.Atoi(def.SystemIpPort)
 			localID += int32(v2)
 
 			if localID == 0 {
@@ -48,5 +49,5 @@ func LocalIPWithPort() (string, error) {
 	if localIP == "" {
 		return "", err
 	}
-	return localIP + ":" + et.SystemIpPort, nil
+	return localIP + ":" + def.SystemIpPort, nil
 }
