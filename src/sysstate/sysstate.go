@@ -1,6 +1,7 @@
 package sysstate
 
 import (
+	"sync"
 	"time"
 
 	network "../elevnetwork"
@@ -13,6 +14,7 @@ var LocalIP string
 var LocalID int32
 var initialized = false
 var backInit = false
+var mutex = &sync.Mutex{}
 
 //var systems map[string]et.ElevState
 var systems = make(map[int32]et.ElevState)
@@ -36,30 +38,37 @@ func initSysState() {
 	LocalIP, _ = locIP.LocalIP()
 	LocalID, _ = locIP.LocalID()
 
+	mutex.Lock()
 	_, localSysExists := systems[LocalID]
 
 	if !localSysExists {
 		newElevState := et.ElevState{ID: LocalID, E: et.EmptyElevator(), StartupTime: time.Now().Unix()}
+
 		systems[LocalID] = newElevState
+
 	} else {
 		backInit = true
 	}
 
 	initialized = true
+	mutex.Unlock()
 
 	log.WithField("localID", LocalID).Warn("sysstate: Initialized")
 
 }
 
 func SetSystemsStates(sys []et.ElevState) {
+	mutex.Lock()
 	systems = make(map[int32]et.ElevState)
 	for _, system := range sys {
 		systems[system.ID] = system
 	}
+	mutex.Unlock()
 	// Initialize after the assignment since this guarantees local system being in systems after func call
 	if !initialized {
 		initSysState()
 	}
+
 }
 
 func SetSystemsStatesFromBackup(sys []et.ElevState) {
@@ -78,10 +87,12 @@ func SetSystemsStatesFromBackup(sys []et.ElevState) {
 }
 
 func GetSystemsStates() []et.ElevState {
+	mutex.Lock()
 	var sys []et.ElevState
 	for _, system := range systems {
 		sys = append(sys, system)
 	}
+	mutex.Unlock()
 	return sys
 }
 
@@ -98,7 +109,10 @@ func GetActiveSystemsStates() []et.ElevState {
 }
 
 func GetLocalSystem() et.ElevState {
-	return systems[LocalID]
+	mutex.Lock()
+	localSys := systems[LocalID]
+	mutex.Unlock()
+	return localSys
 }
 
 func GetUnsentLocalSystemOrders() []et.SimpleOrder {
