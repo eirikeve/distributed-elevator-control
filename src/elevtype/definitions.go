@@ -21,7 +21,7 @@ const BackupPortDefault = "23003"
 const AckHandlerPort = 26969
 const DisplayListenerPort = 28000
 
-const BackupRecoverInterval = -time.Second * 20
+const BackupRecoverInterval = -time.Second * 300
 
 const OrderTimeoutSeconds int64 = 20                  //seconds
 const RedelegationTimeLimitFromOriginalRecv int64 = 0 // seconds

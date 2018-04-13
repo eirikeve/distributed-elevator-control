@@ -51,6 +51,9 @@ func setMotorDirection(dir et.MotorDirection) {
 	ioLock.Lock()
 	defer ioLock.Unlock()
 	ioConn.Write([]byte{1, byte(dir), 0, 0})
+	if dir == et.MD_Stop {
+		println("\n\n\n motor direction set \n\n\n")
+	}
 }
 
 func setButtonLamp(b et.ButtonLamp) {
@@ -129,6 +132,7 @@ func pollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGro
 			time.Sleep(_pollRate)
 			v := getFloor()
 			if v != prev && v != -1 && 0 <= v && v < ioNumFloorsElevator {
+				println("\n\n\n Registered Floor \n\n\n")
 				receiver <- v
 			}
 			prev = v
@@ -142,13 +146,16 @@ func pollStopButton(receiver chan<- bool, shutdown <-chan bool, wg *sync.WaitGro
 	defer wg.Done()
 	prev := false
 	for {
+
 		select {
 		case _ = <-shutdown:
 			return
 		default:
 			time.Sleep(_pollRate)
+
 			v := getStop()
 			if v != prev {
+
 				receiver <- v
 			}
 			prev = v

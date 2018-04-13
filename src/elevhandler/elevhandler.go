@@ -52,7 +52,7 @@ func handler(
 	floorIndicatorInput := make(chan int, 2)
 	doorOpenLampInput := make(chan bool, 2)
 	//buttonPressSensorOut := elevToNetwork //make(chan et.ButtonEvent, 12)
-	floorSensorOut := make(chan int, 2)
+	floorSensorOut := make(chan int, 5)
 
 	driver.StartDriver(
 		et.NumFloors,
@@ -71,7 +71,7 @@ func handler(
 	//@TODO program loop
 	handlerDebugLogMsgTimer := time.Now()
 	handlerDebugLogMsgFreq := 2 * time.Second
-	sendFSMUpdatesFreq := 10 * time.Millisecond
+	sendFSMUpdatesFreq := 1 * time.Millisecond
 	sendFSMUpdatesTimer := time.Now()
 	//timer.StartDelayedFunction("ElevHandler Watchdog", time.Second*2, func() { panic("ElevHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevHandler Watchdog")
@@ -127,6 +127,7 @@ func handler(
 			sendOrderToFSM(o)
 		// Checking floor, registering in FSM
 		case f := <-floorSensorOut:
+			println("\n\n\n Reading floor \n\n\n")
 			if et.BOTTOMFLOOR <= f && f <= et.TOPFLOOR {
 				fsm.RegisterFloor(f)
 			}

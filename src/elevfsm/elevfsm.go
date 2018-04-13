@@ -104,6 +104,7 @@ func RegisterFloor(floor int) {
 		timer.Stop("Initialization") // No need to signal timeout, since we reached a floor
 		idle()
 	case et.Moving:
+
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
 			unload()
 		} else if floor == et.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||

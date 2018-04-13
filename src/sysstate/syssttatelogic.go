@@ -24,6 +24,7 @@ func UpdateLocalElevator(e *et.Elevator) {
 	system, _ := systems[LocalID]
 
 	system.E = *e
+
 	systems[LocalID] = system
 	updateFinishedOrders()
 }
@@ -197,7 +198,7 @@ func CheckForAndHandleOrderTimeouts() {
 func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 
 	//t := o.TimeSinceTimeout()
-	
+
 	// We haven't accepted the order, so we remove it from the queue.
 	if o.Status == et.Received {
 		empty(localSys, o)
@@ -355,7 +356,7 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
 		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
 		println("..end")
-	} else*/ if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
+	} else*/if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
 		remoteOrder.Order.Floor == 0 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
 		println("floor 0, hallup")
 		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
