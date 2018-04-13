@@ -61,7 +61,7 @@ func netHandler(
 	netHandlerAutoBackupFreq := 500 * time.Millisecond
 
 	netHandlerSendRegularUpdateTimer := time.Now()
-	netHandlerSendRegularUpdateFreq := 50 * time.Millisecond
+	netHandlerSendRegularUpdateFreq := 100 * time.Millisecond
 
 	netHandlerSendElevatorQueueTimer := time.Now()
 	netHandlerSendElevatorQueueFreq := 100 * time.Millisecond
