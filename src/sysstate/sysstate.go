@@ -120,6 +120,7 @@ func GetUnsentLocalSystemOrders() []et.SimpleOrder {
 				o := s.E.Orders[f][b]
 				o.TagRemoveOrder = true
 				orders = append(orders, o)
+				println("\n\n\n\n\n REMOVE ORDER \n\n\n\n")
 			}
 		}
 	}

@@ -28,6 +28,7 @@ func timeToIdle(elev et.Elevator) int {
 	case et.Idle:
 		elev.MovementDirection = fsm.OrderLogicGetMovementDirection(elev)
 		if elev.MovementDirection == et.MD_Stop {
+			println("\n\n et.MD_Stop \n\n")
 			return duration
 		}
 	case et.Moving:
@@ -149,7 +150,9 @@ func printElevatorQueue(elev et.Elevator) {
  */
 func insertElevatorOrder(elev et.Elevator, bEvent et.ButtonEvent) et.Elevator {
 	//'TODO make actual order id :)
-	order := et.SimpleOrder{Id: strconv.FormatInt(time.Now().Unix(), 16), Order: bEvent}
+	isLocal := true
+	removeTag := false
+	order := et.SimpleOrder{Id: strconv.FormatInt(time.Now().Unix(), 16), Order: bEvent, IsLocalOrder: isLocal, TagRemoveOrder: removeTag}
 	elev.Orders[order.Order.Floor][order.Order.Button] = order
 	return elev
 }

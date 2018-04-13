@@ -98,6 +98,7 @@ func handler(
 			case doorOpenLampInput <- doorOpenLamp:
 			case elevStateToNetwork <- elev:
 			default:
+
 			}
 
 			// Push button lamps
@@ -139,12 +140,16 @@ func handler(
 		// Pushing motor direction to Driver
 
 		default:
+
 			// // nothing
 		}
 
 		if time.Now().Sub(handlerDebugLogMsgTimer) > handlerDebugLogMsgFreq {
 			handlerDebugLogMsgTimer = time.Now()
 			log.Debug("elevhandler handler: Running")
+			/*if floor >= def.BOTTOMFLOOR && floor <= def.TOPFLOOR {
+				fsm.RegisterFloor(floor)
+			}*/
 		}
 		//log.Error("elevhandler handler: Running")
 	}

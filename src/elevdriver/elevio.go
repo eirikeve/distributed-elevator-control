@@ -4,14 +4,17 @@ package elevdriver
 Elevio contains io drivers from https://github.com/TTK4145/driver-go/blob/master/elevio/elevator_io.go
 */
 
-import "time"
-import "sync"
-import "net"
+import (
+	"net"
+	"sync"
+	"time"
 
-import et "../elevtype"
+	def "../elevdef"
 
-import log "github.com/sirupsen/logrus"
-import def "../elevdef"
+	et "../elevtype"
+
+	log "github.com/sirupsen/logrus"
+)
 
 const _pollRate = 20 * time.Millisecond
 
@@ -130,6 +133,7 @@ func pollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGro
 			time.Sleep(_pollRate)
 			v := getFloor()
 			if v != prev && v != -1 && 0 <= v && v < ioNumFloorsElevator {
+				println("\n\n pullFloor \n\n")
 				receiver <- v
 			}
 			prev = v

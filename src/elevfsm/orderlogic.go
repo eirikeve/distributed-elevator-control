@@ -113,7 +113,7 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 }
 
 func OrderLogicCheckIfRequestsAtCurrentFloor(elevator et.Elevator) bool {
-	return elevator.Orders[elevator.Floor][et.BT_HallDown].IsActive() ||
-		elevator.Orders[elevator.Floor][et.BT_Cab].IsActive() ||
-		elevator.Orders[elevator.Floor][et.BT_HallUp].IsActive()
+	return (elevator.Orders[elevator.Floor][et.BT_HallDown].IsActive() && elevator.Orders[elevator.Floor][et.BT_HallDown].IsLocal()) ||
+		(elevator.Orders[elevator.Floor][et.BT_Cab].IsActive() && elevator.Orders[elevator.Floor][et.BT_Cab].IsLocal()) ||
+		(elevator.Orders[elevator.Floor][et.BT_HallUp].IsActive() && elevator.Orders[elevator.Floor][et.BT_HallUp].IsLocal())
 }

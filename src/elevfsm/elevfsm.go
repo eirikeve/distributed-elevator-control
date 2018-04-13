@@ -106,13 +106,15 @@ func RegisterFloor(floor int) {
 		idle()
 	case et.Moving:
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
+			println("\n\n\n MOVING TO UNLOAD \n\n\n")
 			unload()
 		} else if floor == def.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||
 			floor == def.TOPFLOOR && elevator.MovementDirection == et.MD_Up {
 			idle()
 		}
 	case et.Unloading:
-		if OrderLogicCheckShouldStopAtFloor(elevator) { //@TODO is this sufficient?
+		if OrderLogicCheckIfRequestsAtCurrentFloor(elevator) { //@TODO is this sufficient?
+			println("\n\n\n UNLOAD TO UNLOAD \n\n\n")
 			unload()
 		}
 		return

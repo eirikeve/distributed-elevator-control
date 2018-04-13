@@ -419,7 +419,7 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 		}
 	} else {
 		// Same order ID
-		log.WithFields(log.Fields{"ID": localOrder.GetID()}).Info("sysstate updateSingleOrder: Matching IDs")
+		//log.WithFields(log.Fields{"ID": localOrder.GetID()}).Info("sysstate updateSingleOrder: Matching IDs")
 		if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
 			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
 				o = localOrder
