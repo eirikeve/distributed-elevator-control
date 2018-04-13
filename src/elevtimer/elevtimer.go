@@ -26,19 +26,21 @@ func Start(timerName string, duration time.Duration, signalTimeout chan bool) {
 	_, exists := timers[timerName]
 	if exists {
 		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Warning("elevtimer Start: Called start on existing timer, updating its duration instead")
-		// Unlocking and Locking here is due to the def Unlock() call
+		println("\n\n\n\n\n\n") // Unlocking and Locking here is due to the def Unlock() call
 		// Unlocking an unlocked mutex causes runtime error, so this is a workaround
 		// Deferring Update would make it be called before Unlock, so that wouldn't help either
-		lock.Unlock()
-		Update(timerName, duration)
-		lock.Lock()
 
-	} else {
-		// Make buffered durationUpdateChan, and link it to the timerName
-		timers[timerName] = make(chan time.Duration, 2)
-		go timerInstance(timerName, duration, signalTimeout, timers[timerName])
-		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Debug("elevtimer Start: Timer start")
+		//[@TODO @BUG the three following lines creates a bug]
+		//lock.Unlock()
+		//Update(timerName, duration)
+		//lock.Lock()
+
 	}
+	// Make buffered durationUpdateChan, and link it to the timerName
+	timers[timerName] = make(chan time.Duration, 2)
+	go timerInstance(timerName, duration, signalTimeout, timers[timerName])
+	log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Debug("elevtimer Start: Timer start")
+
 }
 
 func StartDelayedFunction(timerName string, duration time.Duration, onTimeout func()) {
@@ -50,6 +52,7 @@ func StartDelayedFunction(timerName string, duration time.Duration, onTimeout fu
 		// Unlocking and Locking here is due to the def Unlock() call
 		// Unlocking an unlocked mutex causes runtime error, so this is a workaround
 		// Deferring Update would make it be called before Unlock, so that wouldn't help either
+		println("\n\n\n TIMER EXSISTS \n\n\n")
 		lock.Unlock()
 		Update(timerName, duration)
 		lock.Lock()
