@@ -25,7 +25,7 @@ type Elevator struct {
 	Orders              [NumFloors][NumButtons]SimpleOrder
 	State               ElevatorState
 	ErrorState          ElevatorErrorState
-	FinishedOrderIDs    []string
+	FinishedOrders      []SimpleOrder
 }
 
 func EmptyElevator() Elevator {

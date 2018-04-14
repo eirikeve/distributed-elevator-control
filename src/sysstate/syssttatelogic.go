@@ -581,15 +581,12 @@ func updateFinishedOrders() {
 	s, _ := systems[LocalID]
 
 	// Match orders in CurrentOrders to orderIDs finished by the local elevator.
-	for _, finishedOrderID := range s.E.FinishedOrderIDs {
-		for f := 0; f < et.NumFloors; f++ {
-			for b := 0; b < et.NumButtons; b++ {
-				if !s.CurrentOrders[f][b].IsEmpty() &&
-					s.CurrentOrders[f][b].GetID() == finishedOrderID {
-					markOrderFinished(&s, f, b)
-					putOrderInFinishedOrdersList(&s, f, b)
-				}
-			}
+	for _, o := range s.E.FinishedOrders {
+		if !o.IsEmpty() &&
+			(s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].Id == o.Id ||
+				s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].Assignee == LocalID && s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].IsAccepted()) {
+			markOrderFinished(&s, o.Order.Floor, int(o.Order.Button))
+			putOrderInFinishedOrdersList(&s, o.Order.Floor, int(o.Order.Button))
 		}
 	}
 

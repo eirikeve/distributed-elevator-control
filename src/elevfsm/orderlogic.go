@@ -109,40 +109,40 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 /*Returns a slice containing order IDs of all orders that we have finished on this floor.
  *
  */
-func OrderLogicGetRequestsWeCanClearOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) []string {
-	var ordersWeFinish []string
+func OrderLogicGetRequestsWeCanClearOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) []et.SimpleOrder {
+	var ordersWeFinish []et.SimpleOrder
 
 	if e.Orders[e.Floor][et.BT_Cab].IsAccepted() {
-		ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_Cab].GetID())
+		ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_Cab])
 	}
 	switch travelDirFromFloor {
 	case et.MD_Up:
 		if e.Orders[e.Floor][et.BT_HallUp].IsAccepted() {
-			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp].GetID())
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp])
 		}
 
 		if !OrderLogicOrdersAbove(e) {
 			if e.Orders[e.Floor][et.BT_HallDown].IsAccepted() {
-				ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown].GetID())
+				ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown])
 			}
 		}
 	case et.MD_Down:
 		if e.Orders[e.Floor][et.BT_HallDown].IsAccepted() {
-			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown].GetID())
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown])
 		}
 		if !OrderLogicOrdersBelow(e) {
 			if e.Orders[e.Floor][et.BT_HallUp].IsAccepted() {
-				ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp].GetID())
+				ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp])
 			}
 		}
 	case et.MD_Stop:
 		fallthrough
 	default:
 		if e.Orders[e.Floor][et.BT_HallUp].IsAccepted() {
-			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp].GetID())
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp])
 		}
 		if e.Orders[e.Floor][et.BT_HallDown].IsAccepted() {
-			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown].GetID())
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown])
 		}
 	}
 	return ordersWeFinish

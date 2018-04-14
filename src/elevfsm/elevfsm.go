@@ -196,11 +196,12 @@ func unload() {
 	setState(et.Unloading)
 	setDir(et.MD_Stop)
 
-	elevator.FinishedOrderIDs = append(elevator.FinishedOrderIDs, OrderLogicGetRequestsWeCanClearOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)...)
+	elevator.FinishedOrders = append(elevator.FinishedOrders, OrderLogicGetRequestsWeCanClearOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)...)
 	// Keep the list from growing too large. Since it is sent very regularly (each 1ms), this will almost certainly not result in lost IDs.
-	if len(elevator.FinishedOrderIDs) > 20 {
+	if len(elevator.FinishedOrders) > 20 {
 		// May be a bug here
-		elevator.FinishedOrderIDs = append(elevator.FinishedOrderIDs, elevator.FinishedOrderIDs[(len(elevator.FinishedOrderIDs)-20):]...)
+
+		elevator.FinishedOrders = append(elevator.FinishedOrders, elevator.FinishedOrders[(len(elevator.FinishedOrders)-20):]...)
 	}
 	//newMovementDir := OrderLogicGetMovementDirection(elevator)
 
