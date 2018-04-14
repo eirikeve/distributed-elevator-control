@@ -157,3 +157,14 @@ func GetSystemElevators() []et.Elevator {
 	}
 	return elevList
 }
+
+func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
+	s, _ := systems[LocalID]
+	var lights [et.NumFloors][et.NumButtons]et.ButtonLamp
+	for f := 0; f < et.NumFloors; f++ {
+		for b := 0; b < et.NumButtons; b++ {
+			lights[f][b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: s.CurrentOrders[f][b].IsAccepted()}
+		}
+	}
+	return lights
+}
