@@ -156,17 +156,8 @@ func RegisterTimerTimeout() {
 }
 
 // Functions used when interfacing with elevNetworkHandler
-func PushOrderToQueue(order et.GeneralOrder) {
-	floor := order.GetFloor()
-	var button = int(order.GetButton())
-	elevator.Orders[floor][button] = order.ToSimpleOrder()
-	// Need some logic here! @TODO
-	log.WithField("btnEvent", order.GetOrder()).Info("elevfsm PushOrderToQueue: Recv")
-	log.WithFields(log.Fields{
-		"registeredOrder": elevator.Orders[floor][button],
-		"floor":           floor,
-		"button":          button,
-	}).Info("elevfsm PushOrderToQueue: Added to queue")
+func PushQueue(orders [et.NumFloors][et.NumButtons]et.SimpleOrder) {
+	elevator.Orders = orders
 }
 func RemOrderFromQueue(order et.GeneralOrder) {
 	floor := order.GetFloor()
@@ -204,9 +195,14 @@ func unload() {
 	timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
 	setState(et.Unloading)
 	setDir(et.MD_Stop)
-	elevator = OrderLogicClearRequestsOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)
+
+	elevator.FinishedOrderIDs = append(elevator.FinishedOrderIDs, OrderLogicGetRequestsWeCanClearOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)...)
+	// Keep the list from growing too large. Since it is sent very regularly (each 1ms), this will almost certainly not result in lost IDs.
+	if len(elevator.FinishedOrderIDs) > 20 {
+		// May be a bug here
+		elevator.FinishedOrderIDs = append(elevator.FinishedOrderIDs, elevator.FinishedOrderIDs[(len(elevator.FinishedOrderIDs)-20):]...)
+	}
 	//newMovementDir := OrderLogicGetMovementDirection(elevator)
-	// @TODO maybe rewrite this so that we don't need to reassign elevator.
 
 }
 

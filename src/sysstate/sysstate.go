@@ -115,25 +115,15 @@ func GetLocalSystem() et.ElevState {
 	return localSys
 }
 
-func GetUnsentLocalSystemOrders() []et.SimpleOrder {
-	var orders []et.SimpleOrder
+func GetLocalSystemOrders() [et.NumFloors][et.NumButtons]et.SimpleOrder {
+	var orders [et.NumFloors][et.NumButtons]et.SimpleOrder
 	// Get new orders to delegate
 	s, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalID && !s.CurrentOrders[f][b].SentToAssigneeElevator {
+			if s.CurrentOrders[f][b].IsAccepted() && s.CurrentOrders[f][b].Assignee == LocalID {
 				o := s.CurrentOrders[f][b].ToSimpleOrder()
-				orders = append(orders, o)
-			}
-		}
-	}
-	// Get orders to removed from local elevator queue (due to redelegation after timeout)
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
-			if s.E.Orders[f][b].IsActive() && s.CurrentOrders[f][b].Assignee != LocalID && !(et.IsCabButton(s.E.Orders[f][b].Order)) {
-				o := s.E.Orders[f][b]
-				o.TagRemoveOrder = true
-				orders = append(orders, o)
+				orders[f][b] = o
 			}
 		}
 	}

@@ -73,8 +73,12 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 		// [@TODO] log - this should probably not happen.
 		return true
 	}
-		
+
 }
+
+/*
+FOLLOWING FN IS NOT USED IN THIS BRANCH. SEE FN
+*/
 func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator {
 	//@TODO add support for storing finished orders in some list
 	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
@@ -100,6 +104,48 @@ func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.
 		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
 	}
 	return e
+}
+
+/*Returns a slice containing order IDs of all orders that we have finished on this floor.
+ *
+ */
+func OrderLogicGetRequestsWeCanClearOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) []string {
+	var ordersWeFinish []string
+
+	if e.Orders[e.Floor][et.BT_Cab].IsAccepted() {
+		ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_Cab].GetID())
+	}
+	switch travelDirFromFloor {
+	case et.MD_Up:
+		if e.Orders[e.Floor][et.BT_HallUp].IsAccepted() {
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp].GetID())
+		}
+
+		if !OrderLogicOrdersAbove(e) {
+			if e.Orders[e.Floor][et.BT_HallDown].IsAccepted() {
+				ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown].GetID())
+			}
+		}
+	case et.MD_Down:
+		if e.Orders[e.Floor][et.BT_HallDown].IsAccepted() {
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown].GetID())
+		}
+		if !OrderLogicOrdersBelow(e) {
+			if e.Orders[e.Floor][et.BT_HallUp].IsAccepted() {
+				ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp].GetID())
+			}
+		}
+	case et.MD_Stop:
+		fallthrough
+	default:
+		if e.Orders[e.Floor][et.BT_HallUp].IsAccepted() {
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallUp].GetID())
+		}
+		if e.Orders[e.Floor][et.BT_HallDown].IsAccepted() {
+			ordersWeFinish = append(ordersWeFinish, e.Orders[e.Floor][et.BT_HallDown].GetID())
+		}
+	}
+	return ordersWeFinish
 }
 
 func OrderLogicCheckIfRequestsAtCurrentFloor(elevator et.Elevator) bool {

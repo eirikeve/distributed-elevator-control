@@ -14,7 +14,7 @@ var signalHandlerToStop chan bool
 var fsmTimeoutSignal chan bool
 
 func StartElevatorHandler(
-	ordersDelegatedFromNetwork <-chan et.GeneralOrder,
+	ordersDelegatedFromNetwork <-chan [et.NumFloors][et.NumButtons]et.SimpleOrder,
 	buttonPressesToNetwork chan<- et.ButtonEvent,
 	elevStateToNetwork chan<- et.Elevator,
 ) {
@@ -26,7 +26,8 @@ func StartElevatorHandler(
 	go handler(signalHandlerToStop,
 		ordersDelegatedFromNetwork,
 		buttonPressesToNetwork,
-		elevStateToNetwork)
+		elevStateToNetwork,
+	)
 
 	log.Error("elevhandler StartElevatorHandler: Started")
 
@@ -42,9 +43,10 @@ func StopElevatorHandler() {
 
 func handler(
 	signalHandlerToStop <-chan bool,
-	ordersDelegatedFromNetwork <-chan et.GeneralOrder,
+	ordersDelegatedFromNetwork <-chan [et.NumFloors][et.NumButtons]et.SimpleOrder,
 	buttonPressesToNetwork chan<- et.ButtonEvent,
-	elevStateToNetwork chan<- et.Elevator) {
+	elevStateToNetwork chan<- et.Elevator,
+) {
 	log.Debug("elevhandler handler: Starting")
 
 	motorDirectionInput := make(chan et.MotorDirection, 2)
@@ -124,7 +126,7 @@ func handler(
 
 		// Receiving orders from the Network Handler
 		case o := <-ordersDelegatedFromNetwork:
-			sendOrderToFSM(o)
+			fsm.PushQueue(o)
 		// Checking floor, registering in FSM
 		case f := <-floorSensorOut:
 			println("\n\n\n Reading floor \n\n\n")
@@ -147,14 +149,6 @@ func handler(
 			log.Debug("elevhandler handler: Running")
 		}
 		//log.Error("elevhandler handler: Running")
-	}
-}
-
-func sendOrderToFSM(o et.GeneralOrder) {
-	if o.TagRemove() == true {
-		fsm.RemOrderFromQueue(o)
-	} else {
-		fsm.PushOrderToQueue(o)
 	}
 }
 

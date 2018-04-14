@@ -578,22 +578,21 @@ func countOrderOccurrencesInSystems(o et.ElevOrder) int {
  * these orders are marked as status Finished and moved to the FinishedOrderList of the local system.
  */
 func updateFinishedOrders() {
-	if !initialized {
-		initSysState()
-	}
 	s, _ := systems[LocalID]
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
-			if s.CurrentOrders[f][b].Assignee == LocalID && // Check that this elevator is supposed to carry out the order
-				s.CurrentOrders[f][b].SentToAssigneeElevator && // Check that the order has been sent to the elevator FSM
-				s.CurrentOrders[f][b].IsAccepted() && // Check if the order has been accepted
-				s.E.Orders[f][b].IsEmpty() { // Check that the elevator FSM has carried out the order
-				markOrderFinished(&s, f, b)
-				putOrderInFinishedOrdersList(&s, f, b)
+	// Match orders in CurrentOrders to orderIDs finished by the local elevator.
+	for _, finishedOrderID := range s.E.FinishedOrderIDs {
+		for f := 0; f < et.NumFloors; f++ {
+			for b := 0; b < et.NumButtons; b++ {
+				if !s.CurrentOrders[f][b].IsEmpty() &&
+					s.CurrentOrders[f][b].GetID() == finishedOrderID {
+					markOrderFinished(&s, f, b)
+					putOrderInFinishedOrdersList(&s, f, b)
+				}
 			}
 		}
 	}
+
 	systems[LocalID] = s
 
 }

@@ -15,7 +15,7 @@ import (
 var signalNetHandlerToStop chan bool
 
 func StartNetHandler(
-	ordersDelegatedFromNetwork chan<- et.GeneralOrder,
+	ordersDelegatedFromNetwork chan<- [et.NumFloors][et.NumButtons]et.SimpleOrder,
 	buttonPressesToNetwork <-chan et.ButtonEvent,
 	elevStateToNetwork <-chan et.Elevator,
 ) {
@@ -35,7 +35,7 @@ func StopNetHandler() {
 
 func netHandler(
 	signalNetHandlerToStop <-chan bool,
-	ordersDelegatedFromNetwork chan<- et.GeneralOrder,
+	ordersDelegatedFromNetwork chan<- [et.NumFloors][et.NumButtons]et.SimpleOrder,
 	buttonPressesToNetwork <-chan et.ButtonEvent,
 	elevStateToNetwork <-chan et.Elevator,
 ) {
@@ -111,18 +111,14 @@ func netHandler(
 		}
 		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > netHandlerSendElevatorQueueFreq {
 			netHandlerSendElevatorQueueTimer = time.Now()
-			orders := ss.GetUnsentLocalSystemOrders()
-			var sentOrders []et.SimpleOrder
-			for _, order := range orders {
-				select {
-				case ordersDelegatedFromNetwork <- order:
-					sentOrders = append(sentOrders, order)
-					log.WithField("order", order).Debug("nethandler Handler: sent order to elevator")
-				default:
-					log.WithField("order", order).Warn("nethandler Handler: failed to send")
-				}
+			orders := ss.GetLocalSystemOrders()
+			select {
+			case ordersDelegatedFromNetwork <- orders:
+			default:
+				log.Warn("nethandler Handler: failed to send order queue to elevator")
 			}
-			ss.MarkOrdersAsSent(sentOrders)
+			// There maay be a bug due to this not being called for sent orders, but I don't think so.
+			//ss.MarkOrdersAsSent(sentOrders)
 
 		}
 

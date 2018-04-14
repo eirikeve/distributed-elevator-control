@@ -47,7 +47,7 @@ func run() {
 	ss.SetSystemsStatesFromBackup(systemStates)
 	log.WithField("states", ss.GetLocalSystem().CurrentOrders).Debug("main run: Done w/ setup of sysstates")
 
-	ordersDelegatedFromNetwork := make(chan et.GeneralOrder, 12)
+	ordersDelegatedFromNetwork := make(chan [et.NumFloors][et.NumButtons]et.SimpleOrder, 12)
 	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)
 	elevStateToNetwork := make(chan et.Elevator, 12)
 
