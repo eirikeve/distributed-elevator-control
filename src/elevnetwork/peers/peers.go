@@ -11,9 +11,20 @@ import (
 	"../conn"
 )
 
+/*
+ * Contains functionality for broadcasting a unique ID over a peer channel
+ * to update exsisting peers
+ */
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
 const interval = 5 * time.Millisecond
 const timeout = 20 * interval
 
+////////////////////////////////
+// Interface
+////////////////////////////////
 func Transmitter(port int, id string, transmitEnable <-chan bool) {
 
 	conn := conn.DialBroadcastUDP(port)

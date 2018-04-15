@@ -193,8 +193,8 @@ func GetElevator() et.Elevator {
 	return elevator
 }
 
-/*
- * @TODO
+/*MarkElevatorSentTONetHandler (.)Marks that the elevator was successfully passed to the chan to nethandler.
+ *Avoids duplicate registrations of finished orders.
  */
 func MarkElevatorSentToNetHandler() {
 	elevator.FinishedOrders = nil
@@ -272,7 +272,7 @@ func idle() {
 	setState(et.Idle)
 }
 
-/* move (.)  Changes the elevator state to Moving, unless given direction is stop. Then the elevator
+/*move (.)  Changes the elevator state to Moving, unless given direction is stop. Then the elevator
  * will enter state Idle.
  * @arg dir: If dir equal stop go to idle, else movement direction is sat to dir
  */
@@ -287,15 +287,17 @@ func move(dir et.MotorDirection) {
 
 }
 
+/*updateFloor (.) Updates current elevator floor,
+ * and sets lastRegistered floor
+ */
 func updateFloor(floor int) {
 	lastRegisteredFloor = elevator.Floor
 	elevator.Floor = floor
 }
 
+/*isValidFloor (.) inserts a floor and returns
+ * true if it is within valid floors, else returns false.
+ */
 func isValidFloor(floor int) bool {
 	return (0 <= floor && floor < et.NumFloors)
 }
-
-/*Mark that the elevator was successfully passed to the chan to nethandler.
- *Avoids duplicate registrations of finished orders.
- */

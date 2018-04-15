@@ -13,6 +13,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+ * Contains functionality for transmitting and receiving information through channels
+ */
+
+////////////////////////////////
+// Interface
+////////////////////////////////
+
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
 // it on `port`
 func Transmitter(port int, chans ...interface{}) {
@@ -76,6 +84,10 @@ func Receiver(port int, chans ...interface{}) {
 
 	}
 }
+
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
 
 // Checks that args to Tx'er/Rx'er are valid:
 //  All args must be channels

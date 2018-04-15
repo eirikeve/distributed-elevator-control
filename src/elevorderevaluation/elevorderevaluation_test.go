@@ -167,3 +167,22 @@ func setElevatorOrder(elev et.Elevator, floor int, button et.ButtonType, ID stri
 	elev.Orders[floor][button] = et.SimpleOrder{ID, bEvent}
 	return elev
 }
+
+/*printElevatorQueue (.) prints the Elevator Queue represented by
+ * true or false on the corresponding button position.
+ * @arg: An Elevator containg the Elevator Queue
+ */
+func printElevatorQueue(elev et.Elevator) {
+	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
+	for floor := 0; floor < et.NumFloors; floor++ {
+		fmt.Printf("Floor %v: \t  ", floor)
+		for button := 0; button < et.NumButtons; button++ {
+			if elev.Orders[floor][button].IsActive() {
+				print("TRUE \t\t  ")
+			} else {
+				print("FALSE \t  ")
+			}
+		}
+		print("\n")
+	}
+}

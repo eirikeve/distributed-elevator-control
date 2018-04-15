@@ -1,7 +1,6 @@
 package elevhandler
 
 import (
-	"errors"
 	"time"
 
 	driver "../elevdriver"
@@ -10,9 +9,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+ * Module for communication between the network system and the local system.
+ * Sends updates from the local modules to the network, while receiving updates from the network and
+ * distributes that information to the other local system modules.
+ */
+
+////////////////////////////////
+// Module varibles
+////////////////////////////////
 var signalHandlerToStop chan bool
 var fsmTimeoutSignal chan bool
 
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*StartElevatorHandler (.) initializes the FSM, module variables and starts the
+ * handler itself.
+
+ * @arg orderQueueFromNetHandler: Input channel, receiving order queue from the nethandler
+ * @arg buttonLightsFromNethandler: Input channel, receiving the entire systems active orders, used to set button lights
+ * @arg buttonPressesToNethandler: Output channel, sending registered buttonPresses to nethandler, used for setting orders
+ * @arg elevatorFSMToNethandler: Output channel,sending finished orders from to the Nethandler
+ */
 func StartElevatorHandler(
 	orderQueueFromNethandler <-chan [et.NumFloors][et.NumButtons]et.SimpleOrder,
 	buttonLightsFromNethandler <-chan et.ButtonLamp,
@@ -20,10 +40,11 @@ func StartElevatorHandler(
 	elevatorFSMToNethandler chan<- et.Elevator,
 ) {
 	log.Info("elevhandler StartElevatorHandler: Starting")
-
 	signalHandlerToStop = make(chan bool, 2)
 	fsmTimeoutSignal = make(chan bool, 2)
+
 	fsm.InitFSM(fsmTimeoutSignal, nil)
+
 	go handler(signalHandlerToStop,
 		orderQueueFromNethandler,
 		buttonLightsFromNethandler,
@@ -34,6 +55,9 @@ func StartElevatorHandler(
 
 }
 
+/*StopElevatorHandler (.) is called to signal the Handler
+ * to stop, buy writing true to signalHandlerToStop channel
+ */
 func StopElevatorHandler() {
 	log.Info("elevhandler StopElevatorHandler: Stopping")
 	signalHandlerToStop <- true
@@ -41,6 +65,18 @@ func StopElevatorHandler() {
 	return
 }
 
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
+
+/*handler (.) starts the elevdriver, then starts running the FSM while receiving and sending updates to the
+ * nethandler by communicating with the channel parameters.
+
+ * @arg orderQueueFromNetHandler: Input channel, receiving order queue from the nethandler
+ * @arg buttonLightsFromNethandler: Input channel, receiving the entire systems active orders, used to set button lights
+ * @arg buttonPressesToNethandler: Output channel, sending registered buttonPresses to nethandler, used for setting orders
+ * @arg elevatorFSMToNethandler: Output channel, sending finished orders from to the Nethandler
+ */
 func handler(
 	signalHandlerToStop <-chan bool,
 	orderQueueFromNethandler <-chan [et.NumFloors][et.NumButtons]et.SimpleOrder,
@@ -132,8 +168,4 @@ func handler(
 			log.Debug("elevhandler handler: Running")
 		}
 	}
-}
-
-func getElevatorBackup() (*et.Elevator, error) {
-	return nil, errors.New("Backup not yet implemented")
 }
