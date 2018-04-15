@@ -49,46 +49,16 @@ func PushButtonEvent(assigneeSysID int32, btn et.ButtonEvent) {
 		Status:            et.Received,
 		TimestampLastOrderStatusChange: t,
 		Assignee:                       assigneeSysID,
-		SentToAssigneeElevator:         false,
+		CountTimesTimeout:              0,
 	}
 
 	// Ignore orders for floor/btn combinations which are already Received/Accepted.
 	if !isOrderAlreadyActive(btn) {
 		// Due to sysbackup we don't lose orders even in case of shutdowns. So we always accept cab orders.
 		if o.IsCabOrder() {
-			o.Status = et.Accepted
-			o.Acks = append(o.Acks, LocalID)
-			o.Assignee = LocalID
-			o.TimestampLastOrderStatusChange = time.Now().Unix()
-
-			system, _ := systems[LocalID]
-			system.CurrentOrders[btn.Floor][int(btn.Button)] = o
-			systems[LocalID] = system
-
-			sb.Backup(GetSystemsStates())
-
+			pushCabOrder(o)
 		} else {
-			// For hall orders, we need redundancy in order to accept orders.
-			activeSystems := network.GetSystemsInNetwork()
-
-			if len(activeSystems) < 2 {
-				log.Debug("sysstate Push: Order rejected. Cannot guarantee completion")
-				return
-			}
-
-			o.Acks = append(o.Acks, LocalID)
-
-			// Verify that the system the order is assigned to exists
-			_, ok := systems[assigneeSysID]
-			// The order is saved in the currentOrders of the local elevator (but with assigneeSysID as the assignee)
-			system, _ := systems[LocalID]
-			if ok {
-				system.CurrentOrders[btn.Floor][int(btn.Button)] = o
-				systems[LocalID] = system
-				log.WithField("o", o).Debug("sysstate Update: Set received order")
-			} else {
-				log.WithField("sysID", assigneeSysID).Error("sysstate Push: Order assigned to unknown system")
-			}
+			pushHallOrder(o)
 		}
 
 	}
@@ -147,6 +117,59 @@ func CheckForAndHandleOrderTimeouts() {
 // Auxiliary functions
 ////////////////////////////////
 
+/*pushCabOrder pushes an cab order to the queue (as Accepted) as long as we believe we can finish it.
+ * If we have several timeouts in the current cab orders, then the elevator might be malfunctioning.
+ * In that case, we will not accept the order.
+ * @arg o: A cab order
+ */
+func pushCabOrder(o et.ElevOrder) {
+	c := countTimeoutsOfCabOrders()
+	if c <= et.MaxAcceptableCountCabTimeouts {
+		o.Status = et.Accepted
+		o.Acks = append(o.Acks, LocalID)
+		o.Assignee = LocalID
+		o.TimestampLastOrderStatusChange = time.Now().Unix()
+
+		system, _ := systems[LocalID]
+		system.CurrentOrders[o.Order.Floor][int(o.Order.Button)] = o
+		systems[LocalID] = system
+
+		sb.Backup(GetSystemsStates())
+		log.WithField("o", o).Debug("sysstate Update: Accepted cab order")
+	} else {
+		log.WithField("countTimeoutsOfCabOrders", c).Warn("sysstate Push: Rejected cab order due to many timeouts in current cab orders. Retry after they are Finished.")
+	}
+
+}
+
+/*pushHallOrder pushes a hall order to the queue (only as Received) as long as there are other systems in the network.
+ * Note that the order will not be Accepted (and thus carried out) before it is acknowledged by at least 1 other system
+ * @arg o: A hall order
+ */
+func pushHallOrder(o et.ElevOrder) {
+	// For hall orders, we need redundancy in order to accept orders.
+	activeSystems := network.GetSystemsInNetwork()
+
+	if len(activeSystems) < 2 {
+		log.Warn("sysstate Push: Order rejected. Cannot guarantee completion due to few active systems")
+		return
+	}
+
+	o.Acks = append(o.Acks, LocalID)
+
+	// Verify that the system the order is assigned to exists
+	_, ok := systems[o.Assignee]
+	// The order is saved in the currentOrders of the local elevator (but with assigneeSysID as the assignee)
+	system, _ := systems[LocalID]
+	if ok {
+		system.CurrentOrders[o.Order.Floor][int(o.Order.Button)] = o
+		systems[LocalID] = system
+		log.WithField("o", o).Debug("sysstate Update: Set received order")
+	} else {
+		log.WithField("sysID", o.Assignee).Error("sysstate Push: Order ignored due to unknown assignee")
+	}
+}
+
 /*handleSingleOrderTimeout is used to redelegate orders when they time out.
  * Non-accepted orders are simply rejected (deleted).
  * For accepted orders, new assignee is chosen from the list of elevators which have ACK'd it.
@@ -159,6 +182,9 @@ func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 		empty(localSys, o)
 		// We have accepted the order, so we redelegate it to the next system which has ACK'd it
 	} else if o.Status == et.Accepted {
+
+		o.CountTimesTimeout += 1
+
 		if len(o.Acks) > 0 {
 			indexOfNewAssignee := 0
 			for index, sysID := range o.Acks {
@@ -596,6 +622,17 @@ func isOrderAlreadyActive(btn et.ButtonEvent) bool {
 	return false
 }
 
+/*countTimeoutsOfCabOrders returns the sum of the # of timouts of current local cab orders
+ */
+func countTimeoutsOfCabOrders() int {
+	localSys := systems[LocalID]
+	count := 0
+	for f := 0; f < et.NumFloors; f++ {
+		count += localSys.CurrentOrders[f][int(et.BT_Cab)].CountTimesTimeout
+	}
+	return count
+}
+
 /*accept registers an order as accepted.
  */
 func accept(localSys *et.ElevState, o et.ElevOrder) {
@@ -613,7 +650,6 @@ func empty(localSys *et.ElevState, o et.ElevOrder) {
  */
 func redelegate(localSys *et.ElevState, o et.ElevOrder, newAssignee int32) {
 	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Assignee = newAssignee
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].SentToAssigneeElevator = false
 	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
 	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampReceived = time.Now().Unix()
 }

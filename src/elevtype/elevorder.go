@@ -31,7 +31,7 @@ type ElevOrder struct {
 	//List over IDs of elevators which have acknowledged this order
 	Acks []int32 `json: "Acks"`
 	// Marks whether the order has been sent to the Assignee local elevator queue (to the FSM queue)
-	SentToAssigneeElevator bool `json: "sent"`
+	CountTimesTimeout int `json: "countTimeout"`
 }
 
 type SimpleOrder struct {
@@ -124,6 +124,6 @@ func EmptyOrder() ElevOrder {
 		Status:            Unknown,
 		TimestampLastOrderStatusChange: 0,
 		Assignee:                       -1,
-		SentToAssigneeElevator:         false,
+		CountTimesTimeout:              0,
 	}
 }

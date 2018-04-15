@@ -23,9 +23,8 @@ const DisplayListenerPort = 28000
 
 const BackupRecoverInterval = -time.Second * 300
 
-const OrderTimeoutSeconds int64 = 20                  //seconds
-const RedelegationTimeLimitFromOriginalRecv int64 = 0 // seconds
-const RedelegationTimeLimitFromOtherSys int64 = 5
+const OrderTimeoutSeconds int64 = 20        //seconds
+const MaxAcceptableCountCabTimeouts int = 1 // total number of timeouts in current local cab orders
 
 type MessageType int
 
