@@ -47,16 +47,19 @@ func run() {
 	ss.SetSystemsStatesFromBackup(systemStates)
 	log.WithField("states", ss.GetLocalSystem().CurrentOrders).Debug("main run: Done w/ setup of sysstates")
 
-	ordersDelegatedFromNetwork := make(chan [et.NumFloors][et.NumButtons]et.SimpleOrder, 12)
-	buttonPressesToNetwork := make(chan et.ButtonEvent, 12)
-	elevStateToNetwork := make(chan et.Elevator, 12)
+	orderQueueFromNethandler := make(chan [et.NumFloors][et.NumButtons]et.SimpleOrder, 12)
+	buttonLightsFromNethandler := make(chan et.ButtonLamp, 12)
+	buttonPressesToNethandler := make(chan et.ButtonEvent, 12)
+	elevStateToNethandler := make(chan et.Elevator, 12)
 
-	eh.StartElevatorHandler(ordersDelegatedFromNetwork,
-		buttonPressesToNetwork,
-		elevStateToNetwork)
-	nh.StartNetHandler(ordersDelegatedFromNetwork,
-		buttonPressesToNetwork,
-		elevStateToNetwork)
+	eh.StartElevatorHandler(orderQueueFromNethandler,
+		buttonLightsFromNethandler,
+		buttonPressesToNethandler,
+		elevStateToNethandler)
+	nh.StartNetHandler(orderQueueFromNethandler,
+		buttonLightsFromNethandler,
+		buttonPressesToNethandler,
+		elevStateToNethandler)
 
 	ed.StartStopButtonService(stopRunning)
 	defer ed.StopStopButtonService()

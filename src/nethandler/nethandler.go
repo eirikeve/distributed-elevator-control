@@ -15,15 +15,17 @@ import (
 var signalNetHandlerToStop chan bool
 
 func StartNetHandler(
-	ordersDelegatedFromNetwork chan<- [et.NumFloors][et.NumButtons]et.SimpleOrder,
-	buttonPressesToNetwork <-chan et.ButtonEvent,
-	elevStateToNetwork <-chan et.Elevator,
+	orderQueueFromNethandler chan<- [et.NumFloors][et.NumButtons]et.SimpleOrder,
+	buttonLightsFromNethandler chan<- et.ButtonLamp,
+	buttonPressesToNethandler <-chan et.ButtonEvent,
+	elevStateToNethandler <-chan et.Elevator,
 ) {
 	signalNetHandlerToStop = make(chan bool)
 	go netHandler(signalNetHandlerToStop,
-		ordersDelegatedFromNetwork,
-		buttonPressesToNetwork,
-		elevStateToNetwork)
+		orderQueueFromNethandler,
+		buttonLightsFromNethandler,
+		buttonPressesToNethandler,
+		elevStateToNethandler)
 }
 func StopNetHandler() {
 	log.Info("elevnetworkhandler StopNetHandler: Stopping")
@@ -35,9 +37,10 @@ func StopNetHandler() {
 
 func netHandler(
 	signalNetHandlerToStop <-chan bool,
-	ordersDelegatedFromNetwork chan<- [et.NumFloors][et.NumButtons]et.SimpleOrder,
-	buttonPressesToNetwork <-chan et.ButtonEvent,
-	elevStateToNetwork <-chan et.Elevator,
+	orderQueueFromNethandler chan<- [et.NumFloors][et.NumButtons]et.SimpleOrder,
+	buttonLightsFromNethandler chan<- et.ButtonLamp,
+	buttonPressesToNethandler <-chan et.ButtonEvent,
+	elevStateToNethandler <-chan et.Elevator,
 ) {
 	// Start Transmitter and Receiver for sending messages
 	var sendAckNack = make(chan et.AckNackMsg, 6)
@@ -66,6 +69,9 @@ func netHandler(
 	netHandlerSendElevatorQueueTimer := time.Now()
 	netHandlerSendElevatorQueueFreq := 50 * time.Millisecond
 
+	netHandlerSendElevatorLightsTimer := time.Now()
+	netHandlerSendElevatorLightsFreq := 200 * time.Millisecond
+
 	//timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevNetHandler Watchdog")
 
@@ -76,10 +82,10 @@ func netHandler(
 		case <-signalNetHandlerToStop:
 			return
 
-		case elev := <-elevStateToNetwork:
+		case elev := <-elevStateToNethandler:
 			ss.UpdateLocalElevator(&elev)
 			//log.WithField("e", ss.GetSystemElevators()[0]).Debug("updated local elev:")
-		case newOrderButtonPress := <-buttonPressesToNetwork:
+		case newOrderButtonPress := <-buttonPressesToNethandler:
 			log.WithField("btn", newOrderButtonPress).Debug("nethandler handler: recv button press")
 
 			optSysID, err := eval.FindOptimalSystem(ss.GetActiveSystemsStates(), newOrderButtonPress)
@@ -113,7 +119,7 @@ func netHandler(
 			netHandlerSendElevatorQueueTimer = time.Now()
 			orders := ss.GetLocalSystemOrders()
 			select {
-			case ordersDelegatedFromNetwork <- orders:
+			case orderQueueFromNethandler <- orders:
 			default:
 				log.Warn("nethandler Handler: failed to send order queue to elevator")
 			}
@@ -130,6 +136,21 @@ func netHandler(
 		if time.Now().Sub(netHandlerAutoBackupTimer) > netHandlerAutoBackupFreq {
 			netHandlerAutoBackupTimer = time.Now()
 			sb.Backup(ss.GetSystemsStates())
+		}
+
+		if time.Now().Sub(netHandlerSendElevatorLightsTimer) > netHandlerSendElevatorLightsFreq {
+			netHandlerSendElevatorLightsTimer = time.Now()
+			lights := ss.GetPanelLights()
+			// Need to use select in case chan is congested.
+			for f := 0; f < et.NumFloors; f++ {
+				for b := 0; b < et.NumButtons; b++ {
+					select {
+					case buttonLightsFromNethandler <- lights[f][b]:
+					default:
+						log.Warn("nethandler: Failed to send button lamp due to congested chan.")
+					}
+				}
+			}
 		}
 
 	}

@@ -48,7 +48,8 @@ func GetMovementDirection() elevtype.MotorDirection {
 	return OrderLogicGetMovementDirection(elevator)
 }
 */
-func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
+// Not used after changes in how we set the panel lights
+/*func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
 	var lights [et.NumFloors][et.NumButtons]et.ButtonLamp
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
@@ -58,7 +59,7 @@ func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
 		}
 	}
 	return lights
-}
+}*/
 
 func GetDoorOpenLight() bool {
 	return (elevator.State == et.Unloading)

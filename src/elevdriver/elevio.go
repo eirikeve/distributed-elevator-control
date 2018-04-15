@@ -130,7 +130,6 @@ func pollFloorSensor(receiver chan<- int, shutdown <-chan bool, wg *sync.WaitGro
 			time.Sleep(_pollRate)
 			v := getFloor()
 			if v != prev && v != -1 && 0 <= v && v < ioNumFloorsElevator {
-				println("\n\n\n Registered Floor \n\n\n")
 				receiver <- v
 			}
 			prev = v
