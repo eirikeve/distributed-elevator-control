@@ -23,11 +23,11 @@ var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
 const folderDir = "../backup/"
 
-func IsInitializedFromBackup() bool {
-	if numUseableBackupFiles != "0" {
-		return true
+func GetBackupElev(startupTime int64, localSys et.ElevState) *et.Elevator {
+	if startupTime > localSys.StartupTime {
+		return &localSys.E
 	} else {
-		return false
+		return nil
 	}
 }
 

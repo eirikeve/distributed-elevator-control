@@ -30,7 +30,7 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		elevator := *e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
-	initialize()
+	runCurrentStateFunction(elevator)
 }
 
 // Functions for running the local elevator
@@ -230,4 +230,17 @@ func isValidFloor(floor int) bool {
  */
 func MarkElevatorSentToNetHandler() {
 	elevator.FinishedOrders = nil
+}
+
+func runCurrentStateFunction(elev et.Elevator) {
+	switch elev.State {
+	case et.Idle:
+		idle()
+	case et.Moving:
+		move(elev.MovementDirection)
+	case et.Unloading:
+		unload()
+	default:
+		initialize()
+	}
 }

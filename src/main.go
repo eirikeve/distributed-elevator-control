@@ -27,19 +27,14 @@ func run() {
 	stopRunning := make(chan bool, 2)
 
 	re.StartSurveillanceOfPrimary()
-
 	ss.InitSysState()
-
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
 	ss.SetSystemsStates(systemStates)
 	localSys := ss.GetLocalSystem()
-	var elevator *et.Elevator
-	if timeOfStart > localSys.StartupTime {
-		elevator = &localSys.E
-	}
-	log.WithField("states", ss.GetLocalSystem().CurrentOrders).Debug("main run: Done w/ setup of sysstates")
+	elevator := sb.GetBackupElev(timeOfStart, localSys)
+	log.WithField("states", ss.GetLocalSystem().E).Debug("main run: Done w/ setup of sysstates")
 
 	orderQueueFromNethandler := make(chan [et.NumFloors][et.NumButtons]et.SimpleOrder, 12)
 	buttonLightsFromNethandler := make(chan et.ButtonLamp, 12)
