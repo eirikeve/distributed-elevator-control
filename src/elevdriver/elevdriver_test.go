@@ -19,7 +19,6 @@ import (
  * In addition, button presses are logged.
  */
 func TestDriver(*testing.T) {
-	println("...")
 	elevlog.InitLog(log.DebugLevel, false)
 	log.Info("elevdriver TestDriver: Starting test of elevdriver and elevio")
 
@@ -67,7 +66,6 @@ func TestDriver(*testing.T) {
 /*RunLightTest sends light signals to the passed channel parameters.
  * It sets all lights on, and off, once.
  * Requires a running Driver for any effect.
- *
  */
 func RunLightTest(
 	numFloors int,
@@ -183,7 +181,6 @@ func RunSensorAndMotorTest(
 	currentFloor := 1
 	select {
 	case currentFloor = <-getFloorSensorChan:
-		// Got val
 		if currentFloor == 0 {
 			log.WithField("StartFloor", currentFloor).Info("elevdriver TestDriver: Startup motor dir up")
 			setMotorDirChan <- elevtype.MD_Up
@@ -212,10 +209,7 @@ func RunSensorAndMotorTest(
 				setMotorDirChan <- elevtype.MD_Down
 				log.Info("elevdriver TestDriver: Setting motor dir down")
 			}
-		//case stop := <-getStopButtonSensorChan:
-		//	log.WithField("StopButton", stop).Info("elevdriver TestDriver: Stop Signal!")
-		//case obstr := <-getObstructionSensorChan:
-		//	log.WithField("Obstruction", obstr).Info("elevdriver TestDriver:  Obstruction!")
+
 		default:
 			if time.Now().Sub(smalltimecounter) > time.Second*5 {
 				smalltimecounter = time.Now()

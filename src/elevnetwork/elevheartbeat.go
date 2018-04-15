@@ -1,7 +1,6 @@
 package elevnetwork
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -18,8 +17,6 @@ var mutex = &sync.Mutex{}
 
 // Constants
 const HEARTBEATINTERVAL = 5 * time.Millisecond
-
-//const HEARTBEATTIMEOUT = 30 * HEARTBEATINTERVAL
 
 // Variable
 var signalHeartBeatToStop chan bool
@@ -64,7 +61,7 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 		select {
 
 		case msg := <-recvPeerCh:
-			fmt.Printf("ID: %v \n", msg.Peers)
+			log.WithField("ID's:", msg.Peers).Info("Change in active systems")
 			updateSystemsInNetwork(msg)
 
 		case <-signalHeartBeatToStop:

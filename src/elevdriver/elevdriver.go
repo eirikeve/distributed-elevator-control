@@ -1,8 +1,6 @@
 package elevdriver
 
-/*
-elevdriver.go contains abstractions for methods from elevio.go
-*/
+// *** elevdriver.go contains abstractions for methods from elevio.go ***
 
 import (
 	"sync"
@@ -12,7 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// @SIM PORT :15657 removed from elevator Address
 const elevatorAddress = "127.0.0.1" // port taken from c driver at https://github.com/TTK4145/driver-c
 const stdNumFloorsElevator = 4
 const timeWaitForDriverToStartMs = 20
@@ -139,8 +136,6 @@ func driver(
 	shutdown := make(chan bool, 10)
 	// Signal to stop GoRoutines before exiting
 	defer fill(shutdown, true)
-	//runDriver := true
-	// Turn off lights here @todo
 
 	// Outputs from driver to handler
 	go pollButtons(buttonPressSensorOut, shutdown, wg)
