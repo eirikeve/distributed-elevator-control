@@ -4,6 +4,18 @@ import (
 	et "../elevtype"
 )
 
+/*
+ * Orderlogic contains functionality to determine basic elevator operations and inquiries
+ */
+
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*OrderLogicOrdersAbove (.) returns true if there exists a accepted order
+ * above the elevators current floor, else false
+ * @arg e: Elevator containing current active orders
+ */
 func OrderLogicOrdersAbove(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := e.Floor + 1; f < et.NumFloors; f++ {
@@ -15,6 +27,11 @@ func OrderLogicOrdersAbove(e et.Elevator) bool {
 	}
 	return false
 }
+
+/*OrderLogicOrdersBelow (.) returns true if there exists a accepted order
+ * below the elevators current floor, else false
+ * @arg e: Elevator containing current active orders
+ */
 func OrderLogicOrdersBelow(e et.Elevator) bool {
 	// @todo handle if floor is -1
 	for f := 0; f < e.Floor; f++ {
@@ -26,6 +43,11 @@ func OrderLogicOrdersBelow(e et.Elevator) bool {
 	}
 	return false
 }
+
+/*OrderLogciGetMoveMentDirection (.) returns a new motor direction based
+ * on current elevator stats: Movement direction from last floor and orders.
+ * @arg e: Elevator with information about current orders and previous movement direction from last floor
+ */
 func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 	switch e.MovDirFromLastFloor {
 	case et.MD_Up:
@@ -46,11 +68,13 @@ func OrderLogicGetMovementDirection(e et.Elevator) et.MotorDirection {
 		return et.MD_Stop
 	default:
 		return et.MD_Stop
-		// @todo
-		// log error
-		// if possible, try to move
 	}
 }
+
+/*OrderLogicCheckShouldStopAtFloor (.) decides if the elevator should at
+ * detected floor, based on current elevator stats: Movement direction and orders
+ * @arg e: Elevator containing current movement direction and active orders.
+ */
 func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	switch e.MovementDirection {
 	case et.MD_Down:
@@ -70,44 +94,16 @@ func OrderLogicCheckShouldStopAtFloor(e et.Elevator) bool {
 	case et.MD_Stop:
 		fallthrough
 	default:
-		// [@TODO] log - this should probably not happen.
 		return true
 	}
 
 }
 
-/*
-FOLLOWING FN IS NOT USED IN THIS BRANCH. SEE FN
-*/
-func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator {
-	//@TODO add support for storing finished orders in some list
-	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
-	// Only take passengers going in the directin the elevator will be moving
-	e.Orders[e.Floor][et.BT_Cab] = et.SimpleOrder{}
-	switch travelDirFromFloor {
-	case et.MD_Up:
-		e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
-
-		if !OrderLogicOrdersAbove(e) {
-			e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
-		}
-
-	case et.MD_Down:
-		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
-		if !OrderLogicOrdersBelow(e) {
-			e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
-		}
-	case et.MD_Stop:
-		fallthrough
-	default:
-		e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
-		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
-	}
-	return e
-}
-
-/*Returns a slice containing order IDs of all orders that we have finished on this floor.
- *
+/*OrderLogicGetRequestsWeCanClearOnCurrentFloor (.) evaluates and returns a slice containing order IDs
+ * of all orders that have been served on current floor.
+ * @arg e: Elevator containg current active orders
+ * @arg travelDirFromLastFloor: Movement direction from last floor, to decide which orders to serve
+ * @returns: A list of orders that are now finished from current floor.
  */
 func OrderLogicGetRequestsWeCanClearOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) []et.SimpleOrder {
 	var ordersWeFinish []et.SimpleOrder
@@ -148,8 +144,46 @@ func OrderLogicGetRequestsWeCanClearOnCurrentFloor(e et.Elevator, travelDirFromF
 	return ordersWeFinish
 }
 
+/*OrderLogicCheckIFRequestsAtCurrentFloor (.) returns true if there are any active
+ * orders on current floor.
+ */
 func OrderLogicCheckIfRequestsAtCurrentFloor(elevator et.Elevator) bool {
 	return elevator.Orders[elevator.Floor][et.BT_HallDown].IsActive() ||
 		elevator.Orders[elevator.Floor][et.BT_Cab].IsActive() ||
 		elevator.Orders[elevator.Floor][et.BT_HallUp].IsActive()
+}
+
+// @TODO FOLLOWING FN IS NOT USED IN THIS BRANCH. SEE FN
+
+/*OrderLogicClearRequestsOnCurrentFloor (.) is used by elevordelegation to examines if the elevator should clear
+ * a request on the current floor. Hence this function is ONLY used for simulation of the elevator.
+ * @arg e: Contains the current orders in the Elevator
+ * @arg travelDirFromFloor: Movement direction from last floor, to decide which orders to clear
+ * @return: The elevator with updated queue
+ */
+func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator {
+	//@TODO add support for storing finished orders in some list
+	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
+	// Only take passengers going in the directin the elevator will be moving
+	e.Orders[e.Floor][et.BT_Cab] = et.SimpleOrder{}
+	switch travelDirFromFloor {
+	case et.MD_Up:
+		e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
+
+		if !OrderLogicOrdersAbove(e) {
+			e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
+		}
+
+	case et.MD_Down:
+		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
+		if !OrderLogicOrdersBelow(e) {
+			e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
+		}
+	case et.MD_Stop:
+		fallthrough
+	default:
+		e.Orders[e.Floor][et.BT_HallUp] = et.SimpleOrder{}
+		e.Orders[e.Floor][et.BT_HallDown] = et.SimpleOrder{}
+	}
+	return e
 }

@@ -2,22 +2,61 @@ package elevorderevaluation
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
 	fsm "../elevfsm"
 	loc "../elevnetwork/localip"
 	et "../elevtype"
+
+	log "github.com/sirupsen/logrus"
 )
 
+/*
+ * Description
+ */
+
+////////////////////////////////
+// Module varibles
+////////////////////////////////
 const TRAVEL_TIME = 3
 const DOOR_OPEN_TIME = 5
 
-/*
-* Calculates how much time the Elevator will use to execute
-* all its order, thus going into the Idle state
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*FindOptimalSystem (.) takes a list of systems and a new received order, simulates all
+ * elevators with the new order and returns the ID of the elevator best fit, according to timeToIdle,
+ * to execute the new order. Except for cab orders, they will always be delegated to the local elevator
+ *
+ * @arg systems: Currently active elevators
+ * @arg newOrder: The new order which is to be delegated
+ * @arg return: The ID corresponding to the optimal system
+ */
+func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (int32, error) {
+	var elevators []et.Elevator
+
+	if et.IsCabButton(newOrder) {
+		return loc.LocalID()
+	}
+	for _, sys := range systems {
+		elevators = append(elevators, sys.E)
+	}
+	elevIndex, err := delegateOrder(elevators, newOrder)
+	optSysID := systems[elevIndex].ID
+	return optSysID, err
+}
+
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
+
+/*timeToIdle (.) estimates how much time the elevator will use to execute
+* all its order.
+
 * @arg elev: Takes an Elevator as arguemtent, making it possible to simalute its actions
+* @return: Total duration for executing all orders
  */
 func timeToIdle(elev et.Elevator) int {
 	duration := 0
@@ -51,10 +90,12 @@ func timeToIdle(elev et.Elevator) int {
 	return duration
 }
 
-/*
-* Takes a list of Elevators, and simulates them all finding which elevator
-* is best fit to take and execute an order.
-* @arg elev[]: List of Elevators
+/*delegateOrder (.) Takes a list of elevators, and simulates them all finding
+ * which is best fit to execute a hall order, according to timeToIdle.
+
+ * @arg elevList: List of elevators
+ * @arg newOrder: The new hall order which is to be assigned
+ * @return: The index corresponding to the optimal elevator from elevList
  */
 func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error) {
 	var durations []int
@@ -74,31 +115,17 @@ func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error)
 	return optElevIndex, err
 }
 
-func FindOptimalSystem(systems []et.ElevState, newOrder et.ButtonEvent) (int32, error) {
-	var elevators []et.Elevator
-
-	if et.IsCabButton(newOrder) {
-		return loc.LocalID()
-	}
-	for _, sys := range systems {
-		elevators = append(elevators, sys.E)
-	}
-	elevIndex, err := delegateOrder(elevators, newOrder)
-	optSysID := systems[elevIndex].ID
-	return optSysID, err
-}
-
-/*
-* Takes a list of integers and returns the index
-* containing the largest value
-* @arg list: list containing integers
+/*findMinIndex (.) takes a list of integers and returns the index
+ * containing the smallest value.
+ * @arg list: list containing integers
+ * @return: smallest value of the list
  */
 func findMinIndex(list []int) int {
 
 	var maxIndex int
 	var maxValue int
 	if list == nil {
-		println("Empty list, Crashing")
+		log.Error("FindMinIndex containing empty list")
 	}
 	for index, element := range list {
 		if index == 0 {
@@ -113,31 +140,13 @@ func findMinIndex(list []int) int {
 	return maxIndex
 }
 
-/*
- * Prints the Elevator Queue
- * @arg: An Elevator containg the Elevator Queue
- */
-func printElevatorQueue(elev et.Elevator) {
-	println("\t\t BT_HallUp \t BT_HallDown \t BT_Cab")
-	for floor := 0; floor < et.NumFloors; floor++ {
-		fmt.Printf("Floor %v: \t  ", floor)
-		for button := 0; button < et.NumButtons; button++ {
-			if elev.Orders[floor][button].IsActive() {
-				print("TRUE \t\t  ")
-			} else {
-				print("FALSE \t  ")
-			}
-		}
-		print("\n")
-	}
-}
+/*insertElevatorOrder (.) inserts a order in the elevator queue
+ * at the given location.
 
-/*
-* Sets a order in the Elevator queue at the given location
 * @arg elev: Elevator
-* @arg ElevOrder: The new Elevator Order
 * @arg ButtonEvent: Which button was triggered and at which floor is was pressed
- */
+* @return: The given elevator updated with the new order
+*/
 func insertElevatorOrder(elev et.Elevator, bEvent et.ButtonEvent) et.Elevator {
 	//'TODO make actual order id :)
 	order := et.SimpleOrder{Id: strconv.FormatInt(time.Now().Unix(), 16), Order: bEvent}
@@ -145,11 +154,12 @@ func insertElevatorOrder(elev et.Elevator, bEvent et.ButtonEvent) et.Elevator {
 	return elev
 }
 
-/*
- * Check if new order already exsists, then it should not be necessary
- * to redelegate order
+/*orderExsists (.) checks if new order already exsists,
+ * then it should not be necessary to redelegate order
+
  * @arg elev: An elevator contaning the current orders
  * @arg bEvent: The button which was pressed
+ * @return: true if given order exsist in the elevator, else false
  */
 func orderExsists(elev et.Elevator, bEvent et.ButtonEvent) bool {
 	if elev.Orders[bEvent.Floor][bEvent.Button].Id != "" {

@@ -1,7 +1,5 @@
 package elevdriver
 
-// *** elevdriver.go contains abstractions for methods from elevio.go ***
-
 import (
 	"sync"
 	"time"
@@ -9,6 +7,15 @@ import (
 	et "../elevtype"
 	log "github.com/sirupsen/logrus"
 )
+
+/*
+ elevdriver.go contains abstractions for methods from elevio.go and is used for communication
+ with the elevators hardware.
+*/
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
 
 const elevatorAddress = "127.0.0.1" // port taken from c driver at https://github.com/TTK4145/driver-c
 const stdNumFloorsElevator = 4
@@ -18,6 +25,10 @@ var wg = &sync.WaitGroup{}
 var stopDriverChan = make(chan bool)
 var driverRunning = false
 var driverLock sync.Mutex
+
+////////////////////////////////
+// Interface
+////////////////////////////////
 
 /*StartDriver creates a (singleton) driver instance running on a separate thread.
  * The driver uses channels to set Elevator parameters (Input chans),
@@ -100,6 +111,19 @@ func StopDriver() {
 	log.Info("elevdriver StopDriver: Driver stopped")
 }
 
+func StartStopButtonService(stopPressed chan<- bool) {
+	go pollStopButton(stopPressed, stopBtnShutdownChan, &stopBtnWg)
+}
+
+func StopStopButtonService() {
+	stopBtnShutdownChan <- true
+	stopBtnWg.Wait()
+}
+
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
+
 /*driver (.) initializes a connection to the elevator, and then pushes inputs and outputs to/from the elevator
  * Start/Stop driver using StartDriver(.) and StopDriver().
  *
@@ -170,13 +194,4 @@ func driver(
 			log.Debug("elevdriver driver: Running")
 		}
 	}
-}
-
-func StartStopButtonService(stopPressed chan<- bool) {
-	go pollStopButton(stopPressed, stopBtnShutdownChan, &stopBtnWg)
-}
-
-func StopStopButtonService() {
-	stopBtnShutdownChan <- true
-	stopBtnWg.Wait()
 }

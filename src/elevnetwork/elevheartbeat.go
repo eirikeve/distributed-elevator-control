@@ -12,15 +12,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var systemsInNetwork et.PeerUpdate
-var mutex = &sync.Mutex{}
+/*
+ * Module used to monitore currently active systems in network by
+ * trasmitting and receiving unique ID's. If the module stops receiving ID from a system
+ * it will be removed within a defined time.
+ */
 
-// Constants
+////////////////////////////////
+// Module variables
+////////////////////////////////
 const HEARTBEATINTERVAL = 5 * time.Millisecond
 
-// Variable
+var systemsInNetwork et.PeerUpdate
+var mutex = &sync.Mutex{}
 var signalHeartBeatToStop chan bool
 
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*StartHeartBeat (.) starts running the *hearbeat protocol
+ */
 func StartHeartBeat() {
 	signalHeartBeatToStop = make(chan bool)
 	port := 20102
@@ -33,15 +45,20 @@ func StartHeartBeat() {
 
 }
 
+/*StopHeartBeat (.) stops the heartbeat protocol
+ * by inserting true into singalHeartBeatToStop channel
+ */
 func StopHeartBeat() {
 	signalHeartBeatToStop <- true
 }
 
-/*
- * Runs the heartbeat protocol wich monitors the participant of the netowrk.
- * Version 2: Uses the given peers functions
+/* runHeartBeat (.) runs the heartbeat protocol which monitors the active participant of the netowrk.
+ * Uses given peers functions from peers.go
+
  * @arg port: broadcast on given port
  * @arg PeersCh: List of current peers in network on channel
+ * @arg heartbeatMsg: LocalID which is broadcasted
+ * @arg signalHeartBeat: Cannel used to stop the protocol
  */
 func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 	lastTranmissionTime := time.Now()
@@ -53,6 +70,7 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 	go p.Receiver(port, recvPeerCh)
 
 	for {
+
 		if time.Now().Sub(lastTranmissionTime) > HEARTBEATINTERVAL {
 			sendPeerCh <- true
 			lastTranmissionTime = time.Now()
@@ -75,8 +93,8 @@ func runHeartBeat(port int, heartbeatMsg string, signalHeartBeat <-chan bool) {
 
 }
 
-/*
- * Returns the active elevators by their ID in the network
+/*GetSystemsInNetwork (.) returns a list of active elevators
+ * by their ID in the network
  */
 func GetSystemsInNetwork() []int32 {
 	mutex.Lock()
@@ -92,8 +110,12 @@ func GetSystemsInNetwork() []int32 {
 	return activeSystems
 }
 
-/*
- * Updates the active elevators in the network for each Heartbeat
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
+
+/*updateSystemsInNetwork (.) used to update the active elevators
+ * in the network from each heartbeat
  */
 func updateSystemsInNetwork(updatedPeers et.PeerUpdate) {
 	mutex.Lock()

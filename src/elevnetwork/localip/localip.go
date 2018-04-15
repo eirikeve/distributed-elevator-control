@@ -1,15 +1,29 @@
 package localip
 
 import (
-	et "../../elevtype"
 	"net"
 	"strconv"
 	"strings"
+
+	et "../../elevtype"
 )
 
+/*
+ * Contains functionality for abstracting a unique identification
+ * from the the local system.
+ */
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
 var localIP string
 var localID int32
 
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+//LocalIP (.) returns the systems local ip
 func LocalIP() (string, error) {
 	if localIP == "" {
 		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
@@ -22,6 +36,9 @@ func LocalIP() (string, error) {
 	return localIP, nil
 }
 
+/*LocalID (.) returns a unique ID from the local system
+ * based on the local ip.
+ */
 func LocalID() (int32, error) {
 	_, err := LocalIP()
 	if localID == 0 {
@@ -41,12 +58,4 @@ func LocalID() (int32, error) {
 		}
 	}
 	return localID, nil
-}
-
-func LocalIPWithPort() (string, error) {
-	_, err := LocalIP()
-	if localIP == "" {
-		return "", err
-	}
-	return localIP + ":" + et.SystemIpPort, nil
 }
