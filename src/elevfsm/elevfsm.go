@@ -26,11 +26,11 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 			State:               et.Initializing,
 			ErrorState:          et.FullFunctionality}
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: No ref, reinitialized elevator")
-		initialize()
 	} else {
 		elevator := *e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
+	initialize()
 }
 
 // Functions for running the local elevator
