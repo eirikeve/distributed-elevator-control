@@ -369,7 +369,7 @@ func addLocalAckToOrders() {
 				if !alreadyRegistered {
 					if contains(activeSystems, localSystem.CurrentOrders[f][b].Assignee) {
 						localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, LocalID)
-						acksForBroadcasting = append(acksForBroadcasting, et.AckNackMsg{MsgType: et.MsgACK, MsgData: localSystem.CurrentOrders[f][b].Id, MsgSender: LocalIP})
+
 					}
 				}
 			}

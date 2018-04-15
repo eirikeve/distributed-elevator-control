@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	el "./elevlog"
 	et "./elevtype"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,7 +36,7 @@ func parseCmdLineArgs() {
 }
 
 func setupLog() {
-	el.InitLog(logLevel, logToFileInsteadOfBash)
+	initLog(logLevel, logToFileInsteadOfBash)
 	log.Debug("main setupLog: log initialized")
 }
 

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"../conn"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts

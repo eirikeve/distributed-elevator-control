@@ -17,8 +17,6 @@ var backInit = false
 var mutex = &sync.Mutex{}
 
 var systems = make(map[int32]et.ElevState)
-var netstate et.NetState
-var acksForBroadcasting []et.AckNackMsg
 
 func SysIsInitialized() bool {
 	return backInit

@@ -107,7 +107,7 @@ func RegisterFloor(floor int) {
 	case et.Moving:
 
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
-			unload()
+			unload() //@TODO add extra condition for unloading. In case of timeout.
 		} else if floor == et.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||
 			floor == et.TOPFLOOR && elevator.MovementDirection == et.MD_Up {
 			idle()

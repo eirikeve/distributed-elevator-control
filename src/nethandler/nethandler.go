@@ -41,13 +41,12 @@ func netHandler(
 	buttonPressesToNethandler <-chan et.ButtonEvent,
 	elevStateToNethandler <-chan et.Elevator,
 ) {
-	var sendAckNack = make(chan et.AckNackMsg, 6)
-	var recvAckNack = make(chan et.AckNackMsg, 6)
+
 	var sendRegularUpdates = make(chan et.ElevState, 12)
 	var recvRegularUpdates = make(chan et.ElevState, 12)
 
-	go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
-	go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
+	go b.Transmitter(et.AckHandlerPort, sendRegularUpdates)
+	go b.Receiver(et.AckHandlerPort, recvRegularUpdates)
 	go network.StartHeartBeat()
 	defer network.StopHeartBeat()
 
@@ -132,7 +131,7 @@ func netHandler(
 					select {
 					case buttonLightsFromNethandler <- lights[f][b]:
 					default:
-						log.Warn("nethandler: Failed to send button lamp due to congested chan.")
+
 					}
 				}
 			}
