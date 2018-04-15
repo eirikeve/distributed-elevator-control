@@ -31,12 +31,10 @@ func timeToIdle(elev et.Elevator) int {
 		}
 	case et.Moving:
 		duration += TRAVEL_TIME / 2
-		elev.Floor += int(elev.MovementDirection) //[BUG] Not sure if converts motor type to int to floor
+		elev.Floor += int(elev.MovementDirection)
 	case et.Unloading:
 		duration += DOOR_OPEN_TIME / 2
 	default:
-		//Should not be possible to enter default
-		println("Entered defualt in timeToIdle. This should not happen")
 	}
 	for isSimulating == true {
 		if fsm.OrderLogicCheckShouldStopAtFloor(elev) == true {
@@ -48,9 +46,8 @@ func timeToIdle(elev et.Elevator) int {
 			}
 		}
 		elev.Floor += int(elev.MovementDirection)
-		duration += TRAVEL_TIME //[POTENTIAL BUG] Not sure if converts motor type to int to floor
+		duration += TRAVEL_TIME
 	}
-
 	return duration
 }
 
@@ -68,12 +65,8 @@ func delegateOrder(elevList []et.Elevator, newOrder et.ButtonEvent) (int, error)
 			err = errors.New("elevorderevalution: Order exists")
 		}
 		elev = insertElevatorOrder(elev, newOrder)
-		printElevatorQueue(elev)
 		tempDuration := timeToIdle(elev)
 		durations = append(durations, tempDuration)
-	}
-	for index, element := range durations {
-		fmt.Printf("delegateOrder, Elevator  %v: Duration: %v \n", index, element)
 	}
 
 	optElevIndex := findMinIndex(durations)
@@ -137,7 +130,6 @@ func printElevatorQueue(elev et.Elevator) {
 		}
 		print("\n")
 	}
-
 }
 
 /*

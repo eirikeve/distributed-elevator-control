@@ -14,7 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//var backuplogger log.Logger
 var initialized = false
 var numUseableBackupFiles string
 var logFile *os.File
@@ -76,7 +75,6 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 		return make([]et.ElevState, 0), err
 	}
 	backupFilesIndexes := getBackupFileIndexes(files)
-	//log.WithField("Match indexes", backupFilesIndexes).Info("Indexes")
 
 	useableBackupIndexes := make([]int, 0)
 	for _, index := range backupFilesIndexes {
@@ -87,10 +85,6 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 	}
 
 	sortedIndexes, _ := getBackupFileIndexesSortedInIncreasingTime(files, useableBackupIndexes)
-	//log.WithField("Match sorted", sortedIndexes).Info("Indexes")
-	//for _, index := range sortedIndexes {
-	//	log.WithField("File", files[index].Name()).Info("Sorted file order")
-	//}
 
 	states := make([]et.ElevState, 0)
 	for _, backupIndex := range sortedIndexes {
@@ -112,9 +106,7 @@ func Recover(timeLimit time.Time) ([]et.ElevState, error) {
 func getBackupFileIndexes(files []os.FileInfo) []int {
 	backupFilesIndexes := make([]int, 0)
 	for i, f := range files {
-		//log.WithField("filename", f.Name()).Info("sysbackup Recover: Found")
 		if backupRegexp.MatchString(f.Name()) {
-			//log.Info("Name matches regexp")
 			backupFilesIndexes = append(backupFilesIndexes, i)
 		}
 	}
@@ -124,9 +116,7 @@ func getBackupFileIndexes(files []os.FileInfo) []int {
 func getBackupFileIndexesSortedInIncreasingTime(files []os.FileInfo, backupIndexes []int) ([]int, error) {
 	timestamps := make([]int64, len(backupIndexes))
 	sortedIndexes := make([]int, len(backupIndexes))
-	//println("1")
 	for i, backupIndex := range backupIndexes {
-		//print("i:" + strconv.FormatInt(int64(backupIndex), 10))
 		timestampAsString := strings.TrimSuffix(strings.TrimPrefix(files[backupIndex].Name(), "backup_"), ".elevlog")
 		var err error
 		timestamps[i], err = strconv.ParseInt(timestampAsString, 10, 64)
@@ -134,7 +124,6 @@ func getBackupFileIndexesSortedInIncreasingTime(files []os.FileInfo, backupIndex
 			return make([]int, 0), err
 		}
 	}
-	//println("2")
 	for i, _ := range sortedIndexes {
 		minimumIndex := 0
 		for j, val := range timestamps {
@@ -169,21 +158,12 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 		if err != nil {
 			return
 		}
-		//elevatorId := getIDFromBackup(&line)
 		elevatorJson := getStateJSONFromBackup(&line)
-		//log.WithField("id", elevatorId).Info("ReadLine")
-		//log.WithField("json", elevatorJson).Info("ReadLine")
 		var state et.ElevState
 		jsonErr := json.Unmarshal([]byte(elevatorJson), &state)
 		if jsonErr != nil {
-			//@BUG this always logs
 			log.WithField("err", jsonErr.Error()).Warn("sysbackup apply: Error applying backup")
 		}
-		//log.WithFields(log.Fields{
-		//	"ID":         elevatorId,
-		//	"Floor":      state.E.Floor,
-		//	"LastUpdate": state.LastUpdate,
-		//}).Info("sysbackup apply: Succesfully Unmarshalled")
 		if state.ID > 0 {
 			if len(*states) == 0 {
 				*states = append(*states, state)
@@ -191,25 +171,15 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 				for i, s := range *states {
 					if s.ID == state.ID {
 						(*states)[i] = state
-						break // for i, s := ....
+						break // for i, s := range *states
 					} else if i == len(*states)-1 {
-						// We don't know that ID - might have been lost due to crash etc.
 						*states = append(*states, state)
-						break // for i, s := ....
+						break // for i, s := range *states
 					}
 				}
 			}
-			//log.WithField("states", *states).Info("sysbackup apply: States")
 		}
-
-		/*for _, state := range *states {
-			if state.ID == elevatorId {
-
-			}
-		}*/
-
 	}
-
 }
 
 func getStateJSONFromBackup(line *string) string {
@@ -234,25 +204,3 @@ func backupElevState(state et.ElevState) {
 
 	logFile.Write([]byte(backupMsg))
 }
-
-/*func backupTestWrite(str string) {
-	logFile.Write([]byte(str))
-}*/
-
-/*for {
-	n, _, _ := conn.ReadFrom(buf[0:])
-	for _, ch := range chans {
-		T := reflect.TypeOf(ch).Elem()
-		typeName := T.String()
-		if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
-			v := reflect.New(T)
-			json.Unmarshal(buf[len(typeName):n], v.Interface())
-
-			reflect.Select([]reflect.SelectCase{{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(ch),
-				Send: reflect.Indirect(v),
-			}})
-		}
-	}
-}*/

@@ -26,8 +26,7 @@ type ElevOrder struct {
 	Status OrderStatus `json: "orderStatus"`
 	// Last update of order [UNIX timestamp]
 	TimestampLastOrderStatusChange int64 `json: "orderLastStatusChange"`
-	//[@todo]: Same as for TimestampReceived
-	// Assigned to elev @ IP
+	// Assigned to elev w/ this ID
 	Assignee int32 `json: "orderAssignee"`
 	//List over IDs of elevators which have acknowledged this order
 	Acks []int32 `json: "Acks"`
@@ -45,7 +44,6 @@ type SimpleOrder struct {
 
 type GeneralOrder interface {
 	ToSimpleOrder() SimpleOrder
-	//IsSimpleOrder() bool
 	IsEmpty() bool
 	IsActive() bool
 	IsAccepted() bool
@@ -66,12 +64,6 @@ func (o ElevOrder) ToSimpleOrder() SimpleOrder {
 	return SimpleOrder{Id: o.Id, Order: o.Order}
 }
 
-//func (o SimpleOrder) IsSimpleOrder() bool {
-//	return true
-//}
-//func (o ElevOrder) IsSimpleOrder() bool {
-//	return false
-//}
 func (o SimpleOrder) IsEmpty() bool {
 	return o.Id == ""
 }

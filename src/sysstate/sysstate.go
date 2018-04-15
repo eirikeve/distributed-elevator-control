@@ -16,7 +16,6 @@ var initialized = false
 var backInit = false
 var mutex = &sync.Mutex{}
 
-//var systems map[string]et.ElevState
 var systems = make(map[int32]et.ElevState)
 var netstate et.NetState
 var acksForBroadcasting []et.AckNackMsg

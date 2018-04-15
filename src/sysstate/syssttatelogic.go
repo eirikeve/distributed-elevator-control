@@ -16,7 +16,6 @@ const ackRetainTime = 30 * time.Second
 /*UpdateLocalElevator contains logic for updating the state & orders of the local system
  */
 func UpdateLocalElevator(e *et.Elevator) {
-	//log.Debug("sysstate Update: Update local elevator")
 	if !initialized {
 		initSysState()
 	}
@@ -95,39 +94,6 @@ func PushButtonEvent(sysID int32, btn et.ButtonEvent) {
 	// @TODO check if only one sys is active, if so, do NOT accept order!!!
 }
 
-/*func RegisterAckNackMsg(msg et.AckNackMsg) {
-	if msg.MsgType == et.MsgNACK {
-		rejectOrder(msg.MsgData)
-	} else {
-		o, err := findOrder(msg.MsgData)
-		if err != nil {
-			log.WithError(err).Error("sysstate RegisterAck: Could not find any corresponding orders")
-			return
-		}
-		switch o.Status {
-		case et.Received:
-			updateOrderAcksAfterMsg(o, msg)
-			if canGuaranteeOrderCompletion(o) {
-
-			}
-			system, _ := systems[LocalIP]
-			system.CurrentOrders[o.GetFloor()][int(o.GetButton())] = o
-			systems[LocalIP] = system
-			return
-		case et.Accepted:
-			fallthrough
-		case et.Finished:
-			return
-		case et.Timeout:
-			log.WithField("o", o).Warn("sysstate RegisterAck: Order has previously timed out!")
-		case et.Unknown:
-			fallthrough
-		default:
-			log.WithField("o", o).Error("sysstate RegisterAck: Unknown order status")
-		}
-	}
-}*/
-
 func HandleRegularUpdate(es et.ElevState) {
 
 	if es.ID == LocalID || es.ID == 0 {
@@ -152,26 +118,8 @@ func HandleRegularUpdate(es et.ElevState) {
 	systems[es.ID] = es
 	//localSys := systems[LocalIP]
 
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
-			/*if localSys.CurrentOrders[f][b].Id != "" || es.CurrentOrders[f][b].Id != "" {
-				log.WithFields(log.Fields{
-					"f":                       f,
-					"b":                       b,
-					"LocalOrder":              localSys.CurrentOrders[f][b].Id,
-					"LocalOrderLastTimeChng":  localSys.CurrentOrders[f][b].TimestampLastOrderStatusChange,
-					"RemoteOrder":             es.CurrentOrders[f][b].Id,
-					"RemoteOrderLastTimeChng": es.CurrentOrders[f][b].TimestampLastOrderStatusChange,
-				}).Debug("sysstate HandleRegularUpdate: Comparison of orders")
-			}*/
-
-		}
-	}
-
 	applyUpdatesToLocalSystem(es)
 	acceptOrdersWeCanGuarantee()
-	//@TODO backup here
-	sendAckMessages()
 }
 
 /*CheckForAndHandleOrderTimeout finds all orders in our queue which have timed out, and redelegates them
@@ -196,9 +144,6 @@ func CheckForAndHandleOrderTimeouts() {
 }
 
 func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
-
-	//t := o.TimeSinceTimeout()
-
 	// We haven't accepted the order, so we remove it from the queue.
 	if o.Status == et.Received {
 		empty(localSys, o)
@@ -229,10 +174,9 @@ func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 			redelegate(localSys, o, LocalID)
 		}
 	} else {
-		// not received or accepted. Should not happen.
+		// Order was neither received nor accepted.
 		empty(localSys, o)
 	}
-
 }
 
 // Not needed
@@ -275,25 +219,12 @@ func isOrderAlreadyFinished(es et.ElevState, orderID string) bool {
 }
 
 func applyUpdatesToLocalSystem(es et.ElevState) {
-	//localSys := GetLocalSystem()
-	/*print("Finished Orders before merge: ")
-	for _, order := range localSys.FinishedOrders {
-		print(order.Id, " ")
-	}
-	println()*/
+
 	mergeFinishedOrdersQueue(es)
-	//localSys = GetLocalSystem()
-	/*print("Finished Orders after merge: ")
-	for _, order := range localSys.FinishedOrders {
-		print(order.Id, " ")
-	}
-	println()*/
 	mergeOrdersToLocalSystem(es)
-	//localSys := systems[LocalID]
-	//println("localSystem f", 0, " b", 0, "=", localSys.CurrentOrders[0][0].Id, "stat:", localSys.CurrentOrders[0][0].Status)
 	addLocalAckToOrders()
 	applyRemoteOrderAckLogicalOR(es)
-	//println("localSystem f", 0, " b", 0, "=", localSys.CurrentOrders[0][0].Id, "stat:", localSys.CurrentOrders[0][0].Status)
+
 }
 
 func mergeOrdersToLocalSystem(es et.ElevState) {
@@ -305,7 +236,6 @@ func mergeOrdersToLocalSystem(es et.ElevState) {
 				//handle
 			} else {
 				localSystem.CurrentOrders[f][b] = o
-				//println("localSystem f", f, " b", b, "=", o.Id)
 			}
 		}
 	}
@@ -348,20 +278,6 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 
 	if localOrder.IsCabOrder() || remoteOrder.IsCabOrder() {
 		return localOrder, nil
-	}
-	// PRINTS
-	/*if localOrder.Order.Floor == 1 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
-		remoteOrder.Order.Floor == 1 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
-		println("floor 1, hallup")
-		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
-		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
-		println("..end")
-	} else*/if localOrder.Order.Floor == 0 && localOrder.Order.Button == et.BT_HallUp && localOrder.Id != "" ||
-		remoteOrder.Order.Floor == 0 && remoteOrder.Order.Button == et.BT_HallUp && remoteOrder.Id != "" {
-		println("floor 0, hallup")
-		println(" Remote order finished?", isOrderAlreadyFinished(localSystem, remoteOrder.Id))
-		println(" Local order finished?", isOrderAlreadyFinished(localSystem, localOrder.Id))
-		println("..end")
 	}
 
 	// If the order {f, b} is finished either locally and/or remotely, we don't need any complex logic:
@@ -415,7 +331,6 @@ func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remo
 		}
 	} else {
 		// Same order ID
-		//log.WithFields(log.Fields{"ID": localOrder.GetID()}).Info("sysstate updateSingleOrder: Matching IDs")
 		if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
 			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
 				o = localOrder
@@ -482,7 +397,7 @@ func applyRemoteOrderAckLogicalOR(es et.ElevState) {
 
 func contains(container []int32, element int32) bool {
 	for _, elem := range container {
-		if elem == element { // 0 if equal
+		if elem == element {
 			return true
 		}
 	}
@@ -521,9 +436,7 @@ func acceptOrdersWeCanGuarantee() {
 	}
 	systems[LocalID] = localSystem
 }
-func sendAckMessages() {
-	// seeeeeeeeeeeeend
-}
+
 func rejectOrder(orderID string) {
 	s, _ := systems[LocalID]
 
@@ -541,27 +454,14 @@ func rejectOrder(orderID string) {
 
 }
 
-/*func updateOrderAcksAfterMsg(o et.ElevOrder, msg et.AckNackMsg) {
-	ackAlreadyRegistered := false
-	for _, id := range o.Acks {
-		if id == msg.MsgSender {
-			ackAlreadyRegistered = true
-		}
-	}
-	if !ackAlreadyRegistered {
-		o.Acks = append(o.Acks, msg.MsgSender)
-		o.TimestampLastOrderStatusChange = time.Now().Unix()
-	}
-}
-*/
 func canGuaranteeOrderCompletion(o et.ElevOrder) bool {
 	c := countOrderOccurrencesInSystems(o)
 	if c >= 2 {
 		return true
 	}
 	return false
-
 }
+
 func countOrderOccurrencesInSystems(o et.ElevOrder) int {
 	count := 0
 

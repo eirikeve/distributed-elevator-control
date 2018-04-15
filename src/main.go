@@ -1,12 +1,11 @@
 package main
 
 import (
-	ed "./elevdriver"
-	eh "./elevhandler"
-	//localIp "./elevnetwork/localip"
 	"fmt"
 	"time"
 
+	ed "./elevdriver"
+	eh "./elevhandler"
 	et "./elevtype"
 	nh "./nethandler"
 	re "./recover"
@@ -16,19 +15,6 @@ import (
 )
 
 func main() {
-	// Recover from a panic from https://github.com/golang/go/wiki/PanicAndRecover
-
-	/*defer func() {
-		if r := recover(); r != nil {
-			var ok bool
-			var err error
-			err, ok = r.(error)
-			if !ok {
-				err = fmt.Errorf("pkg: %v", r)
-			}
-		}
-	}()*/
-
 	parseCmdLineArgs()
 	setupLog()
 	run()

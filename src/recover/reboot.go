@@ -1,6 +1,5 @@
 package recover
 
-//[@TODO]: MIGHT need a defer/recover/panic function to stop elevator from moving, preventing the elevator to reach bottom.
 import (
 	"encoding/json"
 	"net"
@@ -116,5 +115,5 @@ func spawnBackup() {
 	// For Ubuntu:
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "ElevatorServer")).Run()
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go setup.go -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
-	log.Info("Secondary is created and is now surveillance!")
+	log.Info("Secondary is created and is now surveilling!")
 }

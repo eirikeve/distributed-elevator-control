@@ -26,14 +26,6 @@ func Start(timerName string, duration time.Duration, signalTimeout chan bool) {
 	_, exists := timers[timerName]
 	if exists {
 		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Warning("elevtimer Start: Called start on existing timer, updating its duration instead")
-		println("\n\n\n\n\n\n") // Unlocking and Locking here is due to the def Unlock() call
-		// Unlocking an unlocked mutex causes runtime error, so this is a workaround
-		// Deferring Update would make it be called before Unlock, so that wouldn't help either
-
-		//[@TODO @BUG the three following lines creates a bug]
-		//lock.Unlock()
-		//Update(timerName, duration)
-		//lock.Lock()
 
 	}
 	// Make buffered durationUpdateChan, and link it to the timerName
@@ -74,9 +66,6 @@ func Update(timerName string, newDuration time.Duration) {
 	defer lock.Unlock()
 	c, exists := timers[timerName]
 	if exists {
-		// @TODO possible error here if c is non-existent due to some bug
-		//log.WithFields(log.Fields{"timerName": timerName, "duration": newDuration}).Debug("elevtimer Update: New duration")
-		//@BUG? Might get stuck here.
 		select {
 		case c <- newDuration:
 		default:
@@ -127,7 +116,6 @@ func timerInstance(timerName string, duration time.Duration, signalTimeout chan<
 			time.Sleep(time.Millisecond * 50)
 		}
 	}
-	// Timer has elapsed.
 
 	// Timeout! Send message on signalTimeout channel
 	for {
