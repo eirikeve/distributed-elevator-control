@@ -39,10 +39,8 @@ func Transmitter(port int, chans ...interface{}) {
 		conn.SetDeadline(time.Now().Add(time.Second))
 		_, err := conn.WriteTo([]byte(typeNames[chosen]+string(buf)), addr)
 		if err != nil {
-			//log.WithError(err).Error("bcast: Could not send")
+			log.WithError(err).Error("bcast: Could not send")
 		}
-		//log.WithField("Transmitted", value).Debug("bcast Transmitter: Sent msg")
-		//log.WithField("Transmitted (str)", string(buf)).Debug("bcast Transmitter: Sent msg")
 	}
 }
 
@@ -64,8 +62,6 @@ func Receiver(port int, chans ...interface{}) {
 				if strings.HasPrefix(string(buf[0:n])+"{", typeName) {
 					v := reflect.New(T)
 					json.Unmarshal(buf[len(typeName):n], v.Interface())
-					//log.WithField("Received", v).Info("bcast Receiver: Recv msg")
-					//log.WithField("Received (str)", string(buf[len(typeName):n])).Info("bcast Receiver: Recv msg")
 
 					reflect.Select([]reflect.SelectCase{{
 						Dir:  reflect.SelectSend,
@@ -83,9 +79,6 @@ func Receiver(port int, chans ...interface{}) {
 //  All args must be channels
 //  Element types of channels must be encodable with JSON
 //  No element types are repeated
-// Implementation note:
-//  - Why there is no `isMarshalable()` function in encoding/json is a mystery,
-//    so the tests on element type are hand-copied from `encoding/json/encode.go`
 func checkArgs(chans ...interface{}) {
 	n := 0
 	for range chans {

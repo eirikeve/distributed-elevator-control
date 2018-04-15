@@ -1,8 +1,6 @@
 package elevlog
 
 /*go get github.com/op/go-logging
-
-
 log "github.com/sirupsen/logrus"*/
 
 import (
@@ -41,6 +39,5 @@ func InitLog(level log.Level, toFile bool) {
 			"Log level": level,
 		}).Warning("initLog: Invalid log level input. Defaulting to log.InfoLevel")
 	}
-	// @ Todo make some way to close the log file
 
 }
