@@ -1,4 +1,4 @@
-package main
+package setup
 
 import (
 	"flag"
@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"time"
 
-	et "./elevtype"
+	et "../elevtype"
 	log "github.com/sirupsen/logrus"
 )
 
 var logLevel = log.DebugLevel
 var logToFileInsteadOfBash = false
 
-func parseCmdLineArgs() {
+func ParseCmdLineArgs() {
 
 	isDebugEnvironment := flag.Bool("debug", false, "in debug, all log messages are recorded. Otherwise, only more important log messages are recorded.")
 	doLog := flag.Bool("log", true, "if logging, log messages are displayed in bash or file, (where and which depending on logtobash flag and debug flag)")
@@ -35,7 +35,7 @@ func parseCmdLineArgs() {
 	et.BackupPort = *backupPort
 }
 
-func setupLog() {
+func SetupLog() {
 	initLog(logLevel, logToFileInsteadOfBash)
 	log.Debug("main setupLog: log initialized")
 }

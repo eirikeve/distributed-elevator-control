@@ -9,28 +9,36 @@ import (
 	et "./elevtype"
 	nh "./nethandler"
 	re "./recover"
+	setup "./setup"
 	sb "./sysbackup"
 	ss "./sysstate"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	parseCmdLineArgs()
-	setupLog()
+	setup.ParseCmdLineArgs()
+	setup.SetupLog()
 	run()
 }
 
 func run() {
-
+	timeOfStart := time.Now().Unix()
 	defer recoverIfPanic()
 	stopRunning := make(chan bool, 2)
 
 	re.StartSurveillanceOfPrimary()
 
+	ss.InitSysState()
+
 	systemStates, _ := sb.Recover(time.Now().Add(et.BackupRecoverInterval))
 
 	log.WithField("states", systemStates).Debug("main run: Setup sysstates")
-	ss.SetSystemsStatesFromBackup(systemStates)
+	ss.SetSystemsStates(systemStates)
+	localSys := ss.GetLocalSystem()
+	var elevator *et.Elevator
+	if timeOfStart > localSys.StartupTime {
+		elevator = &localSys.E
+	}
 	log.WithField("states", ss.GetLocalSystem().CurrentOrders).Debug("main run: Done w/ setup of sysstates")
 
 	orderQueueFromNethandler := make(chan [et.NumFloors][et.NumButtons]et.SimpleOrder, 12)
@@ -41,7 +49,9 @@ func run() {
 	eh.StartElevatorHandler(orderQueueFromNethandler,
 		buttonLightsFromNethandler,
 		buttonPressesToNethandler,
-		elevStateToNethandler)
+		elevStateToNethandler,
+		elevator,
+	)
 	nh.StartNetHandler(orderQueueFromNethandler,
 		buttonLightsFromNethandler,
 		buttonPressesToNethandler,

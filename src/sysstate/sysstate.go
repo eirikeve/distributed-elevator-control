@@ -1,7 +1,6 @@
 package sysstate
 
 import (
-	"sync"
 	"time"
 
 	network "../elevnetwork"
@@ -10,90 +9,79 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var LocalIP string
-var LocalID int32
-var initialized = false
-var backInit = false
-var mutex = &sync.Mutex{}
-
-var systems = make(map[int32]et.ElevState)
-
-func SysIsInitialized() bool {
-	return backInit
-}
-
 /*
- * initSysState is automatically called the first time we set the local systems
+
+sysstate.go contains methods for initializing, setting, and getting the system's state.
+The system state is the overview of all orders (finished and current),
+along with the current physical position, dir, etc. of the local elevator.
+
+*/
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
+
+// This system's unique ID, used as the local key in the systems map. All values except 0 are used as IDs.
+var LocalID int32
+
+// Contains the local ElevState (complete overview of the sys) along with the most recent updates from other systems.
+var systems = make(map[int32]et.ElevState)
+var initialized = false
+
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*initSysState performs a basic setup of systems and LocalID.
+ * It's automatically called the first time we call any functions in the sysstate module interface.
  */
-func initSysState() {
+func InitSysState() {
 
-	if initialized {
-
-		return
-	}
-
-	LocalIP, _ = locIP.LocalIP()
 	LocalID, _ = locIP.LocalID()
 
-	mutex.Lock()
 	_, localSysExists := systems[LocalID]
 
 	if !localSysExists {
 		newElevState := et.ElevState{ID: LocalID, E: et.EmptyElevator(), StartupTime: time.Now().Unix()}
 
 		systems[LocalID] = newElevState
-
-	} else {
-		backInit = true
 	}
 
 	initialized = true
-	mutex.Unlock()
-
-	log.WithField("localID", LocalID).Warn("sysstate: Initialized")
+	log.WithField("localID", LocalID).Info("sysstate: Initialized")
 
 }
 
+/*SetSystemsStates assigns a new value to the systems variable.
+ * @arg sys: Slice of ElevState variables, all assumed to have unique IDs (otherwise some will be overwritten when assigning)
+ */
 func SetSystemsStates(sys []et.ElevState) {
-	mutex.Lock()
-	systems = make(map[int32]et.ElevState)
 	for _, system := range sys {
-		systems[system.ID] = system
-	}
-	mutex.Unlock()
-	// Initialize after the assignment since this guarantees local system being in systems after func call
-	if !initialized {
-		initSysState()
-	}
-
-}
-
-func SetSystemsStatesFromBackup(sys []et.ElevState) {
-	SetSystemsStates(sys)
-	// mark orders as not sent to elevator, so ensure that local orders are resent to the elevator immediately
-	for key, es := range systems {
-		for f := 0; f < et.NumFloors; f++ {
-			for b := 0; b < et.NumButtons; b++ {
-				if es.CurrentOrders[f][b].Id != "" {
-					es.CurrentOrders[f][b].SentToAssigneeElevator = false
-				}
-			}
+		if system.ID != 0 {
+			systems[system.ID] = system
 		}
-		systems[key] = es
 	}
+
 }
 
+/*GetSystemsStates returns the ElevStates in the systems variable.
+ * @return: ElevState of local system, and all other elevators we have communicated with
+ */
 func GetSystemsStates() []et.ElevState {
-	mutex.Lock()
+
 	var sys []et.ElevState
 	for _, system := range systems {
 		sys = append(sys, system)
 	}
-	mutex.Unlock()
 	return sys
 }
 
+/*GetActiveSystemsStates returns the currently active ElevStates in the systems variable.
+ * This is determined from checking heartbeat.
+ * @return: ElevState of active systems
+ */
 func GetActiveSystemsStates() []et.ElevState {
+
 	activeSys := network.GetSystemsInNetwork()
 	var sys []et.ElevState
 	for _, system := range systems {
@@ -105,14 +93,20 @@ func GetActiveSystemsStates() []et.ElevState {
 	return sys
 }
 
+/*GetLocalSystem returns the ElevState representing the local system.
+ * @return: ElevState of local system (with ID == LocalID)
+ */
 func GetLocalSystem() et.ElevState {
-	mutex.Lock()
 	localSys := systems[LocalID]
-	mutex.Unlock()
 	return localSys
 }
 
-func GetLocalSystemOrders() [et.NumFloors][et.NumButtons]et.SimpleOrder {
+/*GetLocalSystemQueue returns the queue.
+ * It's used for sending the queue to elevatorhandler.
+ * @return: 2d array where each position is an order (they can be empty).
+ */
+func GetLocalSystemQueue() [et.NumFloors][et.NumButtons]et.SimpleOrder {
+
 	var orders [et.NumFloors][et.NumButtons]et.SimpleOrder
 	// Get new orders to delegate
 	s, _ := systems[LocalID]
@@ -127,17 +121,12 @@ func GetLocalSystemOrders() [et.NumFloors][et.NumButtons]et.SimpleOrder {
 	return orders
 }
 
-func MarkOrdersAsSent(orders []et.SimpleOrder) {
-	s, _ := systems[LocalID]
-	for _, order := range orders {
-		if s.CurrentOrders[order.GetFloor()][int(order.GetButton())].Id == order.GetID() {
-			s.CurrentOrders[order.GetFloor()][int(order.GetButton())].SentToAssigneeElevator = true
-		}
-	}
-	systems[LocalID] = s
-}
-
+/*GetSystemElevators returns all the elevators from the systems variable
+ * It's used for choosing a system to delegate an order to in orderlogic.go
+ * @return: slice of elevators, one for each ElevState in systems.
+ */
 func GetSystemElevators() []et.Elevator {
+
 	var elevList []et.Elevator
 	for _, system := range systems {
 		elevList = append(elevList, system.E)
@@ -145,7 +134,11 @@ func GetSystemElevators() []et.Elevator {
 	return elevList
 }
 
+/*GetPanelLights is used to set the lights of the elevator buttons.
+ * @return: 2d array where each position is an ButtonLamp value (floor, button, on/off).
+ */
 func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
+
 	s, _ := systems[LocalID]
 	var lights [et.NumFloors][et.NumButtons]et.ButtonLamp
 	for f := 0; f < et.NumFloors; f++ {

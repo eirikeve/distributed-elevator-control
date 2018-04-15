@@ -1,7 +1,6 @@
 package sysstate
 
 import (
-	"errors"
 	"strconv"
 	"time"
 
@@ -11,44 +10,51 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const ackRetainTime = 30 * time.Second
+/*
 
-/*UpdateLocalElevator contains logic for updating the state & orders of the local system
+sysstatelogic.go contains methods for updating finished orders, acknowledging orders,
+accepting/rejecting orders, and incorporating remote changes into this system's queue.
+
+*/
+
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*PushLocalElevatorUpdate updates the current state of the local FSM in systems
+ * This new update is also used to determine which orders have been completed.
+ * @arg e: Most recent state (including queue & finished orders) of the local FSM
  */
-func UpdateLocalElevator(e *et.Elevator) {
-	if !initialized {
-		initSysState()
-	}
+func PushLocalElevatorUpdate(e *et.Elevator) {
 
 	system, _ := systems[LocalID]
-
 	system.E = *e
-
 	systems[LocalID] = system
+
 	updateFinishedOrders()
 }
 
-/*PushButtonEvent creates an order to handle the received btn event, but only if it is not yet an active order.
- *
+/*PushButtonEvent creates an order to handle received buttonEvents
+ * But - duplicate orders are ignored, and orders may be rejected.
+ * @arg assigneeSysID: ID of the system which this order will be delegated to if accepted
+ * @arg btn: Floor/button corresponding to the order
  */
-func PushButtonEvent(sysID int32, btn et.ButtonEvent) {
-
-	if !initialized {
-		initSysState()
-	}
+func PushButtonEvent(assigneeSysID int32, btn et.ButtonEvent) {
 
 	t := time.Now().Unix()
 	o := et.ElevOrder{
-		Id:                LocalIP + strconv.FormatInt(int64(btn.Floor), 10) + strconv.FormatInt(int64(btn.Button), 10) + strconv.FormatInt(time.Now().Unix(), 30),
+		Id:                strconv.FormatInt(int64(LocalID), 10) + strconv.FormatInt(int64(btn.Floor), 10) + strconv.FormatInt(int64(btn.Button), 10) + strconv.FormatInt(time.Now().Unix(), 30),
 		Order:             btn,
 		TimestampReceived: t,
 		Status:            et.Received,
 		TimestampLastOrderStatusChange: t,
-		Assignee:                       sysID,
+		Assignee:                       assigneeSysID,
 		SentToAssigneeElevator:         false,
 	}
 
+	// Ignore orders for floor/btn combinations which are already Received/Accepted.
 	if !isOrderAlreadyActive(btn) {
+		// Due to sysbackup we don't lose orders even in case of shutdowns. So we always accept cab orders.
 		if o.IsCabOrder() {
 			o.Status = et.Accepted
 			o.Acks = append(o.Acks, LocalID)
@@ -58,74 +64,67 @@ func PushButtonEvent(sysID int32, btn et.ButtonEvent) {
 			system, _ := systems[LocalID]
 			system.CurrentOrders[btn.Floor][int(btn.Button)] = o
 			systems[LocalID] = system
+
 			sb.Backup(GetSystemsStates())
 
 		} else {
-
+			// For hall orders, we need redundancy in order to accept orders.
 			activeSystems := network.GetSystemsInNetwork()
+
 			if len(activeSystems) < 2 {
-				log.Warn("sysstate Push: Order rejected. Cannot guarantee completion")
+				log.Debug("sysstate Push: Order rejected. Cannot guarantee completion")
 				return
 			}
-			log.Debug("sysstate Push: Is new order!")
 
 			o.Acks = append(o.Acks, LocalID)
 
-			// Note that sysIndex says which system should perform the order.
-			// But, since THIS system is the one delegating,
-			// The order is stored in THIS system|s ElevState!
-			// Other system's elevstate is only used for updating which orders
-			// we will perform locally, we don't modify them
-
 			// Verify that the system the order is assigned to exists
-			_, ok := systems[sysID]
-			// The order is saved in the currentOrders of the local elevator
+			_, ok := systems[assigneeSysID]
+			// The order is saved in the currentOrders of the local elevator (but with assigneeSysID as the assignee)
 			system, _ := systems[LocalID]
 			if ok {
 				system.CurrentOrders[btn.Floor][int(btn.Button)] = o
 				systems[LocalID] = system
 				log.WithField("o", o).Debug("sysstate Update: Set received order")
 			} else {
-				log.WithField("sysID", sysID).Error("sysstate Push: Order assigned to unknown system")
+				log.WithField("sysID", assigneeSysID).Error("sysstate Push: Order assigned to unknown system")
 			}
 		}
 
 	}
-	// @TODO check if only one sys is active, if so, do NOT accept order!!!
 }
 
-func HandleRegularUpdate(es et.ElevState) {
+/*HandleRegularUpdate incorporates changes from another system into our system.
+ *This is the way we distribute order information - including ACKs, order delegation, etc.
+ * @arg
+ */
+func HandleRegularUpdate(remote et.ElevState) {
 
-	if es.ID == LocalID || es.ID == 0 {
+	// Ignore updates which are empty or sent locally
+	if remote.ID == LocalID || remote.ID == 0 {
 		return
 	}
 
-	oldEs, existsInSystems := systems[es.ID]
-
+	// If we already have that ID in systems, check that no unexpected changes have occured
+	oldRemote, existsInSystems := systems[remote.ID]
 	if existsInSystems {
-		if oldEs.StartupTime != es.StartupTime {
-			notifySystemOfBackup(oldEs)
-			// same backup
-		} else {
-			ok := verifyOrderChangesOk(es, oldEs)
+		if oldRemote.StartupTime == remote.StartupTime {
+			ok := verifyNoLostAcceptedOrders(remote, oldRemote)
 			if !ok {
-				// handle!!
-				log.Error("sysstate HandleRegularUpdate: Can not verify order changes")
+				// Has not occurred once yet. Logging in case of large, system-breaking bugs.
+				log.Error("sysstate HandleRegularUpdate: Can not verify order changes. ")
 			}
 		}
 	}
 
-	systems[es.ID] = es
-	//localSys := systems[LocalIP]
-
-	applyUpdatesToLocalSystem(es)
+	systems[remote.ID] = remote
+	applyUpdatesToLocalSystem(remote)
 	acceptOrdersWeCanGuarantee()
 }
 
 /*CheckForAndHandleOrderTimeout finds all orders in our queue which have timed out, and redelegates them
- *
- *
- *
+ * New Assignee is chosen from the list of elevators which have ACK'd the order.
+ * Redelegation is cyclic & deterministic.
  */
 func CheckForAndHandleOrderTimeouts() {
 	sys := systems[LocalID]
@@ -135,14 +134,25 @@ func CheckForAndHandleOrderTimeouts() {
 			o := sys.CurrentOrders[f][b]
 			if o.TimeSinceTimeout() > 0 {
 				handleSingleOrderTimeout(&sys, o)
+				// Reassignment only for logging
 				o := sys.CurrentOrders[f][b]
-				log.WithFields(log.Fields{"orderID": o.Id, "newAssignee": o.Assignee}).Warn("Order timeout")
+				log.WithFields(log.Fields{"orderID": o.Id, "newAssignee": o.Assignee}).Info("Order timeout")
 			}
 		}
 	}
 	systems[LocalID] = sys
 }
 
+////////////////////////////////
+// Auxiliary functions
+////////////////////////////////
+
+/*handleSingleOrderTimeout is used to redelegate orders when they time out.
+ * Non-accepted orders are simply rejected (deleted).
+ * For accepted orders, new assignee is chosen from the list of elevators which have ACK'd it.
+ * @arg localSys: The local ElevState
+ * @arg o: Order which has timed out
+ */
 func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 	// We haven't accepted the order, so we remove it from the queue.
 	if o.Status == et.Received {
@@ -161,12 +171,8 @@ func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 				indexOfNewAssignee = 0
 			}
 			if o.Acks[indexOfNewAssignee] == o.Assignee {
-				if o.Assignee == LocalID {
-					// Severe error, could not finish local order, and no other systems have acknowledged it.
-					// Likely, it's a cab order which was not finished due to the elevator being stuck (or being held in place)
-					// @TODO consider rebooting here
-					redelegate(localSys, o, LocalID)
-				}
+				// Could not find any other system to take this order (most likely a cab order)
+				redelegate(localSys, o, LocalID)
 			} else {
 				redelegate(localSys, o, o.Acks[indexOfNewAssignee])
 			}
@@ -179,22 +185,22 @@ func handleSingleOrderTimeout(localSys *et.ElevState, o et.ElevOrder) {
 	}
 }
 
-// Not needed
-func notifySystemOfBackup(es et.ElevState) {
-	// called when that elevator has restarted
-}
-
-func verifyOrderChangesOk(es et.ElevState, oldEs et.ElevState) bool {
+/*verifyOrderChangesOk checks that no accepted orders were removed without being finished
+ * @arg remoteSys: current state of remote system
+ * @arg prevRemoteSys: Previously registered state of remote system
+ * @return true if all OK, false if some accepted order was removed without being finished
+ */
+func verifyNoLostAcceptedOrders(remoteSys et.ElevState, prevRemoteSys et.ElevState) bool {
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
 			// Only care about where orders may have been lost, so if there was no order in the old ElevState, skip
-			if !(oldEs.CurrentOrders[f][b].GetID() == "") {
+			if !(prevRemoteSys.CurrentOrders[f][b].GetID() == "") {
 				// Check if IDs are different
-				if !(es.CurrentOrders[f][b].GetID() == oldEs.CurrentOrders[f][b].GetID()) {
+				if !(remoteSys.CurrentOrders[f][b].GetID() == prevRemoteSys.CurrentOrders[f][b].GetID()) {
 					// Since IDs are different, check if the order in the old ElevState has since been finished
-					if !isOrderAlreadyFinished(es, oldEs.CurrentOrders[f][b].GetID()) {
+					if !isOrderAlreadyFinished(remoteSys, prevRemoteSys.CurrentOrders[f][b].GetID()) {
 						// If Prev order was accepted, we have removed an order that MUST be completed, which is a problem.
-						if oldEs.CurrentOrders[f][b].IsAccepted() {
+						if prevRemoteSys.CurrentOrders[f][b].IsAccepted() {
 							return false
 						}
 					}
@@ -206,11 +212,16 @@ func verifyOrderChangesOk(es et.ElevState, oldEs et.ElevState) bool {
 	return true
 }
 
-func isOrderAlreadyFinished(es et.ElevState, orderID string) bool {
+/*isOrderAlreadyFinished checks if sys has registered a finished order with Id orderID
+ * @arg sys: State of some system
+ * @arg orderID: Id of an order
+ * @return: True if an order with the corresponding Id was found to be finished
+ */
+func isOrderAlreadyFinished(sys et.ElevState, orderID string) bool {
 	if orderID == "" {
 		return false
 	}
-	for _, order := range es.FinishedOrders {
+	for _, order := range sys.FinishedOrders {
 		if order.Id == orderID {
 			return true
 		}
@@ -218,31 +229,146 @@ func isOrderAlreadyFinished(es et.ElevState, orderID string) bool {
 	return false
 }
 
-func applyUpdatesToLocalSystem(es et.ElevState) {
+/*applyUpdatesToLocalSystem calls functions which updates the local system with updates from remote.
+ * @arg remote: Another system's state
+ */
+func applyUpdatesToLocalSystem(remote et.ElevState) {
 
-	mergeFinishedOrdersQueue(es)
-	mergeOrdersToLocalSystem(es)
+	mergeFinishedOrdersQueue(remote)
+	mergeOrdersToLocalSystem(remote)
 	addLocalAckToOrders()
-	applyRemoteOrderAckLogicalOR(es)
+	applyOrderAcksFromRemote(remote)
 
 }
 
-func mergeOrdersToLocalSystem(es et.ElevState) {
+/*mergeOrdersToLocalSystem updates the local queue based on remote's queue
+ * @arg remote: Another system's state
+ */
+func mergeOrdersToLocalSystem(remote et.ElevState) {
 	localSystem, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			o, err := updateSingleOrder(&es, localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
-			if err != nil {
-				//handle
-			} else {
-				localSystem.CurrentOrders[f][b] = o
-			}
+			o := updateSingleOrder(localSystem.CurrentOrders[f][b], remote.CurrentOrders[f][b])
+			localSystem.CurrentOrders[f][b] = o
 		}
 	}
 	systems[LocalID] = localSystem
 
 }
 
+/*updateSingleOrder determines which of the remote and locally stored order should be kept
+ * This is determined by checking the order type, if they are empty, and which order was last modified
+ * @arg localOrder: order that we have in this system's CurrentOrder queue
+ * @arg remoteOrder: order that we have in another system's CurrentOrder queue
+ * @return: Order which will be kept
+ */
+func updateSingleOrder(localOrder et.ElevOrder, remoteOrder et.ElevOrder) et.ElevOrder {
+	var o et.ElevOrder
+	localSystem := systems[LocalID]
+
+	// Cab orders are handled locally, so always keep the local order.
+	if localOrder.IsCabOrder() || remoteOrder.IsCabOrder() {
+		return localOrder
+	}
+
+	// Orders finished elsewhere have been registered in localSystem as well.
+	remoteFinished := isOrderAlreadyFinished(localSystem, remoteOrder.Id)
+	localFinished := isOrderAlreadyFinished(localSystem, localOrder.Id)
+
+	if localFinished && remoteFinished {
+		o = et.EmptyOrder()
+		return o
+	} else if localFinished {
+		o = remoteOrder
+		return o
+	} else if remoteFinished {
+		o = localOrder
+		return o
+	}
+
+	// If an order is empty, it's of no interest
+	if localOrder.IsEmpty() {
+		return remoteOrder
+	} else if remoteOrder.IsEmpty() {
+		return localOrder
+	}
+
+	// We have two orders in the same floor/button. Likely, it is the same order ID.
+	if localOrder.GetID() != remoteOrder.GetID() {
+		//@TODO remove and use the other one.
+		o = updateSingleOrderNonMatchingIDs(localOrder, remoteOrder)
+	} else {
+		o = updateSingleOrderMatchingIDs(localOrder, remoteOrder)
+	}
+
+	return o
+}
+
+/*updateSingleOrderNonMatchingIDs contains logic for determining which order should be kept when both exist, but have nonmatching IDs
+ * It chooses by looking at whether they are accepted, and when they were last modified.
+ * @arg localOrder: order that we have in this system's CurrentOrder queue
+ * @arg remoteOrder: order that we have in another system's CurrentOrder queue
+ * @return: Order which will be kept
+ */
+func updateSingleOrderNonMatchingIDs(localOrder et.ElevOrder, remoteOrder et.ElevOrder) et.ElevOrder {
+	var o et.ElevOrder
+	log.WithFields(log.Fields{"ID1": localOrder.GetID(), "ID2": remoteOrder.GetID()}).Warn("sysstate updateSingleOrder: Non-matching IDs")
+	if localOrder.IsAccepted() && !remoteOrder.IsAccepted() {
+		o = localOrder
+	} else if !localOrder.IsAccepted() && remoteOrder.IsAccepted() {
+		o = remoteOrder
+		// Both orders were accepted. However, since they are are the same ButtonEvent (see call in mergeOrdersToLocalSystem),
+		// the order will be performed no matter which order is stored in the queues
+	} else if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
+
+		if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
+			o = localOrder
+		} else {
+			o = remoteOrder
+		}
+		log.WithFields(log.Fields{"retainedOrderId": o.Id, "localOrderId": localOrder.Id, "remoteOrderId": remoteOrder.Id}).Warn("sysstate updateSingleOrder: Two accepted conflicting orders, retaining one")
+	} else {
+		if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
+			o = localOrder
+		} else {
+			o = remoteOrder
+		}
+	}
+	return o
+
+}
+
+/*updateSingleOrderMatchingIDs contains logic for determining which order should be kept when both exist, and have matching IDs
+ * It chooses by looking at whether they are accepted, and when they were last modified.
+ * @arg localOrder: order that we have in this system's CurrentOrder queue
+ * @arg remoteOrder: order that we have in another system's CurrentOrder queue
+ * @return: Order which will be kept
+ */
+func updateSingleOrderMatchingIDs(localOrder et.ElevOrder, remoteOrder et.ElevOrder) et.ElevOrder {
+	var o et.ElevOrder
+	if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
+		if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
+			o = localOrder
+		} else {
+			o = remoteOrder
+		}
+	} else if localOrder.IsAccepted() {
+		o = localOrder
+	} else if remoteOrder.IsAccepted() {
+		o = remoteOrder
+	} else {
+		if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
+			o = localOrder
+		} else {
+			o = remoteOrder
+		}
+	}
+	return o
+}
+
+/*mergeFinishedOrdersQueue updates our local system's list of finished orders with the ones from remoteSystem.
+ * @arg remoteSystem: Another system's state
+ */
 func mergeFinishedOrdersQueue(remoteSystem et.ElevState) {
 	localSystem := systems[LocalID]
 	// Check if the remote order is not in our finished orders list
@@ -271,88 +397,9 @@ func mergeFinishedOrdersQueue(remoteSystem et.ElevState) {
 	systems[LocalID] = localSystem
 }
 
-func updateSingleOrder(remoteSystem *et.ElevState, localOrder et.ElevOrder, remoteOrder et.ElevOrder) (et.ElevOrder, error) {
-	var err error
-	var o et.ElevOrder
-	localSystem := systems[LocalID]
-
-	if localOrder.IsCabOrder() || remoteOrder.IsCabOrder() {
-		return localOrder, nil
-	}
-
-	// If the order {f, b} is finished either locally and/or remotely, we don't need any complex logic:
-	remoteFinished := isOrderAlreadyFinished(localSystem, remoteOrder.Id)
-	localFinished := isOrderAlreadyFinished(localSystem, localOrder.Id)
-	if localFinished && remoteFinished {
-		o = et.EmptyOrder()
-		return o, nil
-	} else if localFinished {
-		o = remoteOrder
-		return o, nil
-	} else if remoteFinished {
-		o = localOrder
-		return o, nil
-	}
-
-	// Neither the local nor the remote order is finished. But, one may be empty, which would simplify:
-	if localOrder.IsEmpty() {
-		//println("Local empty. Returning remote order:", remoteOrder.Id)
-		return remoteOrder, nil
-	} else if remoteOrder.IsEmpty() {
-		//println("Remote emtpy. Returning local order:", localOrder.Id)
-		return localOrder, nil
-	}
-
-	// So, we have two orders in the same floor/button. Likely, it is the same order ID.
-	// Still, though different IDs should in theory never occur, as we know, it probably will.
-	if localOrder.GetID() != remoteOrder.GetID() {
-		log.WithFields(log.Fields{"ID1": localOrder.GetID(), "ID2": remoteOrder.GetID()}).Error("sysstate updateSingleOrder: Non-matching IDs")
-		err = errors.New("sysstate updateSingleOrder: Non-matching IDs: " + localOrder.GetID() + ", " + remoteOrder.GetID())
-		if localOrder.IsAccepted() && !remoteOrder.IsAccepted() {
-			o = localOrder
-		} else if !localOrder.IsAccepted() && remoteOrder.IsAccepted() {
-			o = remoteOrder
-			// Both orders were accepted. However, since they are are the same ButtonEvent (see call in mergeOrdersToLocalSystem),
-			// the order will be performed no matter which order is stored in the queues
-		} else if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
-
-			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
-				o = localOrder
-			} else {
-				o = remoteOrder
-			}
-			log.WithFields(log.Fields{"retainedOrderId": o.Id, "localOrderId": localOrder.Id, "remoteOrderId": remoteOrder.Id}).Warn("sysstate updateSingleOrder: Two accepted conflicting orders, retaining one")
-		} else {
-			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
-				o = localOrder
-			} else {
-				o = remoteOrder
-			}
-		}
-	} else {
-		// Same order ID
-		if localOrder.IsAccepted() && remoteOrder.IsAccepted() {
-			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
-				o = localOrder
-			} else {
-				o = remoteOrder
-			}
-		} else if localOrder.IsAccepted() {
-			o = localOrder
-		} else if remoteOrder.IsAccepted() {
-			o = remoteOrder
-		} else {
-			if localOrder.TimestampLastOrderStatusChange > remoteOrder.TimestampLastOrderStatusChange {
-				o = localOrder
-			} else {
-				o = remoteOrder
-			}
-		}
-	}
-
-	return o, err
-}
-
+/*addLocalAckToOrders registeres our ACK to orders in our queue where it has not yet been registered.
+ * We only register ACK if the order's assignee is active (in our heartbeat system)
+ */
 func addLocalAckToOrders() {
 	localSystem, _ := systems[LocalID]
 	activeSystems := network.GetSystemsInNetwork()
@@ -379,12 +426,15 @@ func addLocalAckToOrders() {
 	systems[LocalID] = localSystem
 }
 
-func applyRemoteOrderAckLogicalOR(es et.ElevState) {
+/*applyOrderAcksFromRemote finds ACKs registered remotely on orders and registers them on our local orders (orders with same ID)
+ * @arg remote: Another system's state
+ */
+func applyOrderAcksFromRemote(remote et.ElevState) {
 	localSystem := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
-			if es.CurrentOrders[f][b].Id == localSystem.CurrentOrders[f][b].Id {
-				newAcks := getAcksOnlyRegisteredRemotely(localSystem.CurrentOrders[f][b], es.CurrentOrders[f][b])
+			if remote.CurrentOrders[f][b].Id == localSystem.CurrentOrders[f][b].Id {
+				newAcks := getAcksOnlyRegisteredRemotely(localSystem.CurrentOrders[f][b], remote.CurrentOrders[f][b])
 				for _, ack := range newAcks {
 					localSystem.CurrentOrders[f][b].Acks = append(localSystem.CurrentOrders[f][b].Acks, ack)
 				}
@@ -395,6 +445,9 @@ func applyRemoteOrderAckLogicalOR(es et.ElevState) {
 
 }
 
+/*contains checks if container has an item equal to element
+ * @return true if container contains an identical item to element
+ */
 func contains(container []int32, element int32) bool {
 	for _, elem := range container {
 		if elem == element {
@@ -404,12 +457,17 @@ func contains(container []int32, element int32) bool {
 	return false
 }
 
-func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []int32 {
+/*getAcksOnlyRegisteredRemotely finds the ACKs registered only for remoteOrder, and returns them as a slice
+ * @arg localOrder: locally registered order
+ * @arg remoteOrder: order from update from another sys
+ * @return: Slice of ACKs (system IDs)
+ */
+func getAcksOnlyRegisteredRemotely(localOrder et.ElevOrder, remoteOrder et.ElevOrder) []int32 {
 	var acks []int32
 
-	for _, remoteAck := range remote.Acks {
+	for _, remoteAck := range remoteOrder.Acks {
 		ackAlreadyRegisteredLocally := false
-		for _, localAck := range local.Acks {
+		for _, localAck := range localOrder.Acks {
 			if remoteAck == localAck {
 				ackAlreadyRegisteredLocally = true
 			}
@@ -421,6 +479,9 @@ func getAcksOnlyRegisteredRemotely(local et.ElevOrder, remote et.ElevOrder) []in
 	return acks
 }
 
+/*acceptOrdersWeCanGuarantee checks this system's queue for orders we can accept (redundancy is a prerequisite), and accepts them
+ * After accepting each order, we backup, to ensure no loss of accepted orders occurs.
+ */
 func acceptOrdersWeCanGuarantee() {
 	localSystem, _ := systems[LocalID]
 	for f := 0; f < et.NumFloors; f++ {
@@ -437,6 +498,10 @@ func acceptOrdersWeCanGuarantee() {
 	systems[LocalID] = localSystem
 }
 
+/*rejectOrder removes an order from the local queue
+ * It's used for rejecting received orders which have timed out etc.
+ * @arg orderID: Order to reject
+ */
 func rejectOrder(orderID string) {
 	s, _ := systems[LocalID]
 
@@ -454,6 +519,9 @@ func rejectOrder(orderID string) {
 
 }
 
+/*canGuaranteeOrderCompletion returns true only if at least two systems know about and have acknowledged an order.
+ * @arg o: Order which we want to check if can be guaranteed.
+ */
 func canGuaranteeOrderCompletion(o et.ElevOrder) bool {
 	c := countOrderOccurrencesInSystems(o)
 	if c >= 2 {
@@ -462,6 +530,9 @@ func canGuaranteeOrderCompletion(o et.ElevOrder) bool {
 	return false
 }
 
+/*countOccurrencesInSystems returns the number of systems which have registered and acknowledged an order.
+ * @arg o: Order which we want to count occurrences of
+ */
 func countOrderOccurrencesInSystems(o et.ElevOrder) int {
 	count := 0
 
@@ -486,7 +557,7 @@ func updateFinishedOrders() {
 		if !o.IsEmpty() &&
 			(s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].Id == o.Id ||
 				s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].Assignee == LocalID && s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].IsAccepted()) {
-			markOrderFinished(&s, o.Order.Floor, int(o.Order.Button))
+			finish(&s, o.Order.Floor, int(o.Order.Button))
 			putOrderInFinishedOrdersList(&s, o.Order.Floor, int(o.Order.Button))
 		}
 	}
@@ -495,53 +566,12 @@ func updateFinishedOrders() {
 
 }
 
-func accept(localSys *et.ElevState, o et.ElevOrder) {
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Status = et.Accepted
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
-}
-
-func empty(localSys *et.ElevState, o et.ElevOrder) {
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())] = et.EmptyOrder()
-}
-
-func redelegate(localSys *et.ElevState, o et.ElevOrder, newAssignee int32) {
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Assignee = newAssignee
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].SentToAssigneeElevator = false
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
-	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampReceived = time.Now().Unix()
-}
-
-func findOrder(orderID string) (et.ElevOrder, error) {
-	var o et.ElevOrder = et.EmptyOrder()
-	var err error
-	for _, system := range systems {
-		for f := 0; f < et.NumFloors; f++ {
-			for b := 0; b < et.NumButtons; b++ {
-				if system.CurrentOrders[f][b].Id == orderID {
-					if system.CurrentOrders[f][b].TimestampLastOrderStatusChange > o.TimestampLastOrderStatusChange {
-						o = system.CurrentOrders[f][b]
-					}
-				}
-
-			}
-		}
-		for _, order := range system.FinishedOrders {
-			if order.Id == orderID {
-				// Here we return instantly since the order has already been finished
-				return order, nil
-			}
-		}
-	}
-	if o.IsEmpty() {
-		err = errors.New("sysstatelogic findOrder: cannot find order " + orderID)
-	}
-	return o, err
-}
-
-func markOrderFinished(es *et.ElevState, floor int, button int) {
-	es.CurrentOrders[floor][button].Status = et.Finished
-	es.CurrentOrders[floor][button].TimestampLastOrderStatusChange = time.Now().Unix()
-}
+/*puOrderInFinishedOrdersList moves an order from CurrentOrders to FinishedOrders.
+ * It takes the place of the oldest order in FinishedOrders.
+ * @arg s: Local system's state
+ * @arg floor: floor of order
+ * @arg button: button of order
+ */
 func putOrderInFinishedOrdersList(s *et.ElevState, floor int, button int) {
 	indexOfOldestOrder := 0
 	for index, order := range (*s).FinishedOrders {
@@ -553,11 +583,10 @@ func putOrderInFinishedOrdersList(s *et.ElevState, floor int, button int) {
 	s.CurrentOrders[floor][button] = et.EmptyOrder()
 }
 
-func isLocalOrder(o et.ElevOrder) bool {
-	return o.Assignee == LocalID
-}
-
-// Confusing name.... checks if an order already exists
+/*isOrderAlreadyActive checks if there already exists an active order at a specific floor/button
+ * @arg btn: ButtonEvent corresponding to the floor/button of an order
+ * @return: True if an active order exists, false otherwise
+ */
 func isOrderAlreadyActive(btn et.ButtonEvent) bool {
 	system := systems[LocalID]
 	if system.CurrentOrders[btn.Floor][int(btn.Button)].IsActive() {
@@ -565,4 +594,33 @@ func isOrderAlreadyActive(btn et.ButtonEvent) bool {
 		return true
 	}
 	return false
+}
+
+/*accept registers an order as accepted.
+ */
+func accept(localSys *et.ElevState, o et.ElevOrder) {
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Status = et.Accepted
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
+}
+
+/*empty empties an order.
+ */
+func empty(localSys *et.ElevState, o et.ElevOrder) {
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())] = et.EmptyOrder()
+}
+
+/*redelegate redelegates an order to the specified elevator.
+ */
+func redelegate(localSys *et.ElevState, o et.ElevOrder, newAssignee int32) {
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].Assignee = newAssignee
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].SentToAssigneeElevator = false
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampLastOrderStatusChange = time.Now().Unix()
+	(*localSys).CurrentOrders[o.GetFloor()][int(o.GetButton())].TimestampReceived = time.Now().Unix()
+}
+
+/*finish marks an order as finished.
+ */
+func finish(es *et.ElevState, floor int, button int) {
+	es.CurrentOrders[floor][button].Status = et.Finished
+	es.CurrentOrders[floor][button].TimestampLastOrderStatusChange = time.Now().Unix()
 }

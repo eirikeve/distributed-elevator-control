@@ -5,8 +5,6 @@ import (
 
 	timer "../elevtimer"
 	et "../elevtype"
-	sb "../sysbackup"
-	ss "../sysstate"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,6 +17,7 @@ const initFailTimeout time.Duration = 5 * time.Second
 
 func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	doorTimeoutSignalOutput = doorTimeoutSignal
+	// When we initialize the elevator from backup, e will have a non-zero value.
 	if e == nil {
 		elevator = et.Elevator{
 			Floor:               et.BOTTOMFLOOR,
@@ -27,18 +26,10 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 			State:               et.Initializing,
 			ErrorState:          et.FullFunctionality}
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: No ref, reinitialized elevator")
-	} else {
-		elevator := &e
-		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
-	}
-	// If recovered from Backup, elevator is set to equal backUp data
-	if sb.IsInitializedFromBackup() && ss.SysIsInitialized() {
-		elevator = ss.GetLocalSystem().E
-	} else {
-		//timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
-		// Start by moving downwards
-
 		initialize()
+	} else {
+		elevator := *e
+		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
 }
 

@@ -73,7 +73,7 @@ func netHandler(
 			return
 
 		case elev := <-elevStateToNethandler:
-			ss.UpdateLocalElevator(&elev)
+			ss.PushLocalElevatorUpdate(&elev)
 		case newOrderButtonPress := <-buttonPressesToNethandler:
 			log.WithField("btn", newOrderButtonPress).Debug("nethandler handler: recv button press")
 
@@ -106,7 +106,7 @@ func netHandler(
 		}
 		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > netHandlerSendElevatorQueueFreq {
 			netHandlerSendElevatorQueueTimer = time.Now()
-			orders := ss.GetLocalSystemOrders()
+			orders := ss.GetLocalSystemQueue()
 			select {
 			case orderQueueFromNethandler <- orders:
 			default:

@@ -18,12 +18,14 @@ func StartElevatorHandler(
 	buttonLightsFromNethandler <-chan et.ButtonLamp,
 	buttonPressesToNethandler chan<- et.ButtonEvent,
 	elevatorFSMToNethandler chan<- et.Elevator,
+	elevatorInitialState *et.Elevator,
 ) {
 	log.Info("elevhandler StartElevatorHandler: Starting")
 
 	signalHandlerToStop = make(chan bool, 2)
 	fsmTimeoutSignal = make(chan bool, 2)
-	fsm.InitFSM(fsmTimeoutSignal, nil)
+	fsm.InitFSM(fsmTimeoutSignal, elevatorInitialState)
+
 	go handler(signalHandlerToStop,
 		orderQueueFromNethandler,
 		buttonLightsFromNethandler,
