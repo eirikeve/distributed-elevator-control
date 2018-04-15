@@ -1,7 +1,5 @@
 package elevdriver
 
-// ***Elevio contains io drivers from https://github.com/TTK4145/driver-go/blob/master/elevio/elevator_io.go ***
-
 import (
 	"net"
 	"sync"
@@ -12,6 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+ Elevio contains io drivers from https://github.com/TTK4145/driver-go/blob/master/elevio/elevator_io.go
+ It contains functinality for communicating with the elevator hardware
+*/
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
+
 const _pollRate = 20 * time.Millisecond
 
 var ioInitialized = false
@@ -20,6 +27,10 @@ var ioLock sync.Mutex
 var ioConn net.Conn
 var stopBtnWg sync.WaitGroup
 var stopBtnShutdownChan = make(chan bool, 2)
+
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
 
 func initConnectionAndSetNumFloors(addr string, NumFloorsElevator int) {
 	if ioInitialized {

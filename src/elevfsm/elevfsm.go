@@ -10,13 +10,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+  The elevfsm module contains information and logic for the elevator, which is used to determine its actions.
+  It is used by elevhandler to run, share and store information about the local elevator.
+  The module elevorderevaluation uses the FSM for simulating the elevator.
+*/
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
+
 var elevator et.Elevator
 var lastRegisteredFloor int
 var doorTimeoutSignalOutput chan bool
-var errorCount int
 
 const initFailTimeout time.Duration = 5 * time.Second
 
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*InitFSM intializes the elevator. Either by using stored backup information, if available,
+ * or to defualt.
+ * @arg doorTimeoutSignal:
+ * @arg e: An elevator with information from backup or nil pointer representing a new elevator
+ */
 func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	doorTimeoutSignalOutput = doorTimeoutSignal
 	if e == nil {
@@ -42,45 +60,14 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 	}
 }
 
-// Functions for running the local elevator
-/*
-func GetMovementDirection() elevtype.MotorDirection {
-	return OrderLogicGetMovementDirection(elevator)
-}
-*/
-// Not used after changes in how we set the panel lights
-/*func GetPanelLights() [et.NumFloors][et.NumButtons]et.ButtonLamp {
-	var lights [et.NumFloors][et.NumButtons]et.ButtonLamp
-	for f := 0; f < et.NumFloors; f++ {
-		for b := 0; b < et.NumButtons; b++ {
-			// @TODO If order is nil this will not work //@BUG
-			// make a get function or something else that returns the value.
-			lights[f][b] = et.ButtonLamp{Floor: f, Button: et.ButtonType(b), Value: (elevator.Orders[f][b].GetID() != "")}
-		}
-	}
-	return lights
-}*/
-
-func GetDoorOpenLight() bool {
-	return (elevator.State == et.Unloading)
-}
-
-func GetState() et.ElevatorState {
-	return elevator.State
-}
-
-func GetMotorDir() et.MotorDirection {
-	return elevator.MovementDirection
-}
-
-func GetFloor() int {
-	return elevator.Floor
-}
+/*HandleOrders (.), when in Idle: decides if the elevator should start moving, unload or
+ * remain in Idle by calulating a new movement direction and current orders.
+ * Else do nothing.
+ */
 func HandleOrders() {
 	switch elevator.State {
 	// Only go to moving from idle.
 	case et.Idle:
-		//log.WithField("shouldStop", OrderLogicCheckShouldStopAtFloor(elevator)).Debug("shouldStop")
 		newDirMovement := OrderLogicGetMovementDirection(elevator)
 		if newDirMovement != et.MD_Stop {
 			elevator.MovDirFromLastFloor = newDirMovement
@@ -92,6 +79,11 @@ func HandleOrders() {
 
 	}
 }
+
+/*RegisterFloor (.), consideres to change state based on given input floor, current
+ * state and exsisting orders. Function is called when a change in floor is detected.
+ * @arg floor: Inputs a new registered floor
+ */
 func RegisterFloor(floor int) {
 	if !(isValidFloor(floor)) {
 		log.WithField("floor", floor).Error("elevfsm RegisterFloor: Ignoring invalid input")
@@ -113,7 +105,7 @@ func RegisterFloor(floor int) {
 			idle()
 		}
 	case et.Unloading:
-		if OrderLogicCheckShouldStopAtFloor(elevator) { //@TODO is this sufficient?
+		if OrderLogicCheckShouldStopAtFloor(elevator) {
 			unload()
 		}
 		return
@@ -126,37 +118,58 @@ func RegisterFloor(floor int) {
 
 }
 
+/*RegisterTimerTimeout (.), called when the FSM-timer has timed out.
+ * If the elevator is unloading, it returns to Idle. Meaning unloading is completed.
+ * If called when the elevator is initializing, it the elevator has failed to initialize
+ * and will attept to reinitialize.
+ */
 func RegisterTimerTimeout() {
 	switch elevator.State {
 	case et.Unloading:
 		log.Info("elevfsm RegisterTimeOut: Going from Unloading to Idle")
 		idle()
 	case et.Initializing:
-		switch elevator.MovementDirection {
-		case et.MD_Down: // normal initialization
-			setDir(et.MD_Up)
-			errorCount++
-			timer.Start("InitializationRetry", initFailTimeout, doorTimeoutSignalOutput)
-			log.Warning("elevfsm RegisterTimerTimeout: Retrying Init, moving up")
-
-		case et.MD_Up:
-			setDir(et.MD_Stop)
-			errorCount++
-			log.Error("elevfsm RegisterTimerTimeout: Error, could not init, restarting")
-			//@TODO restart here
-		}
-		return
+		atteptToReinitialize()
 	case et.Idle:
 		fallthrough
 	case et.Moving:
 		fallthrough
 	default:
 		log.WithField("state", elevator.State).Error("elevfsm RegisterTimerTimeout: Unhandled state")
-		errorCount++ //@TODO maybe change to an internal variable in elevator?
 	}
 }
 
-// Functions used when interfacing with elevNetworkHandler
+/*GetDoorOpenLight (.)
+ * @return: true if unloading, else false
+ */
+func GetDoorOpenLight() bool {
+	return (elevator.State == et.Unloading)
+}
+
+/*GetState (.)
+ * @return: The current elevator state
+ */
+func GetState() et.ElevatorState {
+	return elevator.State
+}
+
+/*GetMotorDir (.)
+ * @return: The current movement direction
+ */
+func GetMotorDir() et.MotorDirection {
+	return elevator.MovementDirection
+}
+
+/*GetFloor (.)
+ * @return: The current floor
+ */
+func GetFloor() int {
+	return elevator.Floor
+}
+
+/*PushQueue (.) takes a set of orders and pushes them to the local queue
+ * @arg orders: Orders received from the nethandler
+ */
 func PushQueue(orders [et.NumFloors][et.NumButtons]et.SimpleOrder) {
 	for f := 0; f < et.NumFloors; f++ {
 		for b := 0; b < et.NumButtons; b++ {
@@ -164,35 +177,74 @@ func PushQueue(orders [et.NumFloors][et.NumButtons]et.SimpleOrder) {
 		}
 	}
 }
+
+/*RemoveOrderFromQueue (.) Removes the given order from the local elevator queue
+ */
 func RemOrderFromQueue(order et.GeneralOrder) {
 	floor := order.GetFloor()
 	button := int(order.GetButton())
 	elevator.Orders[floor][button] = et.SimpleOrder{} // Default ID is "" which evaluates to Empty
 }
 
+/*GetElevator (.)
+ * @returns: The local elevator
+ */
 func GetElevator() et.Elevator {
 	return elevator
 }
 
-func ForceState(state et.ElevatorState) {
-	log.WithField("state", state).Warning("elevfsm ForceState: Forced state change")
-	elevator.State = state
+/*
+ * @TODO
+ */
+func MarkElevatorSentToNetHandler() {
+	elevator.FinishedOrders = nil
 }
 
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
+
+/*setState (.)
+ * @arg state: Sets the elevator state to given state
+ */
 func setState(state et.ElevatorState) {
 	log.WithField("state", state).Debug("elevfsm setState: State change")
 	elevator.State = state
 }
 
+/*setDir (.)
+ * @arg dir: Sets the elevators movements direction to dir
+ */
 func setDir(dir et.MotorDirection) {
 	log.WithField("movementDir", dir).Debug("elevfsm setDir: Dir change")
 	elevator.MovementDirection = dir
 }
 
+/*initialize (.) sets the elevator state to initialize
+ * and movement direction downwards.
+ */
 func initialize() {
 	log.Debug("elevfsm initialize: Initializing")
 	setState(et.Initializing)
 	setDir(et.MD_Down)
+}
+
+/*atteptTo
+ *
+ */
+func atteptToReinitialize() {
+	switch elevator.MovementDirection {
+	case et.MD_Down: // normal initialization
+		setDir(et.MD_Up)
+		timer.Start("InitializationRetry", initFailTimeout, doorTimeoutSignalOutput)
+		log.Warning("elevfsm RegisterTimerTimeout: Retrying Init, moving up")
+
+	case et.MD_Up:
+		setDir(et.MD_Stop)
+		log.Error("elevfsm RegisterTimerTimeout: Error, could not init, restarting")
+		//@TODO restart here
+
+	}
 }
 
 func unload() {
@@ -237,6 +289,3 @@ func isValidFloor(floor int) bool {
 /*Mark that the elevator was successfully passed to the chan to nethandler.
  *Avoids duplicate registrations of finished orders.
  */
-func MarkElevatorSentToNetHandler() {
-	elevator.FinishedOrders = nil
-}
