@@ -229,8 +229,9 @@ func initialize() {
 	setDir(et.MD_Down)
 }
 
-/*atteptTo
- *
+/*atteptToReinitialize (.), called if initialization has failed to detect floor within given time limit.
+ * First time called the movement direction of the elevator upwards and restarts timer.
+ * Second time, the elevator will stop and remain silent.
  */
 func atteptToReinitialize() {
 	switch elevator.MovementDirection {
@@ -247,25 +248,34 @@ func atteptToReinitialize() {
 	}
 }
 
+/*unload (.) Called when serving a order at a floor. Starts timer, which will later signalize when
+ * unloading is completed. Sets the elevator state to unlading and movement direction to stop.
+ * Appends the served order to the finished order queue.
+ */
 func unload() {
 	log.WithField("floor", elevator.Floor).Debug("elevfsm unload: Unloading")
 	timer.Start("UnloadTimer", time.Second*3, doorTimeoutSignalOutput)
+
 	setState(et.Unloading)
 	setDir(et.MD_Stop)
 
 	elevator.FinishedOrders = append(elevator.FinishedOrders, OrderLogicGetRequestsWeCanClearOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)...)
-	// Keep the list from growing too large. Since it is sent very regularly (each 1ms), this will almost certainly not result in lost IDs.
-
-	//newMovementDir := OrderLogicGetMovementDirection(elevator)
 
 }
 
+/*idle (.) Sets the elevators movement direction to stop and changes
+ * the state to Idle.
+ */
 func idle() {
 	log.WithField("floor", elevator.Floor).Debug("elevfsm idle: Idling")
 	setDir(et.MD_Stop)
 	setState(et.Idle)
 }
 
+/* move (.)  Changes the elevator state to Moving, unless given direction is stop. Then the elevator
+ * will enter state Idle.
+ * @arg dir: If dir equal stop go to idle, else movement direction is sat to dir
+ */
 func move(dir et.MotorDirection) {
 	if dir == et.MD_Stop {
 		idle()
