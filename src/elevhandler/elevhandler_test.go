@@ -58,9 +58,7 @@ func TestElevHandlerWithNetworkSim(t *testing.T) {
 	StartElevatorHandler(networkToElev, elevToNetwork)
 	go simNetworkHandler(networkToElev, elevToNetwork)
 	time.Sleep(time.Second * 60)
-	print(".....\n")
 	StopElevatorHandler()
-	print(".........\n")
 
 	time.Sleep(time.Second * 3)
 
@@ -94,7 +92,7 @@ func simNetworkHandler(networkToElev chan<- et.GeneralOrder, elevToNetwork <-cha
 			select {
 			case networkToElev <- orderBuffer[i-1]:
 				i -= 1
-				// Remove that element from the slice
+
 			}
 		}
 		time.Sleep(time.Millisecond * 5)

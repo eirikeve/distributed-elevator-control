@@ -1,20 +1,19 @@
 package elevdriver
 
-/*
-Elevio contains io drivers from https://github.com/TTK4145/driver-go/blob/master/elevio/elevator_io.go
-*/
+// ***Elevio contains io drivers from https://github.com/TTK4145/driver-go/blob/master/elevio/elevator_io.go ***
 
-import "time"
-import "sync"
-import "net"
+import (
+	"net"
+	"sync"
+	"time"
 
-import et "../elevtype"
+	et "../elevtype"
 
-import log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+)
 
 const _pollRate = 20 * time.Millisecond
 
-var PortNum string // @SIM
 var ioInitialized = false
 var ioNumFloorsElevator int
 var ioLock sync.Mutex
@@ -55,7 +54,6 @@ func setMotorDirection(dir et.MotorDirection) {
 }
 
 func setButtonLamp(b et.ButtonLamp) {
-	// changed the input args, may be a bug here
 	floor := b.Floor
 	button := b.Button
 	value := b.Value
@@ -105,8 +103,6 @@ func pollButtons(receiver chan<- et.ButtonEvent, shutdown <-chan bool, wg *sync.
 				for b := et.ButtonType(0); b < 3; b++ {
 					v := getButton(b, f)
 					if v != prev[f][b] && v != false {
-						// This might get stuck here. Use Select? @todo
-
 						receiver <- et.ButtonEvent{f, et.ButtonType(b)}
 					}
 					prev[f][b] = v
