@@ -64,7 +64,7 @@ func netHandler(
 	netHandlerSendRegularUpdateFreq := 100 * time.Millisecond
 
 	netHandlerSendElevatorQueueTimer := time.Now()
-	netHandlerSendElevatorQueueFreq := 100 * time.Millisecond
+	netHandlerSendElevatorQueueFreq := 50 * time.Millisecond
 
 	//timer.StartDelayedFunction("ElevNetHandler Watchdog", time.Second*2, func() { panic("ElevNetHandler Watchdog: timeout") })
 	//defer timer.Stop("ElevNetHandler Watchdog")

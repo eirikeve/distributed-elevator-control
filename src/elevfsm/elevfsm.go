@@ -157,7 +157,11 @@ func RegisterTimerTimeout() {
 
 // Functions used when interfacing with elevNetworkHandler
 func PushQueue(orders [et.NumFloors][et.NumButtons]et.SimpleOrder) {
-	elevator.Orders = orders
+	for f := 0; f < et.NumFloors; f++ {
+		for b := 0; b < et.NumButtons; b++ {
+			elevator.Orders[f][b] = orders[f][b]
+		}
+	}
 }
 func RemOrderFromQueue(order et.GeneralOrder) {
 	floor := order.GetFloor()
@@ -198,11 +202,7 @@ func unload() {
 
 	elevator.FinishedOrders = append(elevator.FinishedOrders, OrderLogicGetRequestsWeCanClearOnCurrentFloor(elevator, elevator.MovDirFromLastFloor)...)
 	// Keep the list from growing too large. Since it is sent very regularly (each 1ms), this will almost certainly not result in lost IDs.
-	if len(elevator.FinishedOrders) > 20 {
-		// May be a bug here
 
-		elevator.FinishedOrders = append(elevator.FinishedOrders, elevator.FinishedOrders[(len(elevator.FinishedOrders)-20):]...)
-	}
 	//newMovementDir := OrderLogicGetMovementDirection(elevator)
 
 }
@@ -231,4 +231,11 @@ func updateFloor(floor int) {
 
 func isValidFloor(floor int) bool {
 	return (0 <= floor && floor < et.NumFloors)
+}
+
+/*Mark that the elevator was successfully passed to the chan to nethandler.
+ *Avoids duplicate registrations of finished orders.
+ */
+func MarkElevatorSentToNetHandler() {
+	elevator.FinishedOrders = nil
 }

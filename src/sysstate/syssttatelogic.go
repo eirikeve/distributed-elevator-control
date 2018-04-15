@@ -579,9 +579,10 @@ func countOrderOccurrencesInSystems(o et.ElevOrder) int {
  */
 func updateFinishedOrders() {
 	s, _ := systems[LocalID]
-
+	log.WithField("finishedOrders", len(s.E.FinishedOrders)).Warn("sysstate: updateFinishedOrders, num finished in elev")
 	// Match orders in CurrentOrders to orderIDs finished by the local elevator.
 	for _, o := range s.E.FinishedOrders {
+
 		if !o.IsEmpty() &&
 			(s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].Id == o.Id ||
 				s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].Assignee == LocalID && s.CurrentOrders[o.Order.Floor][int(o.Order.Button)].IsAccepted()) {

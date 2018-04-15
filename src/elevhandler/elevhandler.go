@@ -98,6 +98,7 @@ func handler(
 			case floorIndicatorInput <- floor:
 			case doorOpenLampInput <- doorOpenLamp:
 			case elevStateToNetwork <- elev:
+				fsm.MarkElevatorSentToNetHandler()
 			default:
 			}
 
