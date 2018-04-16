@@ -14,15 +14,105 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+
+sysbackup has methods for making and recovering file backups of the elevator system.
+
+*/
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
+
+// Is set when when initialized, which happens automatically.
 var initialized = false
-var numUseableBackupFiles string
+
+// The file we log to, it is used by Backup.
 var logFile *os.File
+
+// Regexp used to identify backup files' names
 var backupRegexp, _ = regexp.Compile("^backup_[0-9]+.elevlog$")
+
+// Regexp used to identify the ID of a system in a backup entry
 var idRegexp, _ = regexp.Compile("id=.+ backup=")
+
+// Regexp used to identify the state of a system in a backup entry
 var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
+// Where backup files are stored
 const folderDir = "../backup/"
 
+////////////////////////////////
+// Interface
+////////////////////////////////
+
+/*Backup stores the passed argument states in the file logFile.
+ * If logFile has not been set (if not initialized), it is created first.
+ * @arg states: Slice containing states of systems.
+ */
+func Backup(states []et.ElevState) {
+	if !initialized {
+		setupSysBackup()
+	}
+	log.WithField("FileName", (*logFile).Name()).Debug("sysbackup Backup: Backed up")
+	for i := 0; i < len(states); i++ {
+		backupElevState(states[i])
+	}
+
+}
+
+/*Recover searchs the ./backup folder for .elevlog backups, recovers them if sufficiently recent, and returns them
+ * @arg timeLimit: Files must be modified after this to be recovered.
+ * @return: Recovered backup. Nil if none found, or they were from before timeLimit.
+ *			Err nonzero if we failed to scan for files.
+ */
+func Recover(timeLimit time.Time) ([]et.ElevState, error) {
+
+	// Locate all files in the dir
+	files, err := ioutil.ReadDir(folderDir)
+	if err != nil {
+		log.WithField("err", err.Error()).Error("sysbackup Recover: Failed")
+		return make([]et.ElevState, 0), err
+	}
+	// We are only interested in .elevlog files
+	backupFilesIndexes := getBackupFileIndexes(files)
+
+	// Discard files that are from before timeLimit
+	useableBackupIndexes := make([]int, 0)
+	for _, index := range backupFilesIndexes {
+		if files[index].ModTime().Sub(timeLimit) > 0*time.Second {
+			useableBackupIndexes = append(useableBackupIndexes, index)
+			log.WithField("usable file", files[index].Name()).Info("sysbackup Recover: Valid file for recovery")
+		}
+	}
+	// Sort the files by time last modified
+	sortedIndexes, _ := getBackupFileIndexesSortedInIncreasingTime(files, useableBackupIndexes)
+
+	// Recover info from the backups
+	states := make([]et.ElevState, 0)
+	for _, backupIndex := range sortedIndexes {
+		log.WithField("File", files[backupIndex].Name()).Info("sysbackup: Applying backup")
+		applyBackupFromFile(&states, files[backupIndex])
+	}
+	numBackupFiles := strconv.FormatInt(int64(len(backupFilesIndexes)), 10)
+	numUseableBackupFiles := strconv.FormatInt(int64(len(useableBackupIndexes)), 10)
+	numStatesRecovered := strconv.FormatInt(int64(len(states)), 10)
+
+	log.WithFields(log.Fields{"numStatesRecovered": numStatesRecovered,
+		"numBackupFiles":        numBackupFiles,
+		"numUseableBackupFiles": numUseableBackupFiles,
+	}).Info("sysbackup Recover:")
+
+	return states, nil
+}
+
+////////////////////////////////
+// Auxiliary functions
+////////////////////////////////
+
+/*setupSysBackup sets the Backup output file.
+ * If necessary, it also creates the ./backup directory
+ */
 func setupSysBackup() {
 
 	filename := folderDir + "backup_" + strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"
@@ -48,53 +138,10 @@ func setupSysBackup() {
 	}
 }
 
-func Backup(states []et.ElevState) {
-	if !initialized {
-		setupSysBackup()
-	}
-	log.WithField("FileName", (*logFile).Name()).Debug("sysbackup Backup: Backed up")
-	for i := 0; i < len(states); i++ {
-		backupElevState(states[i])
-	}
-
-}
-
-func Recover(timeLimit time.Time) ([]et.ElevState, error) {
-
-	files, err := ioutil.ReadDir(folderDir)
-	if err != nil {
-		log.WithField("err", err.Error()).Error("sysbackup Recover: Failed")
-		return make([]et.ElevState, 0), err
-	}
-	backupFilesIndexes := getBackupFileIndexes(files)
-
-	useableBackupIndexes := make([]int, 0)
-	for _, index := range backupFilesIndexes {
-		if files[index].ModTime().Sub(timeLimit) > 0*time.Second {
-			useableBackupIndexes = append(useableBackupIndexes, index)
-			log.WithField("usable file", files[index].Name()).Info("sysbackup Recover: Valid file for recovery")
-		}
-	}
-
-	sortedIndexes, _ := getBackupFileIndexesSortedInIncreasingTime(files, useableBackupIndexes)
-
-	states := make([]et.ElevState, 0)
-	for _, backupIndex := range sortedIndexes {
-		log.WithField("File", files[backupIndex].Name()).Info("sysbackup: Applying backup")
-		applyBackupFromFile(&states, files[backupIndex])
-	}
-	numBackupFiles := strconv.FormatInt(int64(len(backupFilesIndexes)), 10)
-	numUseableBackupFiles = strconv.FormatInt(int64(len(useableBackupIndexes)), 10)
-	numStatesRecovered := strconv.FormatInt(int64(len(states)), 10)
-
-	log.WithFields(log.Fields{"numStatesRecovered": numStatesRecovered,
-		"numBackupFiles":        numBackupFiles,
-		"numUseableBackupFiles": numUseableBackupFiles,
-	}).Info("sysbackup Recover:")
-
-	return states, nil
-}
-
+/*getbackupFileIndexes determines which files among a set are .elevlog files.
+ * @arg files: Slice of files in a folder
+ * @return: Indexes of the files arg which are .elevlog files
+ */
 func getBackupFileIndexes(files []os.FileInfo) []int {
 	backupFilesIndexes := make([]int, 0)
 	for i, f := range files {
@@ -105,6 +152,12 @@ func getBackupFileIndexes(files []os.FileInfo) []int {
 	return backupFilesIndexes
 }
 
+/*getBackupFileIndexesSortedInIncreasingTime returns the indexes of the backup files, sorted by when they were last modified.
+ * Oldest are first, most recent last in the return slice
+ * @arg files: Slice of files in a folder
+ * @arg backupIndexes: Indexes of the files arg which are .elevlog files
+ * @return: backupIndexes sorted by modification time
+ */
 func getBackupFileIndexesSortedInIncreasingTime(files []os.FileInfo, backupIndexes []int) ([]int, error) {
 	timestamps := make([]int64, len(backupIndexes))
 	sortedIndexes := make([]int, len(backupIndexes))
@@ -137,6 +190,10 @@ func getBackupFileIndexesSortedInIncreasingTime(files []os.FileInfo, backupIndex
 	return sortedIndexes, nil
 }
 
+/*applyBackupFromFile goes through a file, converts each line to a backuped object, and applies it to the states arg system.
+ * @arg states: slice of system's states
+ * @arg backupFile: A single .elevlog file
+ */
 func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 	log.WithField("filaname", backupFile.Name()).Debug("sysbackup apply: Applying backup")
 	file, err := os.OpenFile(folderDir+backupFile.Name(), os.O_RDONLY, 0755)
@@ -174,17 +231,19 @@ func applyBackupFromFile(states *[]et.ElevState, backupFile os.FileInfo) {
 	}
 }
 
+/*getStateJSONFromBackup finds the part of a line which represents a JSON-formatted et.ElevState object, and returns that part.
+ * @arg line: Line from backup file
+ * @return: Part of the line
+ */
 func getStateJSONFromBackup(line *string) string {
 	stateWithSuffixAndPrefix := stateRegexp.FindString(*line)
 	state := strings.TrimPrefix(strings.TrimSuffix(stateWithSuffixAndPrefix, "\n"), "backup=")
 	return state
 }
 
-func GetIDFromBackup(line *string) string {
-	idWithSuffixAndPrefix := idRegexp.FindString(*line)
-	id := strings.TrimSuffix(strings.TrimPrefix(idWithSuffixAndPrefix, "id="), " backup=")
-	return id
-}
+/*backupElevState stores a state as a JSON-formatted string in a backup file.
+ * @arg state: State of a system
+ */
 func backupElevState(state et.ElevState) {
 	if logFile == nil {
 		log.WithField("err", "Nonexistent logfile").Error("sysbackup backup: Could not back up")
