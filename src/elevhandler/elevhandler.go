@@ -115,12 +115,10 @@ func handler(
 	)
 	defer driver.StopDriver()
 
-	//[@todo] where to place these? 
+	//[@todo] where to place these?
 	handlerDebugLogMsgTimer := time.Now()
-	
-	
+
 	sendFSMUpdatesTimer := time.Now()
-	
 
 	for {
 
@@ -137,7 +135,7 @@ func handler(
 		}
 
 		// Get values to be sent
-		if time.Now().Sub(sendFSMUpdatesTimer) > et.sendFSMUpdatesFreq {
+		if time.Now().Sub(sendFSMUpdatesTimer) > et.HandlerSendFSMUpdatesFreq {
 			sendFSMUpdatesTimer = time.Now()
 
 			elev := fsm.GetElevator()
@@ -178,7 +176,7 @@ func handler(
 			// Do nothing
 		}
 
-		if time.Now().Sub(handlerDebugLogMsgTimer) > et.handlerDebugLogMsgFreq {
+		if time.Now().Sub(handlerDebugLogMsgTimer) > et.HandlerDebugLogMsgFreq {
 			handlerDebugLogMsgTimer = time.Now()
 			log.Debug("elevhandler handler: Running")
 		}

@@ -27,7 +27,6 @@ const MSG_MISSED_THRESHOLD = 10
 // Interface
 ////////////////////////////////
 
-
 /*StartPheonicService starts as a secondary system, monitoring  the primary.
  * If primary does not exsist, crashes, etc. i.e. fails to send 10 continous messages, the secondary becomes
  * primary and creates a new backup
@@ -58,7 +57,6 @@ func StartPhoenixService() {
 		}()
 	}
 }
-
 
 ////////////////////////////////
 // Auxiliary

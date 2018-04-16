@@ -84,7 +84,7 @@ func main() {
 				fmt.Fprintf(table, "State \t%d\t|\tHallUp\t"+orderToString(&sys, 0, 0)+"\t"+orderToString(&sys, 1, 0)+"\t"+orderToString(&sys, 2, 0)+"\t"+orderToString(&sys, 3, 0)+"\t|\n", sys.E.State)
 				fmt.Fprintf(table, "ErrState \t%d\t|\tHallDown \t"+orderToString(&sys, 0, 1)+"\t"+orderToString(&sys, 1, 1)+"\t"+orderToString(&sys, 2, 1)+"\t"+orderToString(&sys, 3, 1)+"\t|\n", sys.E.ErrorState)
 				fmt.Fprintf(table, "MovDir \t%d\t|\tCab\t"+orderToString(&sys, 0, 2)+"\t"+orderToString(&sys, 1, 2)+"\t"+orderToString(&sys, 2, 2)+"\t"+orderToString(&sys, 3, 2)+"\t|\n", sys.E.MovementDirection)
-				fmt.Fprintf(table, elevFloorDisplay(sys.E.Floor, sys.E.MovementDirection))
+				fmt.Fprintf(table, elevFloorDisplay(sys.E.Floor, sys.E.MovementDirection)+"\n")
 				tm.Print(table)
 			}
 			tm.Println("                                            |")
@@ -100,9 +100,9 @@ func main() {
 }
 
 func elevFloorDisplay(floor int, movDir et.MotorDirection) string {
-	var s = "                         "
+	var s = "                  "
 
-	for f := 0; f < floor; f++ {
+	for f := 0; f < floor+1; f++ {
 		s += "     "
 	}
 	switch movDir {
@@ -115,10 +115,10 @@ func elevFloorDisplay(floor int, movDir et.MotorDirection) string {
 	default:
 		s += " E "
 	}
-	for f := floor; f < et.NumFloors; f++ {
+	for f := floor + 1; f < et.NumFloors; f++ {
 		s += "     "
 	}
-	s += " |"
+	s += "   |"
 	return s
 }
 
@@ -148,8 +148,6 @@ func orderToString(sys *et.ElevState, f int, b int) string {
 		orderState = sys.CurrentOrders[f][b].Status
 	}
 	switch orderState {
-	case et.Timeout:
-		return "T"
 	case et.Received:
 		return "R"
 	case et.Accepted:

@@ -46,7 +46,7 @@ func Setup() {
 	setupStartTime = time.Now().Unix()
 	handleCmdLineArgs()
 	setupLog()
-	setupPhoenix()
+	startPhoenix()
 	setupSysState()
 	systemStates := recoverBackup()
 	setSystemStates(systemStates)
@@ -136,8 +136,8 @@ func initLog(level log.Level, toFile bool) {
 
 /*setupPhoenix starts the phoenix service, which restarts our system upon crash
  */
-func setupPhoenix() {
-	px.StartSurveillanceOfPrimary()
+func startPhoenix() {
+	px.StartPhoenixService()
 }
 
 /*setupSysState initializes our sysstate module, which stores the state of the local & remote systems (including orders).

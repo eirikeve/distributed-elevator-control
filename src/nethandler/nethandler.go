@@ -148,13 +148,13 @@ func netHandler(
 		ss.CheckForAndHandleOrderTimeouts()
 
 		// Backup the system on file. Also done each time we accept an order.
-		if time.Now().Sub(netHandlerAutoBackupTimer) > et.netHandlerAutoBackupFreq {
+		if time.Now().Sub(netHandlerAutoBackupTimer) > et.NetHandlerAutoBackupFreq {
 			netHandlerAutoBackupTimer = time.Now()
 			sb.Backup(ss.GetSystemsStates())
 		}
 
 		// Logs a message regularly, helpful to see when the system is running
-		if time.Now().Sub(netHandlerDebugLogMsgTimer) > et.netHandlerDebugLogMsgFreq {
+		if time.Now().Sub(netHandlerDebugLogMsgTimer) > et.NetHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
 			log.Debug("nethandler handler: Running")
 		}
@@ -164,7 +164,7 @@ func netHandler(
 		////////
 
 		// Send regular updates over UDP
-		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > et.netHandlerSendRegularUpdateFreq {
+		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > et.NetHandlerSendRegularUpdateFreq {
 			netHandlerSendRegularUpdateTimer = time.Now()
 			select {
 			case sendRegularUpdates <- ss.GetLocalSystem():
@@ -174,7 +174,7 @@ func netHandler(
 		}
 
 		// Send order queue to local elevator
-		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > et.netHandlerSendElevatorQueueFreq {
+		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > et.NetHandlerSendElevatorQueueFreq {
 			netHandlerSendElevatorQueueTimer = time.Now()
 			orders := ss.GetLocalSystemQueue()
 			select {
@@ -185,7 +185,7 @@ func netHandler(
 		}
 
 		// Send buttom lamp lights to local elevator
-		if time.Now().Sub(netHandlerSendElevatorLightsTimer) > et.netHandlerSendElevatorLightsFreq {
+		if time.Now().Sub(netHandlerSendElevatorLightsTimer) > et.NetHandlerSendElevatorLightsFreq {
 			netHandlerSendElevatorLightsTimer = time.Now()
 			lights := ss.GetPanelLights()
 			for f := 0; f < et.NumFloors; f++ {
