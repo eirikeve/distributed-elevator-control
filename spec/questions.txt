@@ -1,4 +1,0 @@
-- Bruke ulike porter for ulike formål?
-- TimeOut som gjør at network-modul slår seg av etter en stund.. dårlig ide?
-- Kanskje sende mld til nettverksmodul som string?
-
