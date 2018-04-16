@@ -13,6 +13,19 @@ import (
 	tm "github.com/buger/goterm"
 )
 
+/*
+
+display is a separate program from the main project.
+It is not necessary to run display to run the main project.
+
+display monitors the network for UDP messages from any active systems,
+these regular updates are stored, and displayed in a HUD.
+Due to the lib used, you may not see anything you write in the terminal after exiting the program. Haven't found a fix.
+
+Since display is not a part of the project and will likely never be used again, we haven't documented it as well as the main project.
+
+*/
+
 func main() {
 	LocIP, _ := locip.LocalIP()
 	var recvExitSignal = make(chan bool, 2)
@@ -20,27 +33,31 @@ func main() {
 	var regularUpdateTimeout = time.Second * 60
 	var systems []et.ElevState
 
+	// Can press p to exit.
 	go exitPoller(recvExitSignal)
+
 	// Start Transmitter and Receiver for sending messages
 	var sendRegularUpdates = make(chan et.ElevState, 12)
 	var recvRegularUpdates = make(chan et.ElevState, 12)
 
+	// Used to display how many messages we receive, and which are not empty
 	var countReceivedMsg int64
 	var countReceivedMsgUsable int64
 
 	go b.Transmitter(et.AckHandlerPort, sendRegularUpdates)
 	go b.Receiver(et.AckHandlerPort, recvRegularUpdates)
 
-	// Clear Display
+	// Necessary to have empty screen before drawing
 	tm.Clear()
 
+	// If we don't receive a single message for a set time, close the program
 	for time.Now().Sub(regularUpdateTimer) < regularUpdateTimeout {
 		select {
 		case <-recvExitSignal:
 			tm.Clear()
 			println("Received stop signal. Exiting Display.")
 			return
-
+		// Received a regular update message, so store the system
 		case remoteUpdate := <-recvRegularUpdates:
 			countReceivedMsg++
 			if remoteUpdate.ID != 0 {
@@ -62,9 +79,9 @@ func main() {
 				}
 			}
 		default:
-			// Do nothing
 		}
 
+		// Drawing the systems
 		tm.MoveCursor(1, 1)
 		tm.Println("Elevator Display Tool\nLocal IP:  \t" + LocIP + "\nActive systems:\t" + strconv.FormatInt(int64(len(systems)), 10) + "\nTimeout in:  \t" + strconv.FormatInt(60-int64(time.Now().Sub(regularUpdateTimer).Seconds()), 10) + "s" + "\nTotal recv messages: " + strconv.FormatInt(countReceivedMsg, 10) + " (non-empty: " + strconv.FormatInt(countReceivedMsgUsable, 10) + ")")
 
@@ -91,7 +108,7 @@ func main() {
 			tm.Println("============================================-")
 
 		}
-
+		// Render
 		tm.Flush()
 	}
 	tm.Clear()
@@ -99,6 +116,7 @@ func main() {
 
 }
 
+//elevFloorDisplay gives a string of spaces (ending with |) where the position of an E (and an arrow) is determined by  floor & dir
 func elevFloorDisplay(floor int, movDir et.MotorDirection) string {
 	var s = "                  "
 
@@ -122,6 +140,7 @@ func elevFloorDisplay(floor int, movDir et.MotorDirection) string {
 	return s
 }
 
+//intToGenericString returns a string representing the number if it is 0-9, else it returns ">9"
 func intToGenericString(i int64) string {
 	if i == 0 {
 		return " 0"
@@ -132,6 +151,7 @@ func intToGenericString(i int64) string {
 	}
 }
 
+//intToBufferedString gives a string with the number i and then some padding untill length is sz
 func intToBufferedString(i int64, sz int) string {
 	s := strconv.FormatInt(i, 10)
 	if len(s) < sz {
@@ -142,6 +162,7 @@ func intToBufferedString(i int64, sz int) string {
 	return s
 }
 
+// orderToString gives a string representation of an order
 func orderToString(sys *et.ElevState, f int, b int) string {
 	orderState := et.Unknown
 	if sys.CurrentOrders[f][b].Id != "" {
@@ -167,8 +188,8 @@ func orderToString(sys *et.ElevState, f int, b int) string {
 	}
 }
 
+//exitPoller signals to outChan when the character p is read.
 func exitPoller(outChan chan<- bool) {
-
 	// disable input buffering
 	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
 	// do not display entered characters on the screen
