@@ -17,7 +17,6 @@ import (
  * @arg e: Elevator containing current active orders
  */
 func OrderLogicOrdersAbove(e et.Elevator) bool {
-	// @todo handle if floor is -1
 	for f := e.Floor + 1; f < et.NumFloors; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
 			if e.Orders[f][btn].IsActive() {
@@ -33,7 +32,6 @@ func OrderLogicOrdersAbove(e et.Elevator) bool {
  * @arg e: Elevator containing current active orders
  */
 func OrderLogicOrdersBelow(e et.Elevator) bool {
-	// @todo handle if floor is -1
 	for f := 0; f < e.Floor; f++ {
 		for btn := 0; btn < et.NumButtons; btn++ {
 			if e.Orders[f][btn].IsActive() {
@@ -153,8 +151,6 @@ func OrderLogicCheckIfRequestsAtCurrentFloor(elevator et.Elevator) bool {
 		elevator.Orders[elevator.Floor][et.BT_HallUp].IsActive()
 }
 
-// @TODO FOLLOWING FN IS NOT USED IN THIS BRANCH. SEE FN
-
 /*OrderLogicClearRequestsOnCurrentFloor (.) is used by elevordelegation to examines if the elevator should clear
  * a request on the current floor. Hence this function is ONLY used for simulation of the elevator.
  * @arg e: Contains the current orders in the Elevator
@@ -162,8 +158,6 @@ func OrderLogicCheckIfRequestsAtCurrentFloor(elevator et.Elevator) bool {
  * @return: The elevator with updated queue
  */
 func OrderLogicClearRequestsOnCurrentFloor(e et.Elevator, travelDirFromFloor et.MotorDirection) et.Elevator {
-	//@TODO add support for storing finished orders in some list
-	// https://github.com/TTK4145/Project-resources/blob/master/elev_algo/requests.c
 	// Only take passengers going in the directin the elevator will be moving
 	e.Orders[e.Floor][et.BT_Cab] = et.SimpleOrder{}
 	switch travelDirFromFloor {

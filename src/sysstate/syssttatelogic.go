@@ -300,7 +300,6 @@ func updateSingleOrder(localOrder et.ElevOrder, remoteOrder et.ElevOrder) et.Ele
 
 	// We have two orders in the same floor/button. Likely, it is the same order ID.
 	if localOrder.GetID() != remoteOrder.GetID() {
-		//@TODO remove and use the other one.
 		o = updateSingleOrderNonMatchingIDs(localOrder, remoteOrder)
 	} else {
 		o = updateSingleOrderMatchingIDs(localOrder, remoteOrder)

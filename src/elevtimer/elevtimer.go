@@ -38,7 +38,7 @@ func Start(timerName string, duration time.Duration, signalTimeout chan bool) {
 	defer lock.Unlock()
 	_, exists := timers[timerName]
 	if exists {
-		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Warning("elevtimer Start: Called start on existing timer, updating its duration instead")
+		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Debug("elevtimer Start: Called start on existing timer, updating its duration instead")
 
 	}
 	// Make buffered durationUpdateChan, and link it to the timerName
