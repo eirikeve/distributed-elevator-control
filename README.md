@@ -1,12 +1,12 @@
 # TTK4145 Real Time Programming
-_Elevator Project_  - `Group 28` - Spring 2018  
-- Ole Petter Nordanger [`olepno`](github.com/olepno)
-- Eirik Vesterkjær [`eirikeve`](github.com/eirikeve)
+_Elevator Project_  - `Group ????` - Spring 2018  
+- Person 1 [`github username`]
+- Person 2 [`github username`]
 
 ## The project
 
 This repository contains our semester project for the course TTK4145 Real Time Programming.  
-The task was to make a system capable of real time, robust control and order delegation between M elevators, each with N floors.  
+The task was to make a system capable of real time, robust control and order delegation between N elevators, each with M floors.  
 Our project has the following parts:  
 * `./src`, source code, consisting of the following modules:  
     * `elevdriver`: Basic i/o interaction with the ElevatorServer/simulator. "Hardware interface."  
@@ -30,7 +30,7 @@ Our project has the following parts:
 ## External Libraries
 
 We have used several external libraries in this project:  
-* [`logrus`](www.github.com/sirupsen/logrus), used for structured information logging to bash with different importance levels  
+* `logrus`, used for structured information logging to bash with different importance levels  (must be installed from [`www.github.com/sirupsen/logrus`](www.github.com/sirupsen/logrus))
 * `strconv`, for parsing and formatting numbers  
 * `fmt`, for string formatting  
 * `net`, for networking in phoenix  
@@ -45,7 +45,7 @@ We have used several external libraries in this project:
 * `strings` for string modification  
 
 And our display module has an additional dependency, which is not needed for running the main project:  
-* [`gotem`](www.github.com/buger/goterm), used for making a command line GUI heads up display of the whole elevator system state
+* `goterm`, used for making a command line GUI heads up display of the whole elevator system state (must be installed from [`www.github.com/buger/goterm`](www.github.com/buger/goterm))
 
 
 ## Running the project
