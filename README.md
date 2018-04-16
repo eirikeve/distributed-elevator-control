@@ -46,7 +46,9 @@ We have used several external libraries in this project:
 * `regexp`, for determining which files are our backup files, and finding the information in a line from a backup  
 * `strings` for string modification  
 
-And our display module has an additional dependency, which is not needed for running the main project:  
+The file orderlogic.go in elevfsm, and the orderdelegation module are based on elev_algo and cost_fns in [`https://github.com/TTK4145/Project-resources`](https://github.com/TTK4145/Project-resources).
+
+Our display module has an additional dependency, which is not needed for running the main project:  
 * `goterm`, used for making a command line GUI heads up display of the whole elevator system state (must be installed from [`www.github.com/buger/goterm`](www.github.com/buger/goterm))
 
 
