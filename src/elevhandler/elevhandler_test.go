@@ -24,7 +24,6 @@ func TestElevHandler(t *testing.T) {
 }
 
 func TestElevHandlerPanic(t *testing.T) {
-	// @BUG this doesn't work correctly...
 	// Add time.Sleep(time.Second*10) in elevhandler instance loop, then run this test
 	elevlog.InitLog(log.DebugLevel, false)
 	defer func() {
