@@ -96,5 +96,5 @@ If you want to run several elevators locally, set the `--port` flag of each inst
 
 Display is completely separate from the main project.  
 It monitors for messages, and uses them to display the active systems states in a HUD.  
-Compile by running `go build -o display`.
+Compile by running `go build -o display` in the `./display` folder.
 It takes no passed arguments.
