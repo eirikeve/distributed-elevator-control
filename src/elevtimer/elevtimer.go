@@ -184,6 +184,6 @@ func removeTimerInstance(timerName string) {
 	if exists {
 		delete(timers, timerName)
 	} else {
-		log.WithField("timerName", timerName).Error("elevtimer removeTimer: Cannot find timer")
+		log.WithField("timerName", timerName).Warn("elevtimer removeTimer: Cannot find timer")
 	}
 }
