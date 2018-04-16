@@ -23,14 +23,6 @@ var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
 const folderDir = "../backup/"
 
-func GetBackupElev(startupTime int64, localSys et.ElevState) *et.Elevator {
-	if startupTime > localSys.StartupTime {
-		return &localSys.E
-	} else {
-		return nil
-	}
-}
-
 func setupSysBackup() {
 
 	filename := folderDir + "backup_" + strconv.FormatInt(time.Now().Unix(), 10) + ".elevlog"

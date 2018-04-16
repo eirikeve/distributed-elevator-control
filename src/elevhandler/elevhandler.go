@@ -34,7 +34,7 @@ var fsmTimeoutSignal chan bool
  * @arg elevatorFSMToNethandler: Output channel,sending finished orders from to the Nethandler
  * @arg elevatorInitialState: Contains either a elevator initailized from backup, or nil hence a new elevator is shall be initialzed
  */
-func StartElevatorHandler(
+func StartElevHandler(
 	orderQueueFromNethandler <-chan [et.NumFloors][et.NumButtons]et.SimpleOrder,
 	buttonLightsFromNethandler <-chan et.ButtonLamp,
 	buttonPressesToNethandler chan<- et.ButtonEvent,
@@ -59,7 +59,7 @@ func StartElevatorHandler(
 /*StopElevatorHandler (.) is called to signal the Handler
  * to stop, buy writing true to signalHandlerToStop channel
  */
-func StopElevatorHandler() {
+func StopElevHandler() {
 	log.Info("elevhandler StopElevatorHandler: Stopping")
 	signalHandlerToStop <- true
 	log.Debug("elevhandler StopElevatorHandler: Stop signalled")

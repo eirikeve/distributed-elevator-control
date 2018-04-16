@@ -1,4 +1,4 @@
-package recover
+package phoenix
 
 import (
 	"encoding/json"
@@ -114,6 +114,6 @@ func spawnBackup() {
 
 	// For Ubuntu:
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "ElevatorServer")).Run()
-	(exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
+	(exec.Command("gnome-terminal", "-x", "sh", "-c", "./elevator -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
 	log.Info("Secondary is created and is now surveilling!")
 }
