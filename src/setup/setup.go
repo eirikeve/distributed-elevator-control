@@ -27,8 +27,8 @@ It is used to perform necessary setup for starting the main processes (nethandle
 // Used to check if we managed to recover a backup of the local elevator, in CheckBackupForExistingElevator().
 var setupStartTime int64
 
-// Controls which log messages display. Set from cmd line args.
-var logLevel = log.WarnLevel
+// Controls which log messages display. Can be changed from cmd line args
+var logLevel = log.InfoLevel
 
 // Set from cmd line args
 var logToFileInsteadOfBash = false

@@ -48,7 +48,6 @@ func StartNetHandler(
 		return
 	}
 
-	log.Info("elevnetworkhandler Start: Starting")
 	signalNetHandlerToStop = make(chan bool)
 	handlerRunning = true
 
@@ -57,6 +56,8 @@ func StartNetHandler(
 		buttonLightsFromNethandler,
 		buttonPressesToNethandler,
 		elevStateToNethandler)
+
+	log.Info("elevnetworkhandler Start: Started nethandler")
 }
 
 /*StopNetHandler signals the nethandler instance to shut down

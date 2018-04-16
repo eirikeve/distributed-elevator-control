@@ -13,9 +13,8 @@ const (
 type ElevatorErrorState int
 
 const (
-	FullFunctionality    ElevatorErrorState = iota
-	ReducedFunctionality                    = iota
-	NoFunctionality                         = iota
+	FullFunctionality ElevatorErrorState = iota
+	NoFunctionality                      = iota
 )
 
 type Elevator struct {

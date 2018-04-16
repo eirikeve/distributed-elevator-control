@@ -49,7 +49,6 @@ func StartElevHandler(
 		return
 	}
 
-	log.Info("elevhandler StartElevatorHandler: Starting")
 	signalHandlerToStop = make(chan bool, 2)
 	fsmTimeoutSignal = make(chan bool, 2)
 	fsm.InitFSM(fsmTimeoutSignal, elevatorInitialState)
@@ -61,7 +60,7 @@ func StartElevHandler(
 		buttonPressesToNethandler,
 		elevatorFSMToNethandler)
 
-	log.Error("elevhandler StartElevatorHandler: Started")
+	log.Info("elevhandler StartElevatorHandler: Started")
 
 }
 
@@ -151,7 +150,6 @@ func handler(
 			case elevatorFSMToNethandler <- elev:
 				fsm.MarkElevatorSentToNetHandler()
 			default:
-
 			}
 		}
 

@@ -41,6 +41,11 @@ func PushLocalElevatorUpdate(e *et.Elevator) {
  */
 func PushButtonEvent(assigneeSysID int32, btn et.ButtonEvent) {
 
+	if !systemCanCurrentlyReceiveOrders() {
+		log.Warn("sysstate Push: Order rejected. Cannot receive orders; system not initialized")
+		return
+	}
+
 	t := time.Now().Unix()
 	o := et.ElevOrder{
 		Id:                strconv.FormatInt(int64(LocalID), 10) + strconv.FormatInt(int64(btn.Floor), 10) + strconv.FormatInt(int64(btn.Button), 10) + strconv.FormatInt(time.Now().Unix(), 30),
@@ -72,7 +77,7 @@ func PushButtonEvent(assigneeSysID int32, btn et.ButtonEvent) {
 			activeSystems := network.GetSystemsInNetwork()
 
 			if len(activeSystems) < 2 {
-				log.Debug("sysstate Push: Order rejected. Cannot guarantee completion")
+				log.Warn("sysstate Push: Order rejected. Cannot guarantee completion")
 				return
 			}
 
@@ -594,6 +599,18 @@ func isOrderAlreadyActive(btn et.ButtonEvent) bool {
 		return true
 	}
 	return false
+}
+
+/*systemCanCurrentlyReceiveOrders returns true if the system is not initializing or in an unknown state.
+ * @return bool signalling if sys is ready to recv orders
+ */
+func systemCanCurrentlyReceiveOrders() bool {
+	localSys := systems[LocalID]
+
+	if localSys.E.State == et.UnknownState || localSys.E.State == et.Initializing {
+		return false
+	}
+	return true
 }
 
 /*accept registers an order as accepted.

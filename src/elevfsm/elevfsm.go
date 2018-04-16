@@ -1,6 +1,7 @@
 package elevfsm
 
 import (
+	"os"
 	"time"
 
 	timer "../elevtimer"
@@ -46,6 +47,7 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: No ref, reinitialized elevator")
 	} else {
 		elevator := *e
+
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
 
@@ -219,6 +221,7 @@ func initialize() {
 	log.Debug("elevfsm initialize: Initializing")
 	setState(et.Initializing)
 	setDir(et.MD_Down)
+	timer.Start("Initialization", initFailTimeout, doorTimeoutSignalOutput)
 }
 
 /*atteptToReinitialize (.), called if initialization has failed to detect floor within given time limit.
@@ -235,8 +238,8 @@ func atteptToReinitialize() {
 	case et.MD_Up:
 		setDir(et.MD_Stop)
 		log.Error("elevfsm RegisterTimerTimeout: Error, could not init, restarting")
-		//@TODO restart here
-
+		// Could not initialize - so restart the system (phoenix takes care of this) and retry
+		os.Exit(1)
 	}
 }
 

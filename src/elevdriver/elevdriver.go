@@ -57,7 +57,6 @@ func StartDriver(
 	driverLock.Lock()
 	defer driverLock.Unlock()
 
-	log.Info("elevdriver StartDriver: Driver starting")
 	if driverRunning {
 		log.Warning("elevdriver StartDriver: Driver already running. Returning")
 		return

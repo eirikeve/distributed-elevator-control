@@ -40,7 +40,7 @@ func StartPhoenixService() {
 		go phoenixListenProcess(markTimeout)
 	}
 	<-markTimeout
-
+	log.Warn("phoenix: No primary, taking over as primary and spawing secondary")
 	isBackUp = false
 
 	time.Sleep(time.Millisecond * 500)
@@ -71,11 +71,11 @@ func phoenixListenProcess(marktimeout chan int) {
 	missedMSG := 0
 	localUDPAddress, err := net.ResolveUDPAddr("udp", ":"+et.BackupPort)
 	if err != nil {
-		log.WithField("Failed to Resolve UPD ADDR", err).Error("Reboot listenProcess")
+		log.WithField("phoenix: Failed to Resolve UPD ADDR", err).Error("Reboot listenProcess")
 	}
 	conn, err := net.ListenUDP("udp", localUDPAddress)
 	if err != nil {
-		log.WithField("Failed to ListenUDP", err).Error("Reboot listenProcess")
+		log.WithField("phoenix: Failed to ListenUDP", err).Error("Reboot listenProcess")
 	}
 	defer conn.Close()
 
@@ -87,10 +87,10 @@ func phoenixListenProcess(marktimeout chan int) {
 		_, _, err := conn.ReadFromUDP(buf[:])
 
 		if err == nil {
-			log.Info("Secondary: Recv message from Primary")
+			log.Info("phoenix Secondary: Recv message from Primary")
 			missedMSG = 0
 		} else {
-			log.Warning("Secondary: Missed msg from Primary")
+			log.Info("phoenix Secondary: Missed msg from Primary")
 			missedMSG += 1
 			if missedMSG >= MSG_MISSED_THRESHOLD {
 				marktimeout <- 1
@@ -128,5 +128,5 @@ func spawnBackup() {
 	// For Ubuntu:
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "ElevatorServer")).Run()
 	(exec.Command("gnome-terminal", "-x", "sh", "-c", "./elevator -port="+et.SystemIpPort+" -backupPort="+et.BackupPort)).Run()
-	log.Info("Secondary is created and is now surveilling!")
+	log.Info("phoenix: Secondary is created and is now surveilling!")
 }
