@@ -7,11 +7,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+ * The timer module contains functionality for creating timer instances with a given duration,
+ * The instance signalizes a timeout after the given duration has passed.
+ */
+
+////////////////////////////////
+// Module variables
+////////////////////////////////
+
 // Map for updating the duration of timers
 var timers = make(map[string]chan time.Duration)
 
 // Mutex for thread safety. Used due to accessing timers, which can cause unexpected behaviour
 var lock sync.Mutex
+
+////////////////////////////////
+// Interface
+////////////////////////////////
 
 /*Start creates a timer instance which signals true on signalTimeout channel after duration time has passed.
  * timerName is just an identifier for when logging info about the timer.
@@ -35,25 +48,11 @@ func Start(timerName string, duration time.Duration, signalTimeout chan bool) {
 
 }
 
-func StartDelayedFunction(timerName string, duration time.Duration, onTimeout func()) {
-	lock.Lock()
-	defer lock.Unlock()
-	_, exists := timers[timerName]
-	if exists {
-		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Warning("elevtimer StartDelayedFunction: Called start on existing timer, updating its duration instead")
-		// Unlocking and Locking here is due to the def Unlock() call
-		// Unlocking an unlocked mutex causes runtime error, so this is a workaround
-		// Deferring Update would make it be called before Unlock, so that wouldn't help either
-		println("\n\n\n TIMER EXSISTS \n\n\n")
-		lock.Unlock()
-		Update(timerName, duration)
-		lock.Lock()
-	} else {
-		// Make buffered durationUpdateChan, and link it to the timerName
-		timers[timerName] = make(chan time.Duration, 2)
-		go delayedFunctionInstance(timerName, duration, onTimeout, timers[timerName])
-		log.WithFields(log.Fields{"timerName": timerName, "duration": duration}).Debug("elevtimer StartDelayedFunction: Timer start")
-	}
+/*Stop is a wrapper for Update(timerName,0)
+ * @arg timerName: timer identifier
+ */
+func Stop(timerName string) {
+	Update(timerName, time.Second*0)
 }
 
 /*Update sets a new duration for timer timerName
@@ -77,12 +76,9 @@ func Update(timerName string, newDuration time.Duration) {
 	}
 }
 
-/*Stop is a wrapper for Update(timerName,0)
- * @arg timerName: timer identifier
- */
-func Stop(timerName string) {
-	Update(timerName, time.Second*0)
-}
+////////////////////////////////
+// Auxiliary
+////////////////////////////////
 
 /*timerInstance is an instance which signals true to signalTimeout after duration time.
  * It is created in the Start function; you don't need to call this function directly.
@@ -140,38 +136,6 @@ func timerInstance(timerName string, duration time.Duration, signalTimeout chan<
 
 		}
 	}
-}
-
-/*delayedFunctionInstance is an instance which calls onTimeout after duration time.
- * It is created in the StartDelayedFunction function; you don't need to call this function directly.
- * @arg onTimeout: function called upon timeout.
- * @arg duration: the duration from the function call until the timerInstance signals timeout
- * @arg timerName: timer identifier
- */
-func delayedFunctionInstance(timerName string, duration time.Duration, onTimeout func(), durationUpdateChan <-chan time.Duration) {
-
-	defer removeTimerInstance(timerName)
-
-	var startTime = time.Now()
-
-	// Counting until duration has passed. Listen for updates to duration.
-	for time.Now().Sub(startTime) < duration {
-		select {
-		case newDuration := <-durationUpdateChan:
-			if newDuration > time.Second*0 {
-				startTime = time.Now()
-				duration = newDuration
-				//log.WithField("timerName", timerName).Debug("elevtimer delayedFunctionInstance: Timer duration updated")
-			} else {
-				log.WithField("timerName", timerName).Debug("elevtimer delayedFunctionInstance: Timer stopped, exiting")
-				return
-			}
-		default:
-			time.Sleep(time.Millisecond * 50)
-		}
-	}
-	// Timer has elapsed.
-	onTimeout()
 }
 
 /*removeTimerInstance deletes a timerName and its corresponding durationUpdateChan from the timers map

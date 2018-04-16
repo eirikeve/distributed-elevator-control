@@ -11,7 +11,7 @@ import (
 /*
   The elevfsm module contains information and logic for the elevator, which is used to determine its actions.
   It is used by elevhandler to run, share and store information about the local elevator.
-  The module elevorderevaluation uses the FSM for simulating the elevator.
+  The module elevorderevaluation uses the FSM for simulation of the elevator.
 */
 
 ////////////////////////////////
@@ -48,11 +48,12 @@ func InitFSM(doorTimeoutSignal chan bool, e *et.Elevator) {
 		elevator := *e
 		log.WithField("elevator", elevator).Debug("elevfsm Initialize: Initialized elevator from ref")
 	}
+
 	runCurrentStateFunction(elevator)
 }
 
 /*HandleOrders (.), when in Idle: decides if the elevator should start moving, unload or
- * remain in Idle by calulating a new movement direction and current orders.
+ * remain in Idle by calulating a new movement direction and checking current orders.
  * Else do nothing.
  */
 func HandleOrders() {
@@ -71,7 +72,7 @@ func HandleOrders() {
 	}
 }
 
-/*RegisterFloor (.), consideres to change state based on given input floor, current
+/*RegisterFloor (.), updates the current floor of the elevator and consideres to change state based on given input floor, current
  * state and exsisting orders. Function is called when a change in floor is detected.
  * @arg floor: Inputs a new registered floor
  */
@@ -90,7 +91,7 @@ func RegisterFloor(floor int) {
 	case et.Moving:
 
 		if OrderLogicCheckShouldStopAtFloor(elevator) {
-			unload() //@TODO add extra condition for unloading. In case of timeout.
+			unload()
 		} else if floor == et.BOTTOMFLOOR && elevator.MovementDirection == et.MD_Down ||
 			floor == et.TOPFLOOR && elevator.MovementDirection == et.MD_Up {
 			idle()
@@ -293,6 +294,10 @@ func isValidFloor(floor int) bool {
 	return (0 <= floor && floor < et.NumFloors)
 }
 
+/*runCurrentStateFunction (.) executes the state function
+ * corresponding to the elevators current state.
+ * @arg elev: Elevator containing the present state
+ */
 func runCurrentStateFunction(elev et.Elevator) {
 	switch elev.State {
 	case et.Idle:

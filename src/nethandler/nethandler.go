@@ -98,19 +98,10 @@ func netHandler(
 
 	// Used for determining when to perform actions / send messages
 	netHandlerDebugLogMsgTimer := time.Now()
-	netHandlerDebugLogMsgFreq := 2 * time.Second
-
 	netHandlerAutoBackupTimer := time.Now()
-	netHandlerAutoBackupFreq := 500 * time.Millisecond
-
 	netHandlerSendRegularUpdateTimer := time.Now()
-	netHandlerSendRegularUpdateFreq := 100 * time.Millisecond
-
 	netHandlerSendElevatorQueueTimer := time.Now()
-	netHandlerSendElevatorQueueFreq := 50 * time.Millisecond
-
 	netHandlerSendElevatorLightsTimer := time.Now()
-	netHandlerSendElevatorLightsFreq := 200 * time.Millisecond
 
 	// Regular update transmitter
 	go b.Transmitter(et.AckHandlerPort, sendRegularUpdates)
@@ -157,13 +148,13 @@ func netHandler(
 		ss.CheckForAndHandleOrderTimeouts()
 
 		// Backup the system on file. Also done each time we accept an order.
-		if time.Now().Sub(netHandlerAutoBackupTimer) > netHandlerAutoBackupFreq {
+		if time.Now().Sub(netHandlerAutoBackupTimer) > et.netHandlerAutoBackupFreq {
 			netHandlerAutoBackupTimer = time.Now()
 			sb.Backup(ss.GetSystemsStates())
 		}
 
 		// Logs a message regularly, helpful to see when the system is running
-		if time.Now().Sub(netHandlerDebugLogMsgTimer) > netHandlerDebugLogMsgFreq {
+		if time.Now().Sub(netHandlerDebugLogMsgTimer) > et.netHandlerDebugLogMsgFreq {
 			netHandlerDebugLogMsgTimer = time.Now()
 			log.Debug("nethandler handler: Running")
 		}
@@ -173,7 +164,7 @@ func netHandler(
 		////////
 
 		// Send regular updates over UDP
-		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > netHandlerSendRegularUpdateFreq {
+		if time.Now().Sub(netHandlerSendRegularUpdateTimer) > et.netHandlerSendRegularUpdateFreq {
 			netHandlerSendRegularUpdateTimer = time.Now()
 			select {
 			case sendRegularUpdates <- ss.GetLocalSystem():
@@ -183,7 +174,7 @@ func netHandler(
 		}
 
 		// Send order queue to local elevator
-		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > netHandlerSendElevatorQueueFreq {
+		if time.Now().Sub(netHandlerSendElevatorQueueTimer) > et.netHandlerSendElevatorQueueFreq {
 			netHandlerSendElevatorQueueTimer = time.Now()
 			orders := ss.GetLocalSystemQueue()
 			select {
@@ -194,7 +185,7 @@ func netHandler(
 		}
 
 		// Send buttom lamp lights to local elevator
-		if time.Now().Sub(netHandlerSendElevatorLightsTimer) > netHandlerSendElevatorLightsFreq {
+		if time.Now().Sub(netHandlerSendElevatorLightsTimer) > et.netHandlerSendElevatorLightsFreq {
 			netHandlerSendElevatorLightsTimer = time.Now()
 			lights := ss.GetPanelLights()
 			for f := 0; f < et.NumFloors; f++ {
