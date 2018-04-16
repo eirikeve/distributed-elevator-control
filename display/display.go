@@ -22,23 +22,20 @@ func main() {
 
 	go exitPoller(recvExitSignal)
 	// Start Transmitter and Receiver for sending messages
-	var sendAckNack = make(chan et.AckNackMsg, 6)
-	var recvAckNack = make(chan et.AckNackMsg, 6)
 	var sendRegularUpdates = make(chan et.ElevState, 12)
 	var recvRegularUpdates = make(chan et.ElevState, 12)
 
 	var countReceivedMsg int64
 	var countReceivedMsgUsable int64
 
-	go b.Transmitter(et.AckHandlerPort, sendAckNack, sendRegularUpdates)
-	go b.Receiver(et.AckHandlerPort, recvAckNack, recvRegularUpdates)
+	go b.Transmitter(et.AckHandlerPort, sendRegularUpdates)
+	go b.Receiver(et.AckHandlerPort, recvRegularUpdates)
 
 	// Clear Display
 	tm.Clear()
 
 	for time.Now().Sub(regularUpdateTimer) < regularUpdateTimeout {
 		select {
-		case <-recvAckNack:
 		case <-recvExitSignal:
 			tm.Clear()
 			println("Received stop signal. Exiting Display.")
@@ -87,6 +84,7 @@ func main() {
 				fmt.Fprintf(table, "State \t%d\t|\tHallUp\t"+orderToString(&sys, 0, 0)+"\t"+orderToString(&sys, 1, 0)+"\t"+orderToString(&sys, 2, 0)+"\t"+orderToString(&sys, 3, 0)+"\t|\n", sys.E.State)
 				fmt.Fprintf(table, "ErrState \t%d\t|\tHallDown \t"+orderToString(&sys, 0, 1)+"\t"+orderToString(&sys, 1, 1)+"\t"+orderToString(&sys, 2, 1)+"\t"+orderToString(&sys, 3, 1)+"\t|\n", sys.E.ErrorState)
 				fmt.Fprintf(table, "MovDir \t%d\t|\tCab\t"+orderToString(&sys, 0, 2)+"\t"+orderToString(&sys, 1, 2)+"\t"+orderToString(&sys, 2, 2)+"\t"+orderToString(&sys, 3, 2)+"\t|\n", sys.E.MovementDirection)
+				fmt.Fprintf(table, elevFloorDisplay(sys.E.Floor, sys.E.MovementDirection))
 				tm.Print(table)
 			}
 			tm.Println("                                            |")
@@ -99,6 +97,29 @@ func main() {
 	tm.Clear()
 	println("Timed out. Exiting Display")
 
+}
+
+func elevFloorDisplay(floor int, movDir et.MotorDirection) string {
+	var s = "                         "
+
+	for f := 0; f < floor; f++ {
+		s += "     "
+	}
+	switch movDir {
+	case et.MD_Down:
+		s += "<E "
+	case et.MD_Stop:
+		s += " E "
+	case et.MD_Up:
+		s += " E>"
+	default:
+		s += " E "
+	}
+	for f := floor; f < et.NumFloors; f++ {
+		s += "     "
+	}
+	s += " |"
+	return s
 }
 
 func intToGenericString(i int64) string {
