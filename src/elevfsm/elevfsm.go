@@ -120,7 +120,7 @@ func RegisterFloor(floor int) {
 func RegisterTimerTimeout() {
 	switch elevator.State {
 	case et.Unloading:
-		log.Info("elevfsm RegisterTimeOut: Going from Unloading to Idle")
+		log.Debug("elevfsm RegisterTimeOut: Going from Unloading to Idle")
 		idle()
 	case et.Initializing:
 		atteptToReinitialize()
