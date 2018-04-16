@@ -6,7 +6,6 @@ import "time"
 type OrderStatus int
 
 const (
-	Timeout  OrderStatus = -1
 	Unknown  OrderStatus = 0
 	Received OrderStatus = 1
 	Accepted OrderStatus = 2
@@ -21,19 +20,20 @@ type ElevOrder struct {
 	Order ButtonEvent `json: "orderBtnEv"`
 	// Timestamp at order creation [UNIX timestamp]
 	TimestampReceived int64 `json: "orderLastUpdate"`
-	//[@todo]: Changed to float64 from int64, is this right?]
 	// Current status of order
 	Status OrderStatus `json: "orderStatus"`
 	// Last update of order [UNIX timestamp]
 	TimestampLastOrderStatusChange int64 `json: "orderLastStatusChange"`
 	// Assigned to elev w/ this ID
 	Assignee int32 `json: "orderAssignee"`
-	//List over IDs of elevators which have acknowledged this order
+	// List over IDs of elevators which have acknowledged this order
 	Acks []int32 `json: "Acks"`
 	// Marks whether the order has been sent to the Assignee local elevator queue (to the FSM queue)
 	SentToAssigneeElevator bool `json: "sent"`
 }
 
+
+// A simpler order representation used by the local system, to the elevator
 type SimpleOrder struct {
 	// ID of request IP+timestamp+ButtonEvent
 	Id string
