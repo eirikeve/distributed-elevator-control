@@ -21,7 +21,6 @@ type ElevOrder struct {
 	Order ButtonEvent `json: "orderBtnEv"`
 	// Timestamp at order creation [UNIX timestamp]
 	TimestampReceived int64 `json: "orderLastUpdate"`
-	//[@todo]: Changed to float64 from int64, is this right?]
 	// Current status of order
 	Status OrderStatus `json: "orderStatus"`
 	// Last update of order [UNIX timestamp]
