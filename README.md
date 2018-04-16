@@ -23,7 +23,7 @@ Our project has the following parts:
     * `setup`: Setup performed at startup  
     * `sysbackup`: Lets us back up the system to a file and recover it.  
     * `sysstate`: Has the state of all active systems. Has logic which lets us incorporate changes in other systems (such as new orders or timeouts in orders) into our system. All logic for accepting/rejecting/acknowledging orders is here.  
-    * `main.go`: Main loop  
+    * `main.go`: Starts the system  
 * `./sim`, source code and binaries for elevator simulator  
 * `./display` source code for our system heads up display, which shows the state & orders of all active systems  
 
