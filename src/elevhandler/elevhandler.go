@@ -16,10 +16,12 @@ import (
  */
 
 ////////////////////////////////
-// Module varibles
+// Module variables
 ////////////////////////////////
+
 var signalHandlerToStop chan bool
 var fsmTimeoutSignal chan bool
+var handlerRunning = false
 
 ////////////////////////////////
 // Interface
@@ -41,10 +43,17 @@ func StartElevHandler(
 	elevatorFSMToNethandler chan<- et.Elevator,
 	elevatorInitialState *et.Elevator,
 ) {
+
+	if handlerRunning {
+		log.Warn("elevhandler Start: Already running")
+		return
+	}
+
 	log.Info("elevhandler StartElevatorHandler: Starting")
 	signalHandlerToStop = make(chan bool, 2)
 	fsmTimeoutSignal = make(chan bool, 2)
 	fsm.InitFSM(fsmTimeoutSignal, elevatorInitialState)
+	handlerRunning = true
 
 	go handler(signalHandlerToStop,
 		orderQueueFromNethandler,
@@ -60,9 +69,13 @@ func StartElevHandler(
  * to stop, buy writing true to signalHandlerToStop channel
  */
 func StopElevHandler() {
+	if !handlerRunning {
+		log.Warn("elevhandler Stop: Handler was not runnning")
+		return
+	}
 	log.Info("elevhandler StopElevatorHandler: Stopping")
 	signalHandlerToStop <- true
-	log.Debug("elevhandler StopElevatorHandler: Stop signalled")
+	handlerRunning = false
 	return
 }
 
