@@ -9,11 +9,8 @@ import (
 
 /*
  * The timer module contains functionality for creating timer instances with a given duration,
- * The instance signalizes a timeout after the given duration has passed.   
+ * The instance signalizes a timeout after the given duration has passed.
  */
-
-
-
 
 ////////////////////////////////
 // Module variables
@@ -25,11 +22,9 @@ var timers = make(map[string]chan time.Duration)
 // Mutex for thread safety. Used due to accessing timers, which can cause unexpected behaviour
 var lock sync.Mutex
 
-
 ////////////////////////////////
 // Interface
 ////////////////////////////////
-
 
 /*Start creates a timer instance which signals true on signalTimeout channel after duration time has passed.
  * timerName is just an identifier for when logging info about the timer.
@@ -53,12 +48,37 @@ func Start(timerName string, duration time.Duration, signalTimeout chan bool) {
 
 }
 
+/*Stop is a wrapper for Update(timerName,0)
+ * @arg timerName: timer identifier
+ */
+func Stop(timerName string) {
+	Update(timerName, time.Second*0)
+}
 
+/*Update sets a new duration for timer timerName
+ *newDuration is the time from time.Now() until the timeout of the timer.
+ * @arg timerName: timer identifier
+ * @arg newDuration: new time until timeout
+ */
+func Update(timerName string, newDuration time.Duration) {
+	lock.Lock()
+	defer lock.Unlock()
+	c, exists := timers[timerName]
+	if exists {
+		select {
+		case c <- newDuration:
+		default:
+
+		}
+
+	} else {
+		log.WithField("timerName", timerName).Error("elevtimer Update: Not found")
+	}
+}
 
 ////////////////////////////////
 // Auxiliary
 ////////////////////////////////
-
 
 /*timerInstance is an instance which signals true to signalTimeout after duration time.
  * It is created in the Start function; you don't need to call this function directly.
