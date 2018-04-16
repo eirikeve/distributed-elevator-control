@@ -33,9 +33,6 @@ var logFile *os.File
 // Regexp used to identify backup files' names
 var backupRegexp, _ = regexp.Compile("^backup_[0-9]+.elevlog$")
 
-// Regexp used to identify the ID of a system in a backup entry
-var idRegexp, _ = regexp.Compile("id=.+ backup=")
-
 // Regexp used to identify the state of a system in a backup entry
 var stateRegexp, _ = regexp.Compile("backup={.+}\n$")
 
