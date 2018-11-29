@@ -16,7 +16,6 @@ import  std.algorithm,
 import timer_event;
 
 
-
 ///----------------------///
 /// -----  CONFIG  ----- ///
 ///----------------------///
@@ -856,4 +855,3 @@ void networkInterfaceProc(Tid receiver){
         writeln(typeid(t).name, "@", t.file, "(", t.line, "): ", t.msg);
     }
 }
-
