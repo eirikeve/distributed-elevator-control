@@ -8,7 +8,7 @@ _Elevator Project_  - `Group 28` - Spring 2018
 This repository contains our semester project for the course TTK4145 Real Time Programming.  
 The task was to make a distributed system capable of real time, robust control and order delegation between M elevators, each with N floors - running on M different computers.  
 
-We implemented our solution using Golang, with the elevators communicating over UDP and using a P2P structure which ensures consistency and order completion.  
+We implemented our solution using Golang, with the elevators communicating over UDP. The system has a P2P structure and uses a order acceptance & delegation protocol intended to ensure consistency and order completion.  
 
 Our project has the following parts:  
 * `./src`, source code, consisting of the following modules:  
