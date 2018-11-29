@@ -6,7 +6,7 @@ _Elevator Project_  - `Group 28` - Spring 2018
 ## The project
 
 This repository contains our semester project for the course TTK4145 Real Time Programming.  
-The task was to make a system capable of real time, robust control and order delegation between M elevators, each with N floors.  
+The task was to make a distributed system capable of real time, robust control and order delegation between M elevators, each with N floors - running on M different computers, communicating over UDP.  
 Our project has the following parts:  
 * `./src`, source code, consisting of the following modules:  
     * `elevdriver`: Basic i/o interaction with the ElevatorServer/simulator. "Hardware interface."  
